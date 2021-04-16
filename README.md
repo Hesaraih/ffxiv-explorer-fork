@@ -1,13 +1,12 @@
-FFXIV_DataExtractor
+FF14エクスプローラー
 ===================
 
-This is a fork of [FFXIV Explorer by Ioncannon](https://bitbucket.org/Ioncannon/ffxiv-explorer/overview) with some usability changes and new features.
+FF14エクスプローラーは[FFXIV Explorer by Ioncannon](https://bitbucket.org/Ioncannon/ffxiv-explorer/overview)のフォークで[goaaatsさん作成 ffxiv-explorer-fork v1.9](https://github.com/goaaats/ffxiv-explorer-fork)からのフォークです。
 
-PoC ULD reader courtesy of [RozeDoyanawa](https://github.com/RozeDoyanawa).
+ULDリーダーは[RozeDoyanawa](https://github.com/RozeDoyanawa)さんのコードを参考にしているようです。
 
-## To use
-Use IntelliJ or another Java IDE with Maven support to import a Maven project.
-Select the pom.xml file. If using IntelliJ, the build/run configurations should
-automatically appear. In other IDEs, check the .idea/runConfigurations folder
-for the command-line args for the build/run configs, or, if you know Maven, you
-might just know the commands off the top of your head.
+## 使い方
+IntelliJまたはMavenをサポートする別のJavaIDEを使用して、Mavenプロジェクトをインポートします。
+(Eclipseでもいいけど個人的にはIntelliJの方が簡単に動いたのでIntelliJフリー版がおすすめ)
+pom.xmlファイルを選択します。 IntelliJを使用している場合、ビルド/実行構成が自動的に表示されます。
+他のIDEでは、ビルド/実行構成のコマンドライン引数について.idea / runConfigurationsフォルダーを確認して構成する。
