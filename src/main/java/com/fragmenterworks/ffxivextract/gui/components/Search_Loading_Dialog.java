@@ -3,6 +3,7 @@ package com.fragmenterworks.ffxivextract.gui.components;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
+@SuppressWarnings("unused")
 class Search_Loading_Dialog extends JDialog {
 
     private final JLabel txtCurrentFolder;
@@ -21,8 +22,8 @@ class Search_Loading_Dialog extends JDialog {
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.PAGE_AXIS));
 
-        txtCurrentFolder = new JLabel("No File");
-        txtCurrentFile = new JLabel("No Block");
+        txtCurrentFolder = new JLabel("ファイルなし");
+        txtCurrentFile = new JLabel("ブロックなし");
 
         folderProgress = new JProgressBar();
         fileProgress = new JProgressBar();
@@ -48,10 +49,10 @@ class Search_Loading_Dialog extends JDialog {
         setResizable(false);
     }
 
-    public void nextFolder(int curFolder, String foldername) {
+    public void nextFolder(int curFolder, String folderName) {
         folderProgress.setValue(curFolder);
         fileProgress.setValue(0);
-        txtCurrentFolder.setText(foldername + " (" + curFolder + "/" + numFolders + ")");
+        txtCurrentFolder.setText(folderName + " (" + curFolder + "/" + numFolders + ")");
     }
 
     public void nextFile(int currFile, String filename) {

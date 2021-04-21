@@ -1,11 +1,11 @@
 package com.fragmenterworks.ffxivextract.models;
 
+import com.fragmenterworks.ffxivextract.Constants;
 import com.fragmenterworks.ffxivextract.helpers.FileTools;
 import com.fragmenterworks.ffxivextract.helpers.SparseArray;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.models.uldStuff.*;
 
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
@@ -20,7 +20,7 @@ import java.util.Arrays;
 public class ULD_File extends Game_File {
 
     /**
-     * List of parsers for graphical nodes
+     * グラフィカルノード パーサ(構文解析器)の一覧
      */
     private static final SparseArray<Class<? extends GraphicsNodeTypeData>> graphicsTypes = new SparseArray<>();
 
@@ -53,7 +53,7 @@ public class ULD_File extends Game_File {
     /**
      * Parses the given ULD data pool
      *
-     * @param data The data pool to use
+     * @param data 使用するデータプール
      */
     public ULD_File(final byte[] data, ByteOrder endian) {
         super(endian);
@@ -94,8 +94,8 @@ public class ULD_File extends Game_File {
         Class<? extends GraphicsNodeTypeData> aClass = graphicsTypes.get(type);
         if (aClass != null) {
             try {
-                Constructor c = aClass.getDeclaredConstructor(ByteBuffer.class);
-                return (GraphicsNodeTypeData) c.newInstance(data);
+                Constructor<? extends GraphicsNodeTypeData> c = aClass.getDeclaredConstructor(ByteBuffer.class);
+                return c.newInstance(data);
             } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException | InstantiationException e) {
                 Utils.getGlobalLogger().error(e);
             }
@@ -115,8 +115,8 @@ public class ULD_File extends Game_File {
         Class<? extends COHDEntryType> aClass = cohdTypes.get(type);
         if (aClass != null) {
             try {
-                Constructor c = aClass.getDeclaredConstructor(ByteBuffer.class);
-                return (COHDEntryType) c.newInstance(data);
+                Constructor<? extends COHDEntryType> c = aClass.getDeclaredConstructor(ByteBuffer.class);
+                return c.newInstance(data);
             } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException | InstantiationException e) {
                 Utils.getGlobalLogger().error(e);
             }
@@ -130,8 +130,9 @@ public class ULD_File extends Game_File {
      * @param args Program arguments.
      */
     public static void main(String[] args) {
-        byte[] data = FileTools.getRaw("D:\\games\\SquareEnix\\FINAL FANTASY XIV - A Realm Reborn\\game\\sqpack\\ffxiv", "ui/uld/botanistgame.uld");
+        byte[] data = FileTools.getRaw(Constants.datPath + "\\game\\sqpack\\ffxiv", "ui/uld/botanistgame.uld");
 
+        @SuppressWarnings("unused")
         ULD_File uld = new ULD_File(data, ByteOrder.LITTLE_ENDIAN);
     }
 
@@ -154,8 +155,8 @@ public class ULD_File extends Game_File {
     public static class ULDH {
         public final ATKH[] atkhs = new ATKH[2];
 
-        private int atkh0offset;
-        private int atkh1offset;
+        private final int atkh0offset;
+        private final int atkh1offset;
 
         /**
          * Initializes this ULDH Chunk from the given data pool
@@ -164,7 +165,7 @@ public class ULD_File extends Game_File {
          */
         ULDH(ByteBuffer data) {
             String sig = getString(data, 8);
-            if (sig.toLowerCase().equals("uldh0100")) {
+            if (sig.equalsIgnoreCase("uldh0100")) {
                 atkh0offset = data.getInt();
                 atkh1offset = data.getInt();
                 if (atkh0offset > 0) {
@@ -208,7 +209,7 @@ public class ULD_File extends Game_File {
         ATKH(ByteBuffer data) {
             int atkhOffset = data.position();
             String signature = getString(data, 8);
-            if (signature.toLowerCase().equals("atkh0100")) {
+            if (signature.equalsIgnoreCase("atkh0100")) {
                 int ashdOffset = data.getInt() & 0xFFFF;
                 int tphdOffset = data.getInt() & 0xFFFF;
                 int cohdOffset = data.getInt() & 0xFFFF;

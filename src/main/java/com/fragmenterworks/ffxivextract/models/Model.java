@@ -14,21 +14,21 @@ import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.GL3bc;
 
 import java.awt.image.BufferedImage;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class Model extends Game_File {
 
-    //Used to find other files
+    //他のファイルを見つけるために使用されます
     private final String modelPath;
     private final SqPack_IndexFile currentIndex;
 
-    //Model Info
+    //モデル情報
     private final IMC_File imcFile;
     private final DX9VertexElement[][] vertexElements;
     private final String[] stringArray;
@@ -54,9 +54,8 @@ public class Model extends Game_File {
     private SimpleShader simpleShader;
 
     private boolean isVRAMLoaded = false;
-    private boolean isMarkedForDelete = false;
 
-    //Incase a material in a different archive is needed
+    //別のアーカイブの資料が必要な場合
     private SqPack_IndexFile bgCommonIndex;
 
     private int imcPartsKey = 0;
@@ -86,14 +85,15 @@ public class Model extends Game_File {
             int count = 0;
             while (true) {
                 byte stream = bb.get();
-                if (stream == -1)
+                if (stream == -1) {
                     break;
+                }
                 count++;
                 bb.position(bb.position() + 7);
             }
             vertexElements[i] = new DX9VertexElement[count];
         }
-        //Load DirextX Vertex Elements
+        //DirectX頂点要素をロードする
         for (int i = 0; i < numTotalMeshes; i++) {
             bb.position(0x44 + (0x88 * i));
             for (int j = 0; j < vertexElements[i].length; j++) {
@@ -114,10 +114,11 @@ public class Model extends Game_File {
 
         int stringCounter = 0;
         int start = 0, end = 0;
-        for (int i = 0; i < stringBuffer.length; i++) {
-            if (stringBuffer[i] == 0) {
-                if (stringCounter >= numStrings)
+        for (byte b : stringBuffer) {
+            if (b == 0) {
+                if (stringCounter >= numStrings) {
                     break;
+                }
                 stringArray[stringCounter] = new String(stringBuffer, start, end - start);
                 start = end + 1;
                 stringCounter++;
@@ -127,6 +128,7 @@ public class Model extends Game_File {
 
         //Counts
         bb.getInt();
+        @SuppressWarnings("unused")
         short numMeshes = bb.getShort();
         numAtrStrings = bb.getShort();
         short numParts = bb.getShort();
@@ -136,6 +138,7 @@ public class Model extends Game_File {
         int unknownCount5 = bb.getShort();
         int unknownCount6 = bb.getShort();
         int unknownCount7 = bb.getShort();
+        @SuppressWarnings("unused")
         int unknownCount8 = bb.getShort();
         //From Rogueadyn's Code
         int unknownCount1 = bb.getShort();
@@ -154,12 +157,12 @@ public class Model extends Game_File {
         System.arraycopy(stringArray, 0, atrStrings, 0, numAtrStrings);
         System.arraycopy(stringArray, numAtrStrings, boneStrings, 0, numBoneStrings);
 
-        for (int i = 0; i < atrStrings.length; i++)
+        for (int i = 0; i < atrStrings.length; i++) {
             atrMasks[i] = getMaskFromAtrName(atrStrings[i]);
+        }
 
         materials = new Material[numMaterialStrings];
 
-        // I hate strings
         StringBuilder s = new StringBuilder();
         for (String str : stringArray) {
             s.append(str);
@@ -171,8 +174,9 @@ public class Model extends Game_File {
 
         imcFile = loadImcFile();
 
-        if (imcFile == null)
+        if (imcFile == null) {
             loadVariant(1);
+        }
 
         //Skip Stuff
         bb.position(bb.position() + (32 * unknownCount1));
@@ -193,7 +197,7 @@ public class Model extends Game_File {
 
             Mesh[] meshList = new Mesh[lodModels[i].numMeshes];
             for (int j = 0; j < lodModels[i].numMeshes; j++) {
-                Utils.getGlobalLogger().trace(String.format("Mesh %d:", j));
+                Utils.getGlobalLogger().trace(String.format("メッシュ %d:", j));
                 meshList[j] = new Mesh(bb, vertElementNumber);
                 vertElementNumber++;
 
@@ -205,13 +209,15 @@ public class Model extends Game_File {
         bb.position(bb.position() + (numAtrStrings * 4));
         bb.position(bb.position() + (unknownCount2 * 20)); //Skip this data
 
-        for (int i = 0; i < numParts; i++)
+        for (int i = 0; i < numParts; i++) {
             meshPartTable[i] = new MeshPart(bb);
+        }
 
-        for (int i = 0; i < meshPartTable.length; i++) {
+        for (MeshPart meshPart : meshPartTable) {
             for (int j = 0; j < atrMasks.length; j++) {
-                if (((meshPartTable[i].attributes >> j) & 1) == 1)
-                    meshPartTable[i].attributeMasks.add(atrMasks[j]);
+                if (((meshPart.attributes >> j) & 1) == 1) {
+                    meshPart.attributeMasks.add(atrMasks[j]);
+                }
             }
         }
 
@@ -220,56 +226,62 @@ public class Model extends Game_File {
         bb.position(bb.position() + (numMaterialStrings * 4));
         bb.position(bb.position() + (numBoneStrings * 4));
 
-        for (int i = 0; i < unknownCount4; i++)
+        for (int i = 0; i < unknownCount4; i++) {
             boneLists[i] = new BoneList(bb);
+        }
 
         bb.position(bb.position() + (unknownCount5 * 16));//Skip this data
         bb.position(bb.position() + (unknownCount6 * 12));//Skip this data
         bb.position(bb.position() + (unknownCount7 * 4));//Skip this data
 
         int boneIndexSize = bb.getInt();
+        @SuppressWarnings("MismatchedReadAndWriteOfArray")
         short[] boneIndices = new short[boneIndexSize / 2];
-        for (int i = 0; i < boneIndices.length; i++)
+        for (int i = 0; i < boneIndices.length; i++) {
             boneIndices[i] = bb.getShort();
+        }
 
         //Skip padding
         int paddingToSkip = bb.get();
         bb.position(bb.position() + paddingToSkip);
 
         //Read in bounding boxes
+        @SuppressWarnings("MismatchedReadAndWriteOfArray")
         BoundingBox[] boundingBoxes = new BoundingBox[4];
-        for (int i = 0; i < boundingBoxes.length; i++)
+        for (int i = 0; i < boundingBoxes.length; i++) {
             boundingBoxes[i] = new BoundingBox(bb);
+        }
 
 
-        //Load in the meshes from the mesh info
-        for (int i = 0; i < lodModels.length; i++) {
-            lodModels[i].loadMeshes(bb);
+        //メッシュ情報からメッシュをロードします
+        for (LoDSubModel lodModel : lodModels) {
+            lodModel.loadMeshes(bb);
         }
 
         if (modelPath != null) {
             String[] modelPathSplit = modelPath.split("/");
-            if (modelPathSplit[1].equals("monster"))
+            if (modelPathSplit[1].equals("monster")) {
                 imcPartsKey = 0;
-            else if (modelPathSplit[1].equals("equipment")) {
-                if (modelPath.endsWith("_top.mdl"))
+            } else if (modelPathSplit[1].equals("equipment")) {
+                if (modelPath.endsWith("_top.mdl")) {
                     imcPartsKey = 1;
-                else if (modelPath.endsWith("_glv.mdl"))
+                } else if (modelPath.endsWith("_glv.mdl")) {
                     imcPartsKey = 2;
-                else if (modelPath.endsWith("_dwn.mdl"))
+                } else if (modelPath.endsWith("_dwn.mdl")) {
                     imcPartsKey = 3;
-                else if (modelPath.endsWith("_sho.mdl"))
+                } else if (modelPath.endsWith("_sho.mdl")) {
                     imcPartsKey = 4;
-                else if (modelPath.endsWith("_ear.mdl"))
+                } else if (modelPath.endsWith("_ear.mdl")) {
                     imcPartsKey = 0;
-                else if (modelPath.endsWith("_nek.mdl"))
+                } else if (modelPath.endsWith("_nek.mdl")) {
                     imcPartsKey = 1;
-                else if (modelPath.endsWith("_wrs.mdl"))
+                } else if (modelPath.endsWith("_wrs.mdl")) {
                     imcPartsKey = 2;
-                else if (modelPath.endsWith("_rir.mdl"))
+                } else if (modelPath.endsWith("_rir.mdl")) {
                     imcPartsKey = 3;
-                else if (modelPath.endsWith("_ril.mdl"))
+                } else if (modelPath.endsWith("_ril.mdl")) {
                     imcPartsKey = 4;
+                }
             }
         }
 
@@ -283,16 +295,20 @@ public class Model extends Game_File {
             String[] modelPathSplit = modelPath.split("/");
             String skeletonPath = null, animationPath = null;
 
-            if (modelPathSplit[1].equals("monster")) {
-                skeletonPath = String.format("chara/monster/%s/skeleton/base/b0001/skl_%sb0001.sklb", modelPathSplit[2], modelPathSplit[2]);
-                animationPath = String.format("chara/monster/%s/animation/a0001/bt_common/resident/monster.pap", modelPathSplit[2]);
-            } else if (modelPathSplit[1].equals("human")) {
-                skeletonPath = String.format("chara/human/%s/skeleton/%s/%s/skl_%s%s.sklb", modelPathSplit[2], modelPathSplit[4], modelPathSplit[5], modelPathSplit[2], modelPathSplit[5]);
-                animationPath = String.format("chara/human/%s/animation/%s/resident/face.pap", modelPathSplit[2], modelPathSplit[5]);
-            } else if (modelPathSplit[1].equals("equipment")) {
-                skeletonPath = "chara/human/c0101/skeleton/base/b0001/skl_c0101b0001.sklb";
-                animationPath = "chara/human/c0101/animation/a0001/bt_2ax_emp/ws/bt_2ax_emp/ws_s03.pap";
-                //animationPath = "chara/human/c1101/animation/a0001/bt_common/emote/panic.pap";
+            switch (modelPathSplit[1]) {
+                case "monster":
+                    skeletonPath = String.format("chara/monster/%s/skeleton/base/b0001/skl_%sb0001.sklb", modelPathSplit[2], modelPathSplit[2]);
+                    animationPath = String.format("chara/monster/%s/animation/a0001/bt_common/resident/monster.pap", modelPathSplit[2]);
+                    break;
+                case "human":
+                    skeletonPath = String.format("chara/human/%s/skeleton/%s/%s/skl_%s%s.sklb", modelPathSplit[2], modelPathSplit[4], modelPathSplit[5], modelPathSplit[2], modelPathSplit[5]);
+                    animationPath = String.format("chara/human/%s/animation/%s/resident/face.pap", modelPathSplit[2], modelPathSplit[5]);
+                    break;
+                case "equipment":
+                    skeletonPath = "chara/human/c0101/skeleton/base/b0001/skl_c0101b0001.sklb";
+                    animationPath = "chara/human/c0101/animation/a0001/bt_2ax_emp/ws/bt_2ax_emp/ws_s03.pap";
+                    //animationPath = "chara/human/c1101/animation/a0001/bt_common/emote/panic.pap";
+                    break;
             }
 
             if (skeletonPath == null || animationPath == null) {
@@ -302,11 +318,12 @@ public class Model extends Game_File {
 
 
             //Skeleton/Animation
-            SKLB_File skelFile = null;
+            SKLB_File skeletonFile = null;
             try {
                 byte[] sklbData = currentIndex.extractFile(skeletonPath);
-                if (sklbData != null)
-                    skelFile = new SKLB_File(sklbData, endian);
+                if (sklbData != null) {
+                    skeletonFile = new SKLB_File(sklbData, endian);
+                }
             } catch (IOException e) {
                 Utils.getGlobalLogger().error("Couldn't find skeleton @ {}", skeletonPath, e);
             }
@@ -314,23 +331,24 @@ public class Model extends Game_File {
             animFile = null;
             try {
                 byte[] animData = currentIndex.extractFile(animationPath);
-                if (animData != null)
+                if (animData != null) {
                     animFile = new PAP_File(animData, endian);
+                }
             } catch (IOException e) {
                 Utils.getGlobalLogger().error("Couldn't find animation @ {}", animationPath, e);
             }
 
-            if (animFile != null && skelFile != null) {
-                ByteBuffer skelBuffer = ByteBuffer.allocateDirect(skelFile.getHavokData().length);
-                skelBuffer.order(ByteOrder.nativeOrder());
-                skelBuffer.put(skelFile.getHavokData());
+            if (animFile != null && skeletonFile != null) {
+                ByteBuffer skeletonBuffer = ByteBuffer.allocateDirect(skeletonFile.getHavokData().length);
+                skeletonBuffer.order(ByteOrder.nativeOrder());
+                skeletonBuffer.put(skeletonFile.getHavokData());
                 ByteBuffer animBuffer = ByteBuffer.allocateDirect(animFile.getHavokData().length);
-                skelBuffer.order(ByteOrder.nativeOrder());
+                skeletonBuffer.order(ByteOrder.nativeOrder());
                 animBuffer.put(animFile.getHavokData());
-                skelBuffer.position(0);
+                skeletonBuffer.position(0);
                 animBuffer.position(0);
 
-                //Incase Havok doesn't work
+                //Havokが機能しない場合
                 try {
                     HavokNative.startHavok();
                 } catch (UnsatisfiedLinkError e) {
@@ -339,7 +357,7 @@ public class Model extends Game_File {
                     return;
                 }
 
-                if (HavokNative.loadSkeleton(skelBuffer, skelFile.getHavokData().length) && (HavokNative.loadAnimation(animBuffer, animFile.getHavokData().length))) {
+                if (HavokNative.loadSkeleton(skeletonBuffer, skeletonFile.getHavokData().length) && (HavokNative.loadAnimation(animBuffer, animFile.getHavokData().length))) {
                     if (HavokNative.setAnimation(0) == -1) {
                         HavokNative.setAnimation(0);
                         Utils.getGlobalLogger().info("Animation 0 was invalid");
@@ -364,8 +382,9 @@ public class Model extends Game_File {
     }
 
     private IMC_File loadImcFile() {
-        if (modelPath == null || modelPath.contains("null") || !modelPath.contains("chara"))
+        if (modelPath == null || modelPath.contains("null") || !modelPath.contains("chara")) {
             return null;
+        }
 
         String incFolderPath = String.format("%s", modelPath.substring(0, modelPath.indexOf("model") - 1));
         String fileString = incFolderPath.substring(incFolderPath.lastIndexOf("/") + 1) + ".imc";
@@ -373,14 +392,15 @@ public class Model extends Game_File {
         try {
             byte[] data = currentIndex.extractFile(imcPath);
 
-            if (data == null)
+            if (data == null) {
                 return null;
-
+            }
+            //imcファイルの登録
             HashDatabase.addPathToDB(imcPath, currentIndex.getName());
 
             return new IMC_File(data, endian);
         } catch (IOException e) {
-            Utils.getGlobalLogger().error("Couldn't create IMC file {}", imcPath, e);
+            Utils.getGlobalLogger().error("IMCファイル{}を作成できませんでした", imcPath, e);
         }
 
         return null;
@@ -391,24 +411,29 @@ public class Model extends Game_File {
         currentVariant = variantNumber - 1;
 
         int materialNumber = -1;
-        if (imcFile != null)
+        if (imcFile != null) {
             materialNumber = imcFile.parts.get(imcPartsKey).variants.get(currentVariant).materialNumber;
+        }
 
-        if (modelPath == null || modelPath.contains("null") || (!modelPath.contains("chara") && !modelPath.contains("bg")))
+        if (modelPath == null || modelPath.contains("null") || (!modelPath.contains("chara") && !modelPath.contains("bg"))) {
             return;
+        }
 
+        @SuppressWarnings("unused")
         String[] split = modelPath.split("/");
 
-        String materialFolderPath = null;
+        String materialFolderPath;
 
-        if (!stringArray[numAtrStrings + numBoneStrings].startsWith("/") && !stringArray[numAtrStrings + numBoneStrings].contains("chara"))
+        if (!stringArray[numAtrStrings + numBoneStrings].startsWith("/") && !stringArray[numAtrStrings + numBoneStrings].contains("chara")) {
             materialFolderPath = stringArray[numAtrStrings + numBoneStrings].substring(0, stringArray[numAtrStrings + numBoneStrings].lastIndexOf("/"));
-        else if (modelPath.contains("face"))
+        } else if (modelPath.contains("face")) {
             materialFolderPath = String.format("%smaterial", modelPath.substring(0, modelPath.indexOf("model")));
-        else if (modelPath.contains("hair"))
+        } else if (modelPath.contains("hair")) {
             materialFolderPath = String.format("%smaterial/v%04d", modelPath.substring(0, modelPath.indexOf("model")), 1);
-        else// if (imcFile != null && imcFile.getVarianceInfo(variantNumber-1) != null)
+        } else// if (imcFile != null && imcFile.getVarianceInfo(variantNumber-1) != null)
+        {
             materialFolderPath = String.format("%smaterial/v%04d", modelPath.substring(0, modelPath.indexOf("model")), materialNumber);
+        }
         //else
         //	materialFolderPath = String.format("%smaterial/v%04d", modelPath.substring(0, modelPath.indexOf("model")), 1);
 
@@ -421,16 +446,17 @@ public class Model extends Game_File {
             bodyMaterialSpot = 0;
         } else {
             for (int i = 0; i < numMaterialStrings; i++) {
-                String fileString = null;
+                String fileString;
 
                 try {
-                    if (stringArray[numAtrStrings + numBoneStrings + i].startsWith("/"))
+                    if (stringArray[numAtrStrings + numBoneStrings + i].startsWith("/")) {
                         fileString = stringArray[numAtrStrings + numBoneStrings + i].substring(1);
-                    else
+                    } else {
                         fileString = stringArray[numAtrStrings + numBoneStrings + i].substring(stringArray[numAtrStrings + numBoneStrings + i].lastIndexOf("/") + 1);
+                    }
                 } catch (ArrayIndexOutOfBoundsException e) {
                     //Ion pls
-                    Utils.getGlobalLogger().error("Num materials was a LIE!", e);
+                    Utils.getGlobalLogger().error("materialの数が間違っています!", e);
                     break;
                 }
 
@@ -453,16 +479,17 @@ public class Model extends Game_File {
                     SqPack_IndexFile indexToUse = currentIndex;
                     byte[] materialData = currentIndex.extractFile(materialFolderPath, fileString);
 
-                    //If not found, check other archives
+                    //見つからない場合は、他のアーカイブを確認してください
                     if (materialData == null) {
-                        //If we need bgcommon, open it
+                        //bgcommonが必要な場合は、開きます
                         if (materialFolderPath.startsWith("bgcommon")) {
                             if (bgCommonIndex == null) {
                                 String path = currentIndex.getPath();
-                                if (path.lastIndexOf("/") != -1)
+                                if (path.lastIndexOf("/") != -1) {
                                     path = path.substring(0, path.lastIndexOf("/sqpack"));
-                                else
+                                } else {
                                     path = path.substring(0, path.lastIndexOf("\\sqpack"));
+                                }
                                 path += "/sqpack/ffxiv/010000.win32.index";
                                 bgCommonIndex = new SqPack_IndexFile(path, true);
                             }
@@ -473,12 +500,11 @@ public class Model extends Game_File {
                     }
 
                     if (materialData != null) {
+                        //Materialの初期化とtexファイルの登録をここで実施
                         materials[i] = new Material(materialFolderPath, indexToUse, materialData, endian);
-
+                        //mtrlファイルの登録
                         HashDatabase.addPathToDB(materialFolderPath + "/" + fileString, indexToUse.getName());
                     }
-                } catch (FileNotFoundException e) {
-                    Utils.getGlobalLogger().error(e);
                 } catch (IOException e) {
                     Utils.getGlobalLogger().error(e);
                 }
@@ -487,8 +513,9 @@ public class Model extends Game_File {
 
         }
 
-        //If there was a body material, grab it HACK HERE
+        //body/b..../materialがあったら、ここでハッシュDBに登録
         if (bodyMaterialSpot != -1) {
+            //chara/humanのみの処理？
             String s = stringArray[numAtrStrings + numBoneStrings + bodyMaterialSpot].substring(1);
             String s1 = s.replace("mt_c", "").substring(0, 9);
             int chara = Integer.parseInt(s1.substring(0, 4));
@@ -498,9 +525,8 @@ public class Model extends Game_File {
             HashDatabase.addPathToDB(materialFolderPath, "040000");
 
             try {
+                //Materialの初期化とtexファイルの登録をここで実施
                 materials[bodyMaterialSpot] = new Material(materialFolderPath, currentIndex, currentIndex.extractFile(materialFolderPath, s), getEndian());
-            } catch (FileNotFoundException e) {
-                Utils.getGlobalLogger().error(e);
             } catch (IOException e) {
                 Utils.getGlobalLogger().error(e);
             }
@@ -512,10 +538,12 @@ public class Model extends Game_File {
         return lodModels[lodLevel].meshList;
     }
 
+    @SuppressWarnings("unused")
     public int getNumLOD0Meshes(int lodLevel) {
         return lodModels[lodLevel].meshList.length;
     }
 
+    @SuppressWarnings("unused")
     public int getLodLevels() {
         return lodModels.length;
     }
@@ -533,28 +561,32 @@ public class Model extends Game_File {
     }
 
     public int getNumVariants() {
-        if (imcFile == null)
+        if (imcFile == null) {
             return -1;
-        else
+        } else {
             return imcFile.getNumVariances();
+        }
     }
 
+    @SuppressWarnings("unused")
     public ArrayList<VarianceInfo> getVariantsList() {
-        if (imcFile == null)
+        if (imcFile == null) {
             return null;
-        else
+        } else {
             return imcFile.getVariantsList(imcPartsKey);
+        }
     }
 
     public void render(DefaultShader defaultShader, float[] viewMatrix, float[] modelMatrix,
                        float[] projMatrix, GL3bc gl, int currentLoD, boolean isGlow) {
 
-        if (simpleShader == null)
+        if (simpleShader == null) {
             try {
                 simpleShader = new SimpleShader(gl);
             } catch (IOException e1) {
                 Utils.getGlobalLogger().error(e1);
             }
+        }
 
 
         for (int i = 0; i < getNumMesh(currentLoD); i++) {
@@ -570,21 +602,25 @@ public class Model extends Game_File {
 
             gl.glUseProgram(shader.getShaderProgramID());
 
-            if (numBones != -1)
+            if (numBones != -1) {
                 boneMatrixBuffer.position(0);
+            }
 
             for (int partNum = 0; partNum < (mesh.partTableCount == 0 ? 1 : mesh.partTableCount); partNum++) {
                 if (mesh.partTableCount != 0 && atrMasks.length != 0) {
                     long fullMask = 0;
-                    for (int m = 0; m < meshPartTable[partNum + mesh.partTableOffset].attributeMasks.size(); m++)
+                    for (int m = 0; m < meshPartTable[partNum + mesh.partTableOffset].attributeMasks.size(); m++) {
                         fullMask |= meshPartTable[partNum + mesh.partTableOffset].attributeMasks.get(m);//(meshPartTable[mesh.partOffset+partNum].attributes << m);
+                    }
 
                     if (imcFile == null) {
-                        if ((0x3FF & fullMask) != fullMask)
+                        if ((0x3FF & fullMask) != fullMask) {
                             continue;
+                        }
                     } else {
-                        if ((imcFile.getVarianceInfo(currentVariant).partVisibiltyMask & fullMask) != fullMask)
+                        if ((imcFile.getVarianceInfo(currentVariant).partVisibiltyMask & fullMask) != fullMask) {
                             continue;
+                        }
                     }
                 }
 
@@ -595,17 +631,17 @@ public class Model extends Game_File {
                     int datatype = GLHelper.getDatatype(element.datatype);
                     boolean isNormalized = GLHelper.isNormalized(element.datatype);
 
-                    //Set offset and size of buffer
+                    //バッファのオフセットとサイズを設定します
                     ByteBuffer origin = mesh.vertBuffers[element.stream].duplicate();
                     origin.position(element.offset);
                     int size = mesh.vertexSizes[element.stream];
 
-                    //Set Pointer
+                    //ポインタのセット
                     switch (element.usage) {
-                        case 0://Position
+                        case 0://位置
                             gl.glVertexAttribPointer(shader.getAttribPosition(), components, datatype, isNormalized, size, origin);
                             break;
-                        case 1://Blend Weights
+                        case 1://Blending Weight
                             gl.glVertexAttribIPointer(shader.getAttribBlendWeight(), components, datatype, size, origin);
                             break;
                         case 2://Blend Indices
@@ -614,13 +650,13 @@ public class Model extends Game_File {
                         case 3://Normal
                             gl.glVertexAttribPointer(shader.getAttribNormal(), components, datatype, isNormalized, size, origin);
                             break;
-                        case 4://Tex Coord
+                        case 4://Texture Coordinates
                             gl.glVertexAttribPointer(shader.getAttribTexCoord(), components, datatype, isNormalized, size, origin);
                             break;
                         case 6://Tangent
                             gl.glVertexAttribPointer(shader.getAttribTangent(), components, datatype, isNormalized, size, origin);
                             break;
-                        case 7://Color
+                        case 7://色
                             gl.glVertexAttribPointer(shader.getAttribColor(), components, datatype, isNormalized, size, origin);
                             break;
                     }
@@ -629,21 +665,23 @@ public class Model extends Game_File {
                 shader.setTextures(gl, material);
                 shader.setMatrix(gl, modelMatrix, viewMatrix, projMatrix);
                 boolean f = shader.isGlowPass(gl, isGlow);
-                if (isGlow && !f)
+                if (isGlow && !f) {
                     return;
+                }
 
-                if (shader instanceof HairShader)
+                if (shader instanceof HairShader) {
                     ((HairShader) shader).setHairColor(gl, Constants.defaultHairColor, Constants.defaultHighlightColor);
-                else if (shader instanceof IrisShader)
+                } else if (shader instanceof IrisShader) {
                     ((IrisShader) shader).setEyeColor(gl, Constants.defaultEyeColor);
+                }
 
                 //Upload Bone Matrix
                 if (numBones != -1) {
                     shader.setBoneMatrix(gl, numBones, boneMatrixBuffer);
                 }
 
-                int indBufPos = 0;
-                int numIndex = 0;
+                int indBufPos;
+                int numIndex;
 
                 if (mesh.partTableCount != 0) {
                     indBufPos = (meshPartTable[mesh.partTableOffset + partNum].indexOffset * 2) - (mesh.indexBufferOffset * 2);
@@ -668,7 +706,6 @@ public class Model extends Game_File {
             }
 
             //Draw Skeleton
-		    /*
 		    gl.glDisable(GL3.GL_DEPTH_TEST);
 		    if (simpleShader != null && numBones != -1){
 			    gl.glPointSize(5f);
@@ -681,7 +718,6 @@ public class Model extends Game_File {
 			    simpleShader.disableAttribs(gl);	
 		    }
 		    gl.glEnable(GL3.GL_DEPTH_TEST);
-		    */
         }
 
         //Advance Animation
@@ -690,10 +726,12 @@ public class Model extends Game_File {
         }
     }
 
-    private void debugbuffer(ByteBuffer buffer) {
+    @SuppressWarnings("unused")
+    private void debugBuffer(ByteBuffer buffer) {
         int pos = buffer.position();
-        if (pos == buffer.limit())
+        if (pos == buffer.limit()) {
             buffer.position(0);
+        }
         System.out.println(buffer);
         System.out.print("first 4: ");
         for (int i = 0; i < 4; i++) {
@@ -713,12 +751,14 @@ public class Model extends Game_File {
     private double currentTime = (double) System.currentTimeMillis() / 1000.0f;
 
     public void stepAnimation() {
-        float timestep = 1.0f / 300.0f;
+        float timeStep = 1.0f / 300.0f;
         if (numBones != -1) {
             double newTime = (double) System.currentTimeMillis() / 1000.0f;
 
-            while ((double) System.currentTimeMillis() / 1000.0f < newTime + timestep) ;
-            newTime += timestep;
+            while ((double) System.currentTimeMillis() / 1000.0f < newTime + timeStep) {
+                Utils.getGlobalLogger().debug("無限ループ検出用:「Model.javaファイル」public void stepAnimation");
+            }
+            newTime += timeStep;
 
             HavokNative.stepAnimation((float) (newTime - currentTime));
             currentTime = newTime;
@@ -728,10 +768,11 @@ public class Model extends Game_File {
     public void loadToVRAM(GL3bc gl) {
         for (int i = 0; i < getNumMaterials(); i++) {
 
-            if (getMaterial(i) == null)
+            if (getMaterial(i) == null) {
                 break;
+            }
 
-            gl.glGenTextures(5, getMaterial(i).getGLTextureIds(), 0);
+            gl.glGenTextures(5, Objects.requireNonNull(getMaterial(i)).getGLTextureIds(), 0);
             Material m = getMaterial(i);
 
             for (int j = 0; j < 5; j++) {
@@ -742,7 +783,7 @@ public class Model extends Game_File {
 
                 switch (j) {
                     case 0:
-                        tex = m.getDiffuseMapTexture();
+                        tex = Objects.requireNonNull(m).getDiffuseMapTexture();
                         break;
                     case 1:
                         tex = m.getNormalMapTexture();
@@ -762,8 +803,9 @@ public class Model extends Game_File {
                         break;
                 }
 
-                if (tex == null && byteData == null)
+                if (tex == null && byteData == null) {
                     continue;
+                }
 
                 //Load into VRAM
                 gl.glBindTexture(GL3.GL_TEXTURE_2D, m.getGLTextureIds()[j]);
@@ -772,12 +814,10 @@ public class Model extends Game_File {
                 gl.glTexParameteri(GL3.GL_TEXTURE_2D, GL3.GL_TEXTURE_MIN_FILTER, j == 1 ? GL3.GL_NEAREST : GL3.GL_LINEAR);
                 gl.glTexParameteri(GL3.GL_TEXTURE_2D, GL3.GL_TEXTURE_MAG_FILTER, j == 1 ? GL3.GL_NEAREST : GL3.GL_LINEAR);
 				
-				/*
 				//Anisotropic Filtering
-				float[] ansio = new float[1];
-				gl.glGetFloatv(GL3.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, ansio,0);
-				gl.glTexParameterf(GL3.GL_TEXTURE_2D, GL3.GL_TEXTURE_MAX_ANISOTROPY_EXT, ansio[0]);
-				*/
+				float[] ansIO = new float[1];
+				gl.glGetFloatv(GL3.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, ansIO,0);
+				gl.glTexParameterf(GL3.GL_TEXTURE_2D, GL3.GL_TEXTURE_MAX_ANISOTROPY_EXT, ansIO[0]);
 
                 if (isBytes) {
                     ByteBuffer colorTable = Buffers.newDirectByteBuffer(byteData);
@@ -807,15 +847,15 @@ public class Model extends Game_File {
                             try {
                                 img = tex.decode(0, null);
                             } catch (ImageDecodingException e) {
-                                Utils.getGlobalLogger().error("Couldn't decode texture!", e);
+                                Utils.getGlobalLogger().error("テクスチャをデコードできませんでした!", e);
                             }
 
-                            int[] pixels = new int[img.getWidth() * img.getHeight()];
+                            int[] pixels = new int[Objects.requireNonNull(img).getWidth() * img.getHeight()];
                             img.getRGB(0, 0, img.getWidth(), img.getHeight(), pixels, 0, img.getWidth());
 
                             ByteBuffer buffer = Buffers.newDirectByteBuffer(img.getWidth() * img.getHeight() * 4);
 
-                            //Fucking Java Trash
+                            //Java専用処理
                             for (int y = 0; y < img.getHeight(); y++) {
                                 for (int x = 0; x < img.getWidth(); x++) {
                                     int pixel = pixels[y * img.getWidth() + x];
@@ -825,13 +865,11 @@ public class Model extends Game_File {
                                     buffer.put((byte) ((pixel >> 24) & 0xFF));
                                 }
                             }
-                            buffer.flip(); //FOR THE LOVE OF GOD DO NOT FORGET THIS
+                            buffer.flip(); //これを忘れないこと
                             buffer.position(0);
                             gl.glTexImage2D(GL3.GL_TEXTURE_2D, 0, GL3.GL_RGBA, img.getWidth(), img.getHeight(), 0, GL3.GL_RGBA, GL3.GL_UNSIGNED_BYTE, buffer);
                     }
                 }
-                //if (j != 3)
-                //	gl.glGenerateMipmap(GL3.GL_TEXTURE_2D);
 
                 gl.glBindTexture(GL3.GL_TEXTURE_2D, 0);
 
@@ -847,27 +885,30 @@ public class Model extends Game_File {
     }
 
     public int getNumAnimations() {
-        if (animFile == null)
+        if (animFile == null) {
             return 0;
-        else
+        } else {
             return animFile.getNumAnimations();
+        }
     }
 
     public String getAnimationName(int index) {
-        if (animFile == null)
+        if (animFile == null) {
             return null;
-        else
+        } else {
             return animFile.getAnimationName(index);
+        }
     }
 
     public void setCurrentAnimation(int selectedIndex) {
 
-        if (numBones == -1)
+        if (numBones == -1) {
             return;
+        }
 
         if (HavokNative.setAnimation(selectedIndex) == -1) {
             HavokNative.setAnimation(0);
-            Utils.getGlobalLogger().info("Animation {} was invalid", selectedIndex);
+            Utils.getGlobalLogger().info("アニメーション{}が無効", selectedIndex);
         }
     }
 
@@ -875,6 +916,7 @@ public class Model extends Game_File {
         HavokNative.setPlaybackSpeed(speed);
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isVRAMLoaded() {
         return isVRAMLoaded;
     }
@@ -884,96 +926,177 @@ public class Model extends Game_File {
     }
 
     public void unload(GL3 gl) {
-        for (int i = 0; i < materials.length; i++) {
-            gl.glDeleteTextures(5, materials[i].textureIds, 0);
+        for (Material material : materials) {
+            gl.glDeleteTextures(5, material.textureIds, 0);
         }
     }
 
     public int getNumAnimationFrames(int animationNumber) {
-        if (numBones != -1)
+        if (numBones != -1) {
             return HavokNative.getNumAnimationFrames(animationNumber);
-        else
+        } else {
             return -1;
+        }
     }
 
     private long getMaskFromAtrName(String attribute) {
-        if ("atr_tv_a".equals(attribute)) return 1;
-        else if ("atr_tv_b".equals(attribute)) return 1 << 1;
-        else if ("atr_tv_c".equals(attribute)) return 1 << 2;
-        else if ("atr_tv_d".equals(attribute)) return 1 << 3;
-        else if ("atr_tv_e".equals(attribute)) return 1 << 4;
-        else if ("atr_tv_f".equals(attribute)) return 1 << 5;
-        else if ("atr_tv_g".equals(attribute)) return 1 << 6;
-        else if ("atr_tv_h".equals(attribute)) return 1 << 7;
-        else if ("atr_tv_i".equals(attribute)) return 1 << 8;
-        else if ("atr_tv_j".equals(attribute)) return 1 << 9;
+        if ("atr_tv_a".equals(attribute)) {
+            return 1;
+        } else if ("atr_tv_b".equals(attribute)) {
+            return 1 << 1;
+        } else if ("atr_tv_c".equals(attribute)) {
+            return 1 << 2;
+        } else if ("atr_tv_d".equals(attribute)) {
+            return 1 << 3;
+        } else if ("atr_tv_e".equals(attribute)) {
+            return 1 << 4;
+        } else if ("atr_tv_f".equals(attribute)) {
+            return 1 << 5;
+        } else if ("atr_tv_g".equals(attribute)) {
+            return 1 << 6;
+        } else if ("atr_tv_h".equals(attribute)) {
+            return 1 << 7;
+        } else if ("atr_tv_i".equals(attribute)) {
+            return 1 << 8;
+        } else if ("atr_tv_j".equals(attribute)) {
+            return 1 << 9;
+        } else if ("atr_mv_a".equals(attribute)) {
+            return 1;
+        } else if ("atr_mv_b".equals(attribute)) {
+            return 1 << 1;
+        } else if ("atr_mv_c".equals(attribute)) {
+            return 1 << 2;
+        } else if ("atr_mv_d".equals(attribute)) {
+            return 1 << 3;
+        } else if ("atr_mv_e".equals(attribute)) {
+            return 1 << 4;
+        } else if ("atr_mv_f".equals(attribute)) {
+            return 1 << 5;
+        } else if ("atr_mv_g".equals(attribute)) {
+            return 1 << 6;
+        } else if ("atr_mv_h".equals(attribute)) {
+            return 1 << 7;
+        } else if ("atr_mv_i".equals(attribute)) {
+            return 1 << 8;
+        } else if ("atr_mv_j".equals(attribute)) {
+            return 1 << 9;
+        } else if ("atr_bv_a".equals(attribute)) {
+            return 1;
+        } else if ("atr_bv_b".equals(attribute)) {
+            return 1 << 1;
+        } else if ("atr_bv_c".equals(attribute)) {
+            return 1 << 2;
+        } else if ("atr_bv_d".equals(attribute)) {
+            return 1 << 3;
+        } else if ("atr_bv_e".equals(attribute)) {
+            return 1 << 4;
+        } else if ("atr_bv_f".equals(attribute)) {
+            return 1 << 5;
+        } else if ("atr_bv_g".equals(attribute)) {
+            return 1 << 6;
+        } else if ("atr_bv_h".equals(attribute)) {
+            return 1 << 7;
+        } else if ("atr_bv_i".equals(attribute)) {
+            return 1 << 8;
+        } else if ("atr_bv_j".equals(attribute)) {
+            return 1 << 9;
+        } else if ("atr_gv_a".equals(attribute)) {
+            return 1;
+        } else if ("atr_gv_b".equals(attribute)) {
+            return 1 << 1;
+        } else if ("atr_gv_c".equals(attribute)) {
+            return 1 << 2;
+        } else if ("atr_gv_d".equals(attribute)) {
+            return 1 << 3;
+        } else if ("atr_gv_e".equals(attribute)) {
+            return 1 << 4;
+        } else if ("atr_gv_f".equals(attribute)) {
+            return 1 << 5;
+        } else if ("atr_gv_g".equals(attribute)) {
+            return 1 << 6;
+        } else if ("atr_gv_h".equals(attribute)) {
+            return 1 << 7;
+        } else if ("atr_gv_i".equals(attribute)) {
+            return 1 << 8;
+        } else if ("atr_gv_j".equals(attribute)) {
+            return 1 << 9;
+        } else if ("atr_dv_a".equals(attribute)) {
+            return 1;
+        } else if ("atr_dv_b".equals(attribute)) {
+            return 1 << 1;
+        } else if ("atr_dv_c".equals(attribute)) {
+            return 1 << 2;
+        } else if ("atr_dv_d".equals(attribute)) {
+            return 1 << 3;
+        } else if ("atr_dv_e".equals(attribute)) {
+            return 1 << 4;
+        } else if ("atr_dv_f".equals(attribute)) {
+            return 1 << 5;
+        } else if ("atr_dv_g".equals(attribute)) {
+            return 1 << 6;
+        } else if ("atr_dv_h".equals(attribute)) {
+            return 1 << 7;
+        } else if ("atr_dv_i".equals(attribute)) {
+            return 1 << 8;
+        } else if ("atr_dv_j".equals(attribute)) {
+            return 1 << 9;
+        } else if ("atr_sv_a".equals(attribute)) {
+            return 1;
+        } else if ("atr_sv_b".equals(attribute)) {
+            return 1 << 1;
+        } else if ("atr_sv_c".equals(attribute)) {
+            return 1 << 2;
+        } else if ("atr_sv_d".equals(attribute)) {
+            return 1 << 3;
+        } else if ("atr_sv_e".equals(attribute)) {
+            return 1 << 4;
+        } else if ("atr_sv_f".equals(attribute)) {
+            return 1 << 5;
+        } else if ("atr_sv_g".equals(attribute)) {
+            return 1 << 6;
+        } else if ("atr_sv_h".equals(attribute)) {
+            return 1 << 7;
+        } else if ("atr_sv_i".equals(attribute)) {
+            return 1 << 8;
+        } else if ("atr_sv_j".equals(attribute)) {
+            return 1 << 9;
+        } else if ("atr_fv_a".equals(attribute)) {
+            return 1;
+        } else if ("atr_fv_b".equals(attribute)) {
+            return 1 << 1;
+        } else if ("atr_fv_c".equals(attribute)) {
+            return 1 << 2;
+        } else if ("atr_fv_d".equals(attribute)) {
+            return 1 << 3;
+        } else if ("atr_fv_e".equals(attribute)) {
+            return 1 << 4;
+        } else if ("atr_fv_f".equals(attribute)) {
+            return 1 << 5;
+        } else if ("atr_fv_g".equals(attribute)) {
+            return 1 << 6;
+        } else if ("atr_fv_h".equals(attribute)) {
+            return 1 << 7;
+        } else if ("atr_fv_i".equals(attribute)) {
+            return 1 << 8;
+        } else if ("atr_fv_j".equals(attribute)) {
+            return 1 << 9;
+        } else {
+            return 0;
+        }
+    }
 
-        else if ("atr_mv_a".equals(attribute)) return 1;
-        else if ("atr_mv_b".equals(attribute)) return 1 << 1;
-        else if ("atr_mv_c".equals(attribute)) return 1 << 2;
-        else if ("atr_mv_d".equals(attribute)) return 1 << 3;
-        else if ("atr_mv_e".equals(attribute)) return 1 << 4;
-        else if ("atr_mv_f".equals(attribute)) return 1 << 5;
-        else if ("atr_mv_g".equals(attribute)) return 1 << 6;
-        else if ("atr_mv_h".equals(attribute)) return 1 << 7;
-        else if ("atr_mv_i".equals(attribute)) return 1 << 8;
-        else if ("atr_mv_j".equals(attribute)) return 1 << 9;
+    @SuppressWarnings("unused")
+    public short getNumShpStrings() {
+        return numShpStrings;
+    }
 
-        else if ("atr_bv_a".equals(attribute)) return 1;
-        else if ("atr_bv_b".equals(attribute)) return 1 << 1;
-        else if ("atr_bv_c".equals(attribute)) return 1 << 2;
-        else if ("atr_bv_d".equals(attribute)) return 1 << 3;
-        else if ("atr_bv_e".equals(attribute)) return 1 << 4;
-        else if ("atr_bv_f".equals(attribute)) return 1 << 5;
-        else if ("atr_bv_g".equals(attribute)) return 1 << 6;
-        else if ("atr_bv_h".equals(attribute)) return 1 << 7;
-        else if ("atr_bv_i".equals(attribute)) return 1 << 8;
-        else if ("atr_bv_j".equals(attribute)) return 1 << 9;
+    @SuppressWarnings("unused")
+    public void setNumShpStrings(short numShpStrings) {
+        this.numShpStrings = numShpStrings;
+    }
 
-        else if ("atr_gv_a".equals(attribute)) return 1;
-        else if ("atr_gv_b".equals(attribute)) return 1 << 1;
-        else if ("atr_gv_c".equals(attribute)) return 1 << 2;
-        else if ("atr_gv_d".equals(attribute)) return 1 << 3;
-        else if ("atr_gv_e".equals(attribute)) return 1 << 4;
-        else if ("atr_gv_f".equals(attribute)) return 1 << 5;
-        else if ("atr_gv_g".equals(attribute)) return 1 << 6;
-        else if ("atr_gv_h".equals(attribute)) return 1 << 7;
-        else if ("atr_gv_i".equals(attribute)) return 1 << 8;
-        else if ("atr_gv_j".equals(attribute)) return 1 << 9;
-
-        else if ("atr_dv_a".equals(attribute)) return 1;
-        else if ("atr_dv_b".equals(attribute)) return 1 << 1;
-        else if ("atr_dv_c".equals(attribute)) return 1 << 2;
-        else if ("atr_dv_d".equals(attribute)) return 1 << 3;
-        else if ("atr_dv_e".equals(attribute)) return 1 << 4;
-        else if ("atr_dv_f".equals(attribute)) return 1 << 5;
-        else if ("atr_dv_g".equals(attribute)) return 1 << 6;
-        else if ("atr_dv_h".equals(attribute)) return 1 << 7;
-        else if ("atr_dv_i".equals(attribute)) return 1 << 8;
-        else if ("atr_dv_j".equals(attribute)) return 1 << 9;
-
-        else if ("atr_sv_a".equals(attribute)) return 1;
-        else if ("atr_sv_b".equals(attribute)) return 1 << 1;
-        else if ("atr_sv_c".equals(attribute)) return 1 << 2;
-        else if ("atr_sv_d".equals(attribute)) return 1 << 3;
-        else if ("atr_sv_e".equals(attribute)) return 1 << 4;
-        else if ("atr_sv_f".equals(attribute)) return 1 << 5;
-        else if ("atr_sv_g".equals(attribute)) return 1 << 6;
-        else if ("atr_sv_h".equals(attribute)) return 1 << 7;
-        else if ("atr_sv_i".equals(attribute)) return 1 << 8;
-        else if ("atr_sv_j".equals(attribute)) return 1 << 9;
-
-        else if ("atr_fv_a".equals(attribute)) return 1;
-        else if ("atr_fv_b".equals(attribute)) return 1 << 1;
-        else if ("atr_fv_c".equals(attribute)) return 1 << 2;
-        else if ("atr_fv_d".equals(attribute)) return 1 << 3;
-        else if ("atr_fv_e".equals(attribute)) return 1 << 4;
-        else if ("atr_fv_f".equals(attribute)) return 1 << 5;
-        else if ("atr_fv_g".equals(attribute)) return 1 << 6;
-        else if ("atr_fv_h".equals(attribute)) return 1 << 7;
-        else if ("atr_fv_i".equals(attribute)) return 1 << 8;
-        else if ("atr_fv_j".equals(attribute)) return 1 << 9;
-
-        else return 0;
+    @SuppressWarnings("unused")
+    public boolean isMarkedForDelete() {
+        return false;
     }
 }

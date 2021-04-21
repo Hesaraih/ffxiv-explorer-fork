@@ -20,6 +20,7 @@ public class Texture_File extends Game_File {
     final public int[] mipmapOffsets;
     final public byte[] data;
 
+    @SuppressWarnings("unused")
     public Texture_File(byte[] data, ByteOrder endian) {
         super(endian);
 
@@ -124,11 +125,11 @@ public class Texture_File extends Game_File {
                 + compressionType);
     }
 
+    @SuppressWarnings("unused")
     public byte[] getImage(String type) throws IOException, ImageDecodingException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ImageIO.write(decode(0, null), "png", baos);
-        byte[] bytes = baos.toByteArray();
-        return bytes;
+        return baos.toByteArray();
     }
 
     public String getCompressionTypeString() {

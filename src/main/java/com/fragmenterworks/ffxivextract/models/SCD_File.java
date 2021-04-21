@@ -12,18 +12,23 @@ import java.nio.ByteOrder;
 
 public class SCD_File extends Game_File {
 
+    @SuppressWarnings("unused")
     SCD_Sound_Info soundInfo;
     private int[] soundEntryOffsets;
     private byte[] scdFile;
 
+    @SuppressWarnings("unused")
     public SCD_File(String path, ByteOrder endian) throws IOException {
         super(endian);
 
         File file = new File(path);
-        FileInputStream fis = new FileInputStream(file);
-        byte[] data = new byte[(int) file.length()];
-        fis.read(data);
-        fis.close();
+        byte[] data;
+        try (FileInputStream fis = new FileInputStream(file)) {
+            data = new byte[(int) file.length()];
+            while (fis.read(data) != -1) {
+                Utils.getGlobalLogger().debug("SCD読み取り");
+            }
+        }
         loadSCD(data);
     }
 
@@ -32,6 +37,7 @@ public class SCD_File extends Game_File {
         loadSCD(data);
     }
 
+    @SuppressWarnings("unused")
     private void loadSCD(byte[] data) throws IOException {
 
         scdFile = data;
@@ -102,10 +108,12 @@ public class SCD_File extends Game_File {
         }
     }
 
+    @SuppressWarnings("unused")
     public byte[] getRawData() {
         return scdFile;
     }
 
+    @SuppressWarnings("unused")
     public SCD_Sound_Info getSoundInfo(int index) {
         if (index > soundEntryOffsets.length - 1)
             return null;
@@ -131,11 +139,10 @@ public class SCD_File extends Game_File {
         int numAuxChunks = buffer.getShort();
         buffer.getShort();
 
-        SCD_Sound_Info soundInfo = new SCD_Sound_Info(dataLength, numChannels, frequency, dataType, loopStart, loopEnd, firstFramePosition);
-
-        return soundInfo;
+        return new SCD_Sound_Info(dataLength, numChannels, frequency, dataType, loopStart, loopEnd, firstFramePosition);
     }
 
+    @SuppressWarnings("unused")
     public byte[] getConverted(int index) {
         if (index > soundEntryOffsets.length - 1)
             return null;
@@ -255,6 +262,7 @@ public class SCD_File extends Game_File {
         return soundEntryOffsets.length;
     }
 
+    @SuppressWarnings("unused")
     public byte[] getADPCMData(int index) {
         //Get to Sound Entry Header
         ByteBuffer buffer = ByteBuffer.wrap(scdFile);
@@ -292,6 +300,7 @@ public class SCD_File extends Game_File {
         return data;
     }
 
+    @SuppressWarnings("unused")
     public byte[] getADPCMHeader(int index) {
         //Get to Sound Entry Header
         ByteBuffer buffer = ByteBuffer.wrap(scdFile);
@@ -315,8 +324,7 @@ public class SCD_File extends Game_File {
         buffer.getShort();
 
         //Skip any aux chunks
-        int chunkStartPos = buffer.position();
-        int chunkEndPos = chunkStartPos;
+        int chunkEndPos = buffer.position();
         for (int i = 0; i < numAuxChunks; i++) {
             buffer.getInt();
             chunkEndPos += buffer.getInt();

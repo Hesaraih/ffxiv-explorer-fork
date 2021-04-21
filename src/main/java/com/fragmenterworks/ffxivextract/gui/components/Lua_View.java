@@ -4,10 +4,8 @@ import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
 
-@SuppressWarnings("serial")
 public class Lua_View extends JScrollPane {
 
-    private final JTable luaCodeTable;
     private String[] codeLines;
 
     public Lua_View(String[] strings) {
@@ -15,7 +13,7 @@ public class Lua_View extends JScrollPane {
         if (strings != null)
             codeLines = strings;
 
-        luaCodeTable = new JTable(new LuaCodeTableModel());
+        JTable luaCodeTable = new JTable(new LuaCodeTableModel());
 
         setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -86,7 +84,6 @@ public class Lua_View extends JScrollPane {
         codeLines = code;
     }
 
-    @SuppressWarnings("serial")
     class LuaCodeTableModel extends AbstractTableModel {
 
         @Override

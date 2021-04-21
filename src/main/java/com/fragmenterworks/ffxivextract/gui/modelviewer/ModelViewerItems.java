@@ -19,102 +19,105 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 
 class ModelViewerItems extends JPanel {
 
-    private final ModelViewerWindow parent;
-
     private final ArrayList<ModelItemEntry>[] entries = new ArrayList[22];
 
-    private final ArrayList<ModelItemEntry> filteredEntries = new ArrayList<ModelItemEntry>();
+    private final ArrayList<ModelItemEntry> filteredEntries = new ArrayList<>();
 
+    @SuppressWarnings("unused")
     ModelItemEntry[] addedItems = new ModelItemEntry[22];
 
-    private final SparseArray<String> slots = new SparseArray<String>();
+    private final SparseArray<String> slots = new SparseArray<>();
 
-    private final SparseArray<String> charIds = new SparseArray<String>();
+    private final SparseArray<String> charIds = new SparseArray<>();
 
     private int currentBody = 1;
     private int currentCategory = 0;
 
+    @SuppressWarnings("unused")
     OpenGL_View view3D;
-    private JList lstItems;
-    private final JComboBox cmbBodyStyle;
-    private final JComboBox cmbCategory;
-    private final FPSAnimator animator;
+    private final JList<String> lstItems;
+    private final JComboBox<String> cmbBodyStyle;
+    private final JComboBox<String> cmbCategory;
 
     //Info Section
     private final JLabel txtPath;
     private final JLabel txtModelInfo;
+    @SuppressWarnings("unused")
     JButton btnColorSet;
-    private final JButton btnResetCamera;
     private final JCheckBox chkGlowToggle;
-    private final JButton btnSearch;
-    private JTextField edtSearch;
+    private final JTextField edtSearch;
 
-    private ModelRenderer renderer;
+    private final ModelRenderer renderer;
 
     private boolean leftMouseDown = false;
     private boolean rightMouseDown = false;
 
-    private int currentLoD = 0;
+    @SuppressWarnings("unused")
+    private final int currentLoD = 0;
     private int lastOriginX, lastOriginY;
     private int lastX, lastY;
 
     private final SqPack_IndexFile modelIndexFile;
     private final EXDF_View itemView;
 
+    @SuppressWarnings("unused")
     public ModelViewerItems(ModelViewerWindow parent, SqPack_IndexFile modelIndex, EXDF_View itemView) {
 
-        this.parent = parent;
         this.modelIndexFile = modelIndex;
         this.itemView = itemView;
 
         //Fill the Equipment Slots
-        slots.append(1, "One-Handed Weapon");
-        slots.append(13, "Two-Handed Weapon");
-        slots.append(2, "Offhand");
-        slots.append(3, "Head");
-        slots.append(4, "Body");
-        slots.append(5, "Hands");
-        slots.append(7, "Legs");
-        slots.append(8, "Feet");
-        slots.append(9, "Earings");
-        slots.append(10, "Necklace");
-        slots.append(11, "Wrists");
-        slots.append(12, "Rings");
+        slots.append(1, "片手武器");
+        slots.append(13, "両手武器");
+        slots.append(2, "素手");
+        slots.append(3, "頭");
+        slots.append(4, "胴");
+        slots.append(5, "手");
+        slots.append(7, "脚");
+        slots.append(8, "足");
+        slots.append(9, "耳");
+        slots.append(10, "首");
+        slots.append(11, "腰");
+        slots.append(12, "指輪");
 
-        slots.append(15, "Body + Head");
-        slots.append(16, "All - Head");
-        //slots.append(17, "Soulstone");
-        slots.append(18, "Legs + Feet");
-        slots.append(19, "All");
-        slots.append(20, "Body + Hands");
-        slots.append(21, "Body + Legs + Feet");
+        slots.append(15, "胴 + 頭");
+        slots.append(16, "全身 - 頭");
+        //slots.append(17, "SoulStone");
+        slots.append(18, "脚 + 足");
+        slots.append(19, "全身");
+        slots.append(20, "胴 + 手");
+        slots.append(21, "胴 + 脚 + 足");
 
-        slots.append(0, "Food");
+        slots.append(0, "食べ物");
 
         //Fill the char ids
-        charIds.append(1, "Midlander Male");
-        charIds.append(2, "Midlander  Female");
-        charIds.append(3, "Highlander Male");
-        charIds.append(4, "Highlander Female");
-        charIds.append(5, "Elezen Male");
-        charIds.append(6, "Elezen Female");
-        charIds.append(7, "Miqo'te Male");
-        charIds.append(8, "Miqo'te Female");
-        charIds.append(9, "Roegadyn Male");
-        charIds.append(10, "Roegadyn  Female");
-        charIds.append(11, "Lalafell Male");
-        charIds.append(12, "Lalafell Female");
+        charIds.append(1, "ミッドランダー♂");
+        charIds.append(2, "ミッドランダー♀");
+        charIds.append(3, "ハイランダー♂");
+        charIds.append(4, "ハイランダー♀");
+        charIds.append(5, "エレゼン♂");
+        charIds.append(6, "エレゼン♀");
+        charIds.append(7, "ミコッテ♂");
+        charIds.append(8, "ミコッテ♀");
+        charIds.append(9, "ルガディン♂");
+        charIds.append(10, "ルガディン♀");
+        charIds.append(11, "ララフェル♂");
+        charIds.append(12, "ララフェル♀");
+        charIds.append(13, "アウラ♂");
+        charIds.append(14, "アウラ♀");
+        charIds.append(15, "ロスガル♂");
+        //charIds.append(16, "ロスガル♀");
+        //charIds.append(17, "ヴィエラ♂");
+        charIds.append(18, "ヴィエラ♀");
 
         Arrays.fill(entries, new ArrayList<ModelItemEntry>());
 
@@ -126,7 +129,7 @@ class ModelViewerItems extends JPanel {
 
         JPanel panel_2 = new JPanel();
         panel_1.add(panel_2, BorderLayout.NORTH);
-        panel_2.setBorder(new TitledBorder(null, "Info", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+        panel_2.setBorder(new TitledBorder(null, "情報", TitledBorder.LEADING, TitledBorder.TOP, null, null));
         panel_2.setLayout(new BoxLayout(panel_2, BoxLayout.Y_AXIS));
 
         JPanel panelInfo_1 = new JPanel();
@@ -135,8 +138,8 @@ class ModelViewerItems extends JPanel {
         flowLayout.setAlignment(FlowLayout.LEFT);
         panel_2.add(panelInfo_1);
 
-        JLabel lblBleh = new JLabel("Path: ");
-        panelInfo_1.add(lblBleh);
+        JLabel lblPath = new JLabel("パス: ");
+        panelInfo_1.add(lblPath);
 
         txtPath = new JLabel("-");
         panelInfo_1.add(txtPath);
@@ -147,10 +150,10 @@ class ModelViewerItems extends JPanel {
         flowLayout_1.setAlignment(FlowLayout.LEFT);
         panel_2.add(panelInfo_2);
 
-        JLabel label = new JLabel("Info: ");
+        JLabel label = new JLabel("情報: ");
         panelInfo_2.add(label);
 
-        txtModelInfo = new JLabel("Type: -, Id: -, Model: -, Variant: -");
+        txtModelInfo = new JLabel("タイプ : -, ID: -, モデル: -, Variant: -");
         panelInfo_2.add(txtModelInfo);
 
         JPanel panelInfo_3 = new JPanel();
@@ -158,10 +161,10 @@ class ModelViewerItems extends JPanel {
         flowLayout_2.setAlignment(FlowLayout.LEFT);
         panel_2.add(panelInfo_3);
 
-        btnResetCamera = new JButton("Reset Camera");
+        JButton btnResetCamera = new JButton("カメラをリセット");
         panelInfo_3.add(btnResetCamera);
 
-        chkGlowToggle = new JCheckBox("Glow Shader", true);
+        chkGlowToggle = new JCheckBox("Glow(発光)シェーダ", true);
         panelInfo_3.add(chkGlowToggle);
 
         chkGlowToggle.addChangeListener(new ChangeListener() {
@@ -185,7 +188,7 @@ class ModelViewerItems extends JPanel {
         panel_3.setLayout(new BorderLayout(0, 0));
 
         JPanel panel = new JPanel();
-        panel.setBorder(new TitledBorder(null, "Items", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+        panel.setBorder(new TitledBorder(null, "アイテム", TitledBorder.LEADING, TitledBorder.TOP, null, null));
         add(panel, BorderLayout.WEST);
         panel.setLayout(new BorderLayout(0, 0));
 
@@ -199,7 +202,7 @@ class ModelViewerItems extends JPanel {
         panel_4.add(panel_5);
         panel_5.setLayout(new BoxLayout(panel_5, BoxLayout.X_AXIS));
 
-        cmbBodyStyle = new JComboBox();
+        cmbBodyStyle = new JComboBox<>();
         panel_5.add(cmbBodyStyle);
 
         cmbBodyStyle.addItemListener(new ItemListener() {
@@ -210,8 +213,9 @@ class ModelViewerItems extends JPanel {
                     int selected = cmbBodyStyle.getSelectedIndex();
                     currentBody = charIds.keyAt(selected);
 
-                    if (currentCategory != -1 && lstItems.getSelectedIndex() != -1)
+                    if (currentCategory != -1 && lstItems.getSelectedIndex() != -1) {
                         loadModel(-1, lstItems.getSelectedIndex());
+                    }
 
                 }
             }
@@ -223,7 +227,7 @@ class ModelViewerItems extends JPanel {
         panel_4.add(panel_6);
         panel_6.setLayout(new BoxLayout(panel_6, BoxLayout.X_AXIS));
 
-        cmbCategory = new JComboBox();
+        cmbCategory = new JComboBox<>();
         panel_6.add(cmbCategory);
 
         cmbCategory.addItemListener(new ItemListener() {
@@ -250,7 +254,7 @@ class ModelViewerItems extends JPanel {
         JScrollPane scrollPane = new JScrollPane();
         panel.add(scrollPane, BorderLayout.CENTER);
 
-        lstItems = new JList();
+        lstItems = new JList<>();
 
         scrollPane.setViewportView(lstItems);
 
@@ -258,8 +262,9 @@ class ModelViewerItems extends JPanel {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (currentCategory == -1)
+                if (currentCategory == -1) {
                     return;
+                }
 
                 lstItems.clearSelection();
 
@@ -268,8 +273,9 @@ class ModelViewerItems extends JPanel {
                 filteredEntries.clear();
 
                 for (int i = 0; i < entries[currentCategory].size(); i++) {
-                    if (entries[currentCategory].get(i).name.toLowerCase().contains(filter.toLowerCase()))
+                    if (entries[currentCategory].get(i).name.toLowerCase().contains(filter.toLowerCase())) {
                         filteredEntries.add(entries[currentCategory].get(i));
+                    }
                 }
 
                 ((ItemsListModel) lstItems.getModel()).refresh();
@@ -280,7 +286,7 @@ class ModelViewerItems extends JPanel {
         edtSearch.addActionListener(searchListener);
         edtSearch.setColumns(10);
 
-        btnSearch = new JButton("Search");
+        JButton btnSearch = new JButton("検索");
         btnSearch.addActionListener(searchListener);
 
         JPanel panel_8 = new JPanel();
@@ -295,7 +301,7 @@ class ModelViewerItems extends JPanel {
         final GLCanvas glcanvas = new GLCanvas(glcapabilities);
         renderer = new ModelRenderer();
         glcanvas.addGLEventListener(renderer);
-        animator = new FPSAnimator(glcanvas, 30);
+        FPSAnimator animator = new FPSAnimator(glcanvas, 30);
         animator.start();
         glcanvas.addMouseMotionListener(new MouseMotionListener() {
 
@@ -322,10 +328,12 @@ class ModelViewerItems extends JPanel {
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (e.getButton() == MouseEvent.BUTTON1)
+                if (e.getButton() == MouseEvent.BUTTON1) {
                     leftMouseDown = false;
-                if (e.getButton() == MouseEvent.BUTTON3)
+                }
+                if (e.getButton() == MouseEvent.BUTTON3) {
                     rightMouseDown = false;
+                }
             }
 
             @Override
@@ -358,44 +366,40 @@ class ModelViewerItems extends JPanel {
             public void mouseClicked(MouseEvent arg0) {
             }
         });
-        addMouseWheelListener(new MouseWheelListener() {
-
-            @Override
-            public void mouseWheelMoved(MouseWheelEvent e) {
-                int notches = e.getWheelRotation();
-                renderer.zoom(-notches);
-            }
+        addMouseWheelListener(e -> {
+            int notches = e.getWheelRotation();
+            renderer.zoom(-notches);
         });
 
         if (!loadItems()) {
             removeAll();
-            JLabel errorLabel = new JLabel("There was an error loading the item list.");
+            JLabel errorLabel = new JLabel("アイテムリストの読み込み中にエラーが発生しました。");
             add(errorLabel);
             return;
         }
 
-        for (int i = 0; i < charIds.size(); i++)
+        for (int i = 0; i < charIds.size(); i++) {
             cmbBodyStyle.addItem(charIds.valueAt(i));
+        }
 
-        for (int i = 0; i < slots.size(); i++)
+        for (int i = 0; i < slots.size(); i++) {
             cmbCategory.addItem(slots.valueAt(i));
+        }
 
         //Add all the slots        
-        lstItems.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+        lstItems.getSelectionModel().addListSelectionListener(event -> {
 
-            @Override
-            public void valueChanged(ListSelectionEvent event) {
-
-                if (event.getValueIsAdjusting() || lstItems.getModel().getSize() == 0 || currentCategory == -1)
-                    return;
-
-                int selected = lstItems.getSelectedIndex();
-
-                if (selected == -1)
-                    return;
-
-                loadModel(-1, selected);
+            if (event.getValueIsAdjusting() || lstItems.getModel().getSize() == 0 || currentCategory == -1) {
+                return;
             }
+
+            int selected = lstItems.getSelectedIndex();
+
+            if (selected == -1) {
+                return;
+            }
+
+            loadModel(-1, selected);
         });
 
         panel_3.add(glcanvas, BorderLayout.CENTER);
@@ -410,8 +414,9 @@ class ModelViewerItems extends JPanel {
 
     private void loadModel(int charNumberOverride, int selected) {
 
-        if (selected == -1)
+        if (selected == -1) {
             return;
+        }
 
         String modelPath = null;
         byte[] modelData = null;
@@ -463,20 +468,23 @@ class ModelViewerItems extends JPanel {
                     break;
             }
 
-            modelData = modelIndexFile.extractFile(modelPath);
-        } catch (FileNotFoundException e) {
-            Utils.getGlobalLogger().error(e);
+            modelData = modelIndexFile.extractFile(Objects.requireNonNull(modelPath));
         } catch (IOException e) {
             Utils.getGlobalLogger().error(e);
         }
 
         if (modelData == null && (characterNumber != 101 && characterNumber != 201)) {
-            Utils.getGlobalLogger().info("Model for charId {} not detected, falling back to {} Hyur model.", String.format("%04d", characterNumber), currentBody % 2 == 0 ? "female" : "male");
+            if (currentBody % 2 == 0) {
+                Utils.getGlobalLogger().info("CharID:{}のモデルが検出されなかったため、ヒューラン{}モデルに落とし込みます。", String.format("%04d", characterNumber), "♀");
+            } else {
+                Utils.getGlobalLogger().info("CharID:{}のモデルが検出されなかったため、ヒューラン{}モデルに落とし込みます。", String.format("%04d", characterNumber), "♂");
+            }
 
-            if (currentBody % 2 == 0)
+            if (currentBody % 2 == 0) {
                 loadModel(201, selected);
-            else
+            } else {
                 loadModel(101, selected);
+            }
 
 
             return;
@@ -491,7 +499,7 @@ class ModelViewerItems extends JPanel {
         }
 
         txtPath.setText(modelPath);
-        txtModelInfo.setText(String.format("Id: %d, Model: %d, Variant: %d", currentItem.id, currentItem.model, currentItem.varient));
+        txtModelInfo.setText(String.format("ID: %d, モデル: %d, Variant: %d", currentItem.id, currentItem.model, currentItem.varient));
 
     }
 
@@ -502,6 +510,7 @@ class ModelViewerItems extends JPanel {
             for (int i = 0; i < view.getTable().getRowCount(); i++) {
                 if (view.getTable().getValueAt(i, 0) instanceof Integer && !view.getTable().getValueAt(i, EXDDef.INDEX_ITEM_MODEL1).equals("0, 0, 0, 0")) {
                     String[] model1Split = ((String) view.getTable().getValueAt(i, EXDDef.INDEX_ITEM_MODEL1)).split(",");
+                    @SuppressWarnings("unused")
                     String[] model2Split = ((String) view.getTable().getValueAt(i, EXDDef.INDEX_ITEM_MODEL1)).split(",");
 
                     int slot = (Integer) view.getTable().getValueAt(i, EXDDef.INDEX_ITEM_SLOT);
@@ -509,15 +518,22 @@ class ModelViewerItems extends JPanel {
                     String name = (String) view.getTable().getValueAt(i, EXDDef.INDEX_ITEM_NAME);
                     int id = Integer.parseInt(model1Split[0].trim());
 
-                    boolean isWeap = false;
-                    if (slot == 0 || slot == 1 || slot == 2 || slot == 13)
-                        isWeap = true;
+                    boolean isWeapon = slot == 0 || slot == 1 || slot == 2 || slot == 13;
 
-                    int model = !isWeap ? Integer.parseInt(model1Split[2].trim()) : Integer.parseInt(model1Split[1].trim());
-                    int varient = !isWeap ? Integer.parseInt(model1Split[1].trim()) : Integer.parseInt(model1Split[2].trim());
+                    int model;
+                    if (!isWeapon) {
+                        model = Integer.parseInt(model1Split[2].trim());
+                    } else {
+                        model = Integer.parseInt(model1Split[1].trim());
+                    }
+                    int varient;
+                    if (!isWeapon) {
+                        varient = Integer.parseInt(model1Split[1].trim());
+                    } else {
+                        varient = Integer.parseInt(model1Split[2].trim());
+                    }
 
-                    int type = slot;
-                    entries[slot].add(new ModelItemEntry(name, id, model, varient, type));
+                    entries[slot].add(new ModelItemEntry(name, id, model, varient, slot));
                 }
             }
         } catch (Exception e) {
@@ -529,6 +545,7 @@ class ModelViewerItems extends JPanel {
         return true;
     }
 
+    @SuppressWarnings({"unused", "StatementWithEmptyBody"})
     private int fallback(int characterCode) {
         switch (characterCode) {
 
@@ -537,28 +554,31 @@ class ModelViewerItems extends JPanel {
         return 101;
     }
 
-    class ItemsListModel extends AbstractListModel {
+    class ItemsListModel extends AbstractListModel<String> {
         public int getSize() {
 
-            if (currentCategory == -1)
+            if (currentCategory == -1) {
                 return 0;
+            }
 
             return filteredEntries.size();
         }
 
         public String getElementAt(int index) {
 
-            if (currentCategory == -1)
+            if (currentCategory == -1) {
                 return "";
+            }
 
             return filteredEntries.get(index).name;
         }
 
         void refresh() {
-            if (currentCategory == -1)
+            if (currentCategory == -1) {
                 fireContentsChanged(this, 0, 0);
-            else
+            } else {
                 fireContentsChanged(this, 0, filteredEntries.size());
+            }
         }
     }
 

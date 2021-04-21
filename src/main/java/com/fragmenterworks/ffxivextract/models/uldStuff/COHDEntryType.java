@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
  */
 public abstract class COHDEntryType {
 
+    @SuppressWarnings("unused")
     COHDEntryType(ByteBuffer data) {
 
     }

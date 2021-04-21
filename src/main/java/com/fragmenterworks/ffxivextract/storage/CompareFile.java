@@ -4,8 +4,9 @@ import java.io.File;
 import java.util.Calendar;
 import java.util.Hashtable;
 
-//Stores a master file list to check between updates.
+//更新間をチェックするためのマスターファイルリストを保存します。
 
+@SuppressWarnings("unused")
 public class CompareFile {
 
     private String lastPatchDate;
@@ -13,18 +14,16 @@ public class CompareFile {
 
     private final Hashtable<Integer, String> files; //File Hash -> Patch Date
 
-    private final String loadedIndexName;
-
     private boolean newFilesFound = false;
 
     private CompareFile(String indexPath) {
 
-        files = new Hashtable<Integer, String>();
+        files = new Hashtable<>();
         Calendar c = Calendar.getInstance();
         currentPatchDate = c.get(Calendar.YEAR) + "" + c.get(Calendar.DAY_OF_YEAR) + "" + c.get(Calendar.HOUR) + "" + c.get(Calendar.MINUTE) + "" + c.get(Calendar.SECOND);
-        loadedIndexName = indexPath;
     }
 
+    @SuppressWarnings("unused")
     public void updateDate() {
         Calendar c = Calendar.getInstance();
         currentPatchDate = c.get(Calendar.YEAR) + "" + c.get(Calendar.DAY_OF_YEAR) + "" + c.get(Calendar.HOUR) + "" + c.get(Calendar.MINUTE) + "" + c.get(Calendar.SECOND);
@@ -48,6 +47,7 @@ public class CompareFile {
             return new CompareFile(indexName);
     }
 
+    @SuppressWarnings("unused")
     public boolean isNewFile(int hash) {
         if (files.get(hash) == null && lastPatchDate == null) //Init file
         {
@@ -75,6 +75,7 @@ public class CompareFile {
                 return files.get(hash) != null && files.get(hash).equals(currentPatchDate) && lastPatchDate != null && !lastPatchDate.equals(currentPatchDate);
     }
 
+    @SuppressWarnings("unused")
     public void save() {
         newFilesFound = false;
         //	Kryo kryo = new Kryo();

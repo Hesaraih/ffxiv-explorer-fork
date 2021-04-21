@@ -11,15 +11,17 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Calendar;
+import java.util.Objects;
 
 public class SqPack_DatFile {
 
     private final static int TYPE_TEXTURE = 4;
     private final static int TYPE_MODEL = 3;
     private final static int TYPE_BINARY = 2;
+    @SuppressWarnings("unused")
     public final static int TYPE_PLACEHOLDER = 1;
 
-    private EARandomAccessFile currentFilePointer;
+    private final EARandomAccessFile currentFilePointer;
     private final ByteOrder endian;
 
     SqPack_DatFile(String path, ByteOrder endian) throws FileNotFoundException {
@@ -50,7 +52,7 @@ public class SqPack_DatFile {
         switch (contentType) {
             case TYPE_TEXTURE:
 
-                int[][] referenceRanges = null;
+                int[][] referenceRanges;
                 if (this.endian == ByteOrder.BIG_ENDIAN) {
                     referenceRanges = new int[3][2];
 
@@ -84,7 +86,7 @@ public class SqPack_DatFile {
                             continue;
                         dataBlocks[i][0] = new Data_Block(block.offset);
                         int runningTotal = block.offset;
-                        for (int j = 1; j < block.subblockSize; j++) {
+                        for (int j = 1; j < block.subBlockSize; j++) {
                             runningTotal += currentFilePointer.readShort();
                             dataBlocks[i][j] = new Data_Block(runningTotal);
                         }
@@ -92,9 +94,6 @@ public class SqPack_DatFile {
                     }
 
                     extraHeaderSize = blocks[0].offset;
-                    extraHeader = new byte[extraHeaderSize];
-                    currentFilePointer.seek(fileOffset + headerLength);
-                    currentFilePointer.read(extraHeader, 0, extraHeaderSize);
                 } else {
                     TextureBlocks[] blocks = new TextureBlocks[blockCount];
 
@@ -116,7 +115,7 @@ public class SqPack_DatFile {
                             continue;
                         dataBlocks[i][0] = new Data_Block(block.offset);
                         int runningTotal = block.offset;
-                        for (int j = 1; j < block.subblockSize; j++) {
+                        for (int j = 1; j < block.subBlockSize; j++) {
                             runningTotal += currentFilePointer.readShort();
                             dataBlocks[i][j] = new Data_Block(runningTotal);
                         }
@@ -124,15 +123,16 @@ public class SqPack_DatFile {
                     }
 
                     extraHeaderSize = blocks[0].offset;
-                    extraHeader = new byte[extraHeaderSize];
-                    currentFilePointer.seek(fileOffset + headerLength);
-                    currentFilePointer.read(extraHeader, 0, extraHeaderSize);
                 }
+                extraHeader = new byte[extraHeaderSize];
+                currentFilePointer.seek(fileOffset + headerLength);
+                currentFilePointer.read(extraHeader, 0, extraHeaderSize);
 
                 break;
             case TYPE_MODEL:
                 boolean newMethod = true;
 
+                //noinspection ConstantConditions
                 if (newMethod) {
                     byte[] mdlData = new byte[fileSize];
 
@@ -306,7 +306,7 @@ public class SqPack_DatFile {
                         int compressedBlockSize = currentFilePointer.readInt();
                         int decompressedBlockSize = currentFilePointer.readInt();
 
-                        byte[] decompressedBlock2 = null;
+                        byte[] decompressedBlock2;
                         if (compressedBlockSize == 32000 || decompressedBlockSize == 1) //Not actually compressed, just read decompressed size
                         {
                             decompressedBlock2 = new byte[decompressedBlockSize];
@@ -338,8 +338,8 @@ public class SqPack_DatFile {
                 break;
         }
 
-        byte[] decompressedFile = null;
-        int currentFileOffset = -1;
+        byte[] decompressedFile;
+        int currentFileOffset;
 
         try {
             if (fileSize + extraHeaderSize < 0)
@@ -352,7 +352,7 @@ public class SqPack_DatFile {
 
         //If we got a loading dialog
         if (loadingDialog != null)
-            loadingDialog.setMaxBlocks(dataBlocks[0].length);
+            loadingDialog.setMaxBlocks(Objects.requireNonNull(dataBlocks)[0].length);
 
         if (dataBlocks == null || dataBlocks[0] == null)
             return null;
@@ -360,7 +360,7 @@ public class SqPack_DatFile {
         int[] mipmapPosTable = null;
 
         //Load in file offsets for mipmaps
-        if (extraHeader != null && contentType == TYPE_TEXTURE) {
+        if (extraHeader != null) {
             ByteBuffer bb = ByteBuffer.wrap(extraHeader);
             bb.order(endian);
 
@@ -396,7 +396,7 @@ public class SqPack_DatFile {
                 Utils.getGlobalLogger().trace("Compressed size: {}, decompressed size: {}, block size: {}",
                         compressedBlockSize, decompressedBlockSize, dataBlocks[j][i].compressedSize);
 
-                byte[] decompressedBlock = null;
+                byte[] decompressedBlock;
                 if (compressedBlockSize == 32000 || decompressedBlockSize == 1) //Not actually compressed, just read decompressed size
                 {
                     decompressedBlock = new byte[decompressedBlockSize];
@@ -405,7 +405,7 @@ public class SqPack_DatFile {
                     decompressedBlock = decompressBlock(compressedBlockSize, decompressedBlockSize);
 
                 try {
-                    System.arraycopy(decompressedBlock, 0, decompressedFile, currentFileOffset, decompressedBlockSize);
+                    System.arraycopy(Objects.requireNonNull(decompressedBlock), 0, decompressedFile, currentFileOffset, decompressedBlockSize);
                 } catch (ArrayIndexOutOfBoundsException e) {
                     // Couldn't tell you
 //					Utils.getGlobalLogger().error(e);
@@ -469,6 +469,7 @@ public class SqPack_DatFile {
             err = inflater.end();
             CHECK_ERR(inflater, err, "inflateEnd");
 
+            //noinspection ResultOfMethodCallIgnored
             inflater.finished();
 
             return decompressedData;
@@ -491,6 +492,7 @@ public class SqPack_DatFile {
         currentFilePointer.close();
     }
 
+    @SuppressWarnings("SameParameterValue")
     private int adler32(byte[] bytes, int offset, int size) {
         final int a32mod = 65521;
         int s1 = 1, s2 = 0;
@@ -504,7 +506,7 @@ public class SqPack_DatFile {
         return (s2 << 16) + s1;
     }
 
-    class Data_Block {
+    static class Data_Block {
         final int offset;
         final int compressedSize;
         final int decompressedSize;
@@ -522,17 +524,17 @@ public class SqPack_DatFile {
         }
     }
 
-    protected class TextureBlocks {
+    protected static class TextureBlocks {
         final int offset;
         final int padding;
         final int tableOffset;
-        final int subblockSize;
+        final int subBlockSize;
 
-        TextureBlocks(int offset, int padding, int tableOffset, int subblocksize) {
+        TextureBlocks(int offset, int padding, int tableOffset, int subBlockSize) {
             this.offset = offset;
             this.padding = padding;
             this.tableOffset = tableOffset;
-            this.subblockSize = subblocksize;
+            this.subBlockSize = subBlockSize;
         }
     }
 
@@ -548,16 +550,18 @@ public class SqPack_DatFile {
         int date = currentFilePointer.readInt();
         int time = currentFilePointer.readInt();
         if (date != 0) {
-            //Copied code from Cassiope example, too lazy to write my own lol.
+            //Cassiopeの例からコピーしたコード
             int yyyy = (date / 10000) % 10000;
             int mm = (date / 100) % 100;
             int dd = date % 100;
             int hh24 = (time / 1000000) % 100;
             int mi = (time / 10000) % 100;
             int ss = (time / 100) % 100;
+            @SuppressWarnings("unused")
             int ms = time % 100;
 
             Calendar timestamp = Calendar.getInstance();
+            //noinspection MagicConstant
             timestamp.set(yyyy, mm, dd, hh24, mi, ss);
             return timestamp;
         }

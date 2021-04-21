@@ -6,13 +6,12 @@ import com.fragmenterworks.ffxivextract.Strings;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.prefs.Preferences;
+import javax.swing.filechooser.*;
 
-@SuppressWarnings("serial")
 class SettingsWindow extends JDialog {
     private final JTextField txtDatPath;
 
@@ -24,7 +23,7 @@ class SettingsWindow extends JDialog {
         this.setIconImage(image.getImage());
 
         JPanel panel = new JPanel();
-        panel.setBorder(new TitledBorder(null, "General Settings", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+        panel.setBorder(new TitledBorder(null, "一般設定", TitledBorder.LEADING, TitledBorder.TOP, null, null));
         getContentPane().add(panel, BorderLayout.NORTH);
         GridBagLayout gbl_panel = new GridBagLayout();
         gbl_panel.rowHeights = new int[]{23, 0, 0};
@@ -41,7 +40,7 @@ class SettingsWindow extends JDialog {
         panel.add(panel_4, gbc_panel_4);
         panel_4.setLayout(new BoxLayout(panel_4, BoxLayout.LINE_AXIS));
 
-        JLabel lblNewLabel = new JLabel("FFXIV Path");
+        JLabel lblNewLabel = new JLabel("FFXIVのルートパス");
         panel_4.add(lblNewLabel);
 
         JPanel panel_3 = new JPanel();
@@ -50,60 +49,55 @@ class SettingsWindow extends JDialog {
         txtDatPath = new JTextField();
         panel_3.add(txtDatPath);
         txtDatPath.setText(Constants.datPath);
-        txtDatPath.setPreferredSize(new Dimension(200, 20));
+        txtDatPath.setPreferredSize(new Dimension(500, 20));
 
-        JButton btnBrowse = new JButton("Browse");
+        JButton btnBrowse = new JButton(Strings.BUTTONNAMES_BROWSE);
         panel_3.add(btnBrowse);
 
-        btnBrowse.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                setPath();
-            }
-        });
+        btnBrowse.addActionListener(arg0 -> setPath());
 
         JPanel panel_1 = new JPanel();
         getContentPane().add(panel_1, BorderLayout.SOUTH);
 
-        JButton btnSave = new JButton("Save");
-        btnSave.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                saveSettings();
-            }
-        });
+        JButton btnSave = new JButton("保存");
+        btnSave.addActionListener(e -> saveSettings());
 
         panel_1.add(btnSave);
 
-        JButton btnCancel = new JButton("Cancel");
-        btnCancel.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                SettingsWindow.this.dispose();
-            }
-        });
+        JButton btnCancel = new JButton("キャンセル");
+        btnCancel.addActionListener(e -> SettingsWindow.this.dispose());
 
         panel_1.add(btnCancel);
 
+        @SuppressWarnings("unused")
         GridBagConstraints gbc_lblNewLabel = new GridBagConstraints();
 
         pack();
     }
 
     private void setPath() {
-        JFileChooser fileChooser = new JFileChooser();
+        //デフォルトの場所を指定しておく
+        File folder = new File("C:\\Program Files (x86)\\SquareEnix\\FINAL FANTASY XIV - A Realm Reborn\\game");
+        JFileChooser fileChooser;
+        if (folder.exists()) {
+            fileChooser = new JFileChooser(folder);
+        }else{
+            fileChooser = new JFileChooser();
+        }
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("ffxivgame.verファイル", "ver");
 
-        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        //fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        fileChooser.addChoosableFileFilter(filter);
+        fileChooser.setAcceptAllFileFilterUsed(false);
 
         int retunval = fileChooser.showOpenDialog(SettingsWindow.this);
 
         if (retunval == JFileChooser.APPROVE_OPTION) {
             try {
-                txtDatPath.setText(fileChooser.getSelectedFile()
-                        .getCanonicalPath());
+                //gameフォルダの親フォルダ(FINAL FANTASY XIV - A Realm Reborn)を取得するらしいが明示されていないので変更
+                String parentPath = fileChooser.getCurrentDirectory().getCanonicalPath();
+                txtDatPath.setText(parentPath.substring(0, parentPath.lastIndexOf('/')));
+                //txtDatPath.setText(fileChooser.getSelectedFile().getCanonicalPath());
             } catch (IOException e) {
                 e.printStackTrace();
             }

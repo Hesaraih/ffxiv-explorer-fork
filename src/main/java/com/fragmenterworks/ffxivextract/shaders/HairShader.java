@@ -6,8 +6,8 @@ import java.io.IOException;
 
 public class HairShader extends Shader {
 
-    private int hairColorLocation;
-    private int highlightColorLocation;
+    private final int hairColorLocation;
+    private final int highlightColorLocation;
 
     public HairShader(GL3 gl) throws IOException {
         //super(gl, "/res/shaders/model_vert_boned.glsl", "/res/shaders/hair_frag.glsl", true);

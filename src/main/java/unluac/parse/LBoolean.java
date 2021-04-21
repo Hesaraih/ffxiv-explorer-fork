@@ -11,7 +11,11 @@ public class LBoolean extends LObject {
     this.value = value;
   }
   
-  public String toString() {
+  public boolean value() {
+    return value;
+  }
+  
+  public String toPrintString() {
     return Boolean.toString(value);
   }
   

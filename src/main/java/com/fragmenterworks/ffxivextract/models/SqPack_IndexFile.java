@@ -1,5 +1,6 @@
 package com.fragmenterworks.ffxivextract.models;
 
+import com.fragmenterworks.ffxivextract.Constants;
 import com.fragmenterworks.ffxivextract.gui.components.Loading_Dialog;
 import com.fragmenterworks.ffxivextract.helpers.EARandomAccessFile;
 import com.fragmenterworks.ffxivextract.helpers.LERandomAccessFile;
@@ -13,6 +14,7 @@ import java.nio.ByteOrder;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class SqPack_IndexFile {
 
@@ -23,16 +25,16 @@ public class SqPack_IndexFile {
     private SqPack_Folder[] packFolders;
     private boolean noFolder = false;
 
-    private boolean isFastloaded = false;
+    private boolean isFastLoaded = false;
     private int totalFiles = 0;
-    private int unhashedFiles;
+    private int unHashedFiles;
 
-    private static final Map<String, SqPack_IndexFile> cachedIndexes = new HashMap<String, SqPack_IndexFile>();
+    private static final Map<String, SqPack_IndexFile> cachedIndexes = new HashMap<>();
 
     /**
-     * @param pathToIndex
-     * @param fastLoad
-     * @return
+     * @param pathToIndex Indexファイルのパス
+     * @param fastLoad 高速読み込みモード
+     * @return ハッシュ値とオフセットを返す
      */
     public static SqPack_IndexFile createIndexFileForPath(String pathToIndex, boolean fastLoad) {
         //Fast load will blindly load all files regardless of folder
@@ -52,81 +54,93 @@ public class SqPack_IndexFile {
     }
 
     /**
-     * Constructor. Primarily used by the FileManagerWindow to handle gui stuff. Loads all file info + structure info and names.
+     * コンストラクター： 主に、GUI関連のものを処理するためにFileManagerWindowによって使用されます。
+     * すべてのファイル情報+構造情報と名前をロードします。
      *
-     * @param pathToIndex         Path to the SqPack index file you wish to open
-     * @param prgLoadingBar       The progress bar to increment
-     * @param lblLoadingBarString The progress bar text to increment
+     * @param pathToIndex         開きたいSqPackインデックスファイルへのパス
+     * @param prgLoadingBar       コントロールするプログレスバー
+     * @param lblLoadingBarString プログレスバーのテキスト
      */
     public SqPack_IndexFile(String pathToIndex, JProgressBar prgLoadingBar, JLabel lblLoadingBarString) throws IOException {
 
         path = pathToIndex;
 
+        //リトルエンディアン用RandomAccessFile
         LERandomAccessFile lref = new LERandomAccessFile(pathToIndex, "r");
+        //ビッグエンディアン用(通常)RandomAccessFile
         RandomAccessFile bref = new RandomAccessFile(pathToIndex, "r");
 
-        int sqpackHeaderLength = checkSqPackHeader(lref, bref);
-        if (sqpackHeaderLength < 0)
+        int sqPackHeaderLength = checkSqPackHeader(lref, bref);
+        if (sqPackHeaderLength < 0) {
             return;
+        }
 
+        //両エンディアン対応RandomAccessFile
         EARandomAccessFile ref = new EARandomAccessFile(pathToIndex, "r", endian);
 
-        getSegments(ref, sqpackHeaderLength);
+        getSegments(ref, sqPackHeaderLength);
 
-        // Check if we have a folder segment, if not... load files only
+        // フォルダセグメントがあるかどうかを確認します。ない場合は...ファイルのみをロードします
         if (segments[3] != null && segments[3].offset != 0) {
             int offset = segments[3].getOffset();
             int size = segments[3].getSize();
             int numFolders = size / 0x10;
 
-            if (prgLoadingBar != null)
+            if (prgLoadingBar != null) {
                 prgLoadingBar.setMaximum(segments[0].getSize() / 0x10);
+            }
 
-            if (lblLoadingBarString != null)
+            if (lblLoadingBarString != null) {
                 lblLoadingBarString.setText("0%");
+            }
 
             packFolders = new SqPack_Folder[numFolders];
 
             for (int i = 0; i < numFolders; i++) {
-                ref.seek(offset + (i * 16)); // Every folder offset header is 16
-                // bytes
+                ref.seek(offset + (i * 16)); // フォルダオフセットヘッダーはすべて16byte
 
                 int id = ref.readInt();
                 int fileIndexOffset = ref.readInt();
                 int folderSize = ref.readInt();
                 int numFiles = folderSize / 0x10;
-                ref.readInt(); // Skip
+                ref.readInt(); // 4byteスキップ
 
                 packFolders[i] = new SqPack_Folder(id, numFiles, fileIndexOffset);
-                unhashedFiles += packFolders[i].readFiles(ref, prgLoadingBar, lblLoadingBarString, false);
+                unHashedFiles += packFolders[i].readFiles(ref, prgLoadingBar, lblLoadingBarString, false);
             }
         } else {
+            //ファイルのみをロードの場合
             noFolder = true;
 
-            if (prgLoadingBar != null)
+            if (prgLoadingBar != null) {
                 prgLoadingBar.setMaximum((pathToIndex.contains("index2") ? 2 : 1) * segments[0].getSize() / 0x10);
+            }
 
-            if (lblLoadingBarString != null)
+            if (lblLoadingBarString != null) {
                 lblLoadingBarString.setText("0%");
+            }
 
             packFolders = new SqPack_Folder[1];
             packFolders[0] = new SqPack_Folder(0, (pathToIndex.contains("index2") ? 2 : 1) * segments[0].getSize() / 0x10, segments[0].getOffset());
-            unhashedFiles += packFolders[0].readFiles(ref, prgLoadingBar, lblLoadingBarString, pathToIndex.contains("index2"));
+            unHashedFiles += packFolders[0].readFiles(ref, prgLoadingBar, lblLoadingBarString, pathToIndex.contains("index2"));
         }
 
         ref.close();
 
-        for (SqPack_Folder folder : packFolders)
-            for (SqPack_File file : folder.files)
+        for (SqPack_Folder folder : packFolders) {
+            for (SqPack_File ignored : folder.files) {
                 totalFiles++;
+            }
+        }
     }
 
     /**
-     * Constructor.
+     * コンストラクター
      *
-     * @param pathToIndex Path to the SqPack index file you wish to open
-     * @param fastLoad    Setting this to true will load only file info of the archive, and omit it's structure and file/folder names.
+     * @param pathToIndex 開きたいSqPackインデックスファイルへのパス(例：ゲームパス\sqpack\ffxiv\0a0000.win32.index)
+     * @param fastLoad    これをtrueに設定すると、アーカイブのファイル情報のみが読み込まれ、その構造とファイル/フォルダー名が省略されます。
      */
+    @SuppressWarnings("unused")
     public SqPack_IndexFile(String pathToIndex, boolean fastLoad) throws IOException {
 
         path = pathToIndex;
@@ -135,15 +149,16 @@ public class SqPack_IndexFile {
         RandomAccessFile bref = new RandomAccessFile(pathToIndex, "r");
 
         int sqpackHeaderLength = checkSqPackHeader(lref, bref);
-        if (sqpackHeaderLength < 0)
+        if (sqpackHeaderLength < 0) {
             return;
+        }
 
         EARandomAccessFile ref = new EARandomAccessFile(pathToIndex, "r", endian);
         getSegments(ref, sqpackHeaderLength);
 
-        //Fast load will blindly load all files regardless of folder
+        //高速ロードでは、フォルダに関係なくすべてのファイルが盲目的にロードされます
         if (fastLoad) {
-            isFastloaded = true;
+            isFastLoaded = true;
 
             noFolder = true;
             packFolders = new SqPack_Folder[1];
@@ -152,21 +167,20 @@ public class SqPack_IndexFile {
             ref.seek(segments[0].getOffset());
 
             for (int i = 0; i < packFolders[0].files.length; i++) {
+                int id = ref.readInt();
                 if (!pathToIndex.contains("index2")) {
-                    int id = ref.readInt();
                     int id2 = ref.readInt();
-                    long dataoffset = ref.readInt();
+                    long dataOffset = ref.readInt();
                     ref.readInt();
 
-                    packFolders[0].getFiles()[i] = new SqPack_File(id, id2, dataoffset, false);
+                    packFolders[0].getFiles()[i] = new SqPack_File(id, id2, dataOffset, false);
                 } else {
-                    int id = ref.readInt();
-                    long dataoffset = ref.readInt();
-                    packFolders[0].getFiles()[i] = new SqPack_File(id, -1, dataoffset, false);
+                    long dataOffset = ref.readInt();
+                    packFolders[0].getFiles()[i] = new SqPack_File(id, -1, dataOffset, false);
                 }
             }
         } else {
-            // Check if we have a folder segment, if not... load files only
+            // フォルダセグメントがあるかどうかを確認します。ない場合はファイルのみをロードします
             if (segments[3] != null) {
                 int offset = segments[3].getOffset();
                 int size = segments[3].getSize();
@@ -175,40 +189,41 @@ public class SqPack_IndexFile {
                 packFolders = new SqPack_Folder[numFolders];
 
                 for (int i = 0; i < numFolders; i++) {
-                    ref.seek(offset + (i * 16)); // Every folder offset header is 16
-                    // bytes
+                    ref.seek(offset + (i * 16)); // フォルダオフセットヘッダーはすべて16byte
 
                     int id = ref.readInt();
                     int fileIndexOffset = ref.readInt();
                     int folderSize = ref.readInt();
                     int numFiles = folderSize / 0x10;
-                    ref.readInt(); // Skip
+                    ref.readInt(); // 4byteスキップ
 
                     packFolders[i] = new SqPack_Folder(id, numFiles,
                             fileIndexOffset);
 
-                    unhashedFiles += packFolders[i].readFiles(ref, false);
+                    unHashedFiles += packFolders[i].readFiles(ref, false);
                 }
             } else {
                 noFolder = true;
                 packFolders = new SqPack_Folder[1];
                 packFolders[0] = new SqPack_Folder(0, (pathToIndex.contains("index2") ? 2 : 1) * segments[0].getSize() / 0x10, segments[0].getOffset());
-                unhashedFiles += packFolders[0].readFiles(ref, pathToIndex.contains("index2"));
+                unHashedFiles += packFolders[0].readFiles(ref, pathToIndex.contains("index2"));
             }
         }
 
         ref.close();
 
-        for (SqPack_Folder folder : packFolders)
-            for (SqPack_File file : folder.files)
+        for (SqPack_Folder folder : packFolders) {
+            for (SqPack_File file : folder.files) {
                 totalFiles++;
+            }
+        }
     }
 
     /**
-     * Checks the sqpack header, will also advance the file pointer by it's size.
+     * SqPackヘッダーをチェックし、ファイルポインタをそのサイズだけ進めます。
      */
 	private int checkSqPackHeader(LERandomAccessFile ref, RandomAccessFile bref) throws IOException {
-        // Check SqPack Header
+        // SqPackヘッダーをチェック
         byte[] buffer = new byte[6];
         byte[] bigBuffer = new byte[6];
 
@@ -219,32 +234,33 @@ public class SqPack_IndexFile {
                 || buffer[3] != 'a' || buffer[4] != 'c' || buffer[5] != 'k') {
             ref.close();
 
-            Utils.getGlobalLogger().error("SqPack magic was incorrect.");
+            Utils.getGlobalLogger().error("SqPack magicが正しくありませんでした。");
 
             StringBuilder s = new StringBuilder();
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 6; i++) {
                 s.append(String.format("%X", buffer[i]));
+            }
             String strMagic = new String(buffer);
-            Utils.getGlobalLogger().debug("Magic was 0x{} // {}", s.toString(), strMagic);
+            Utils.getGlobalLogger().debug("Magic 0x{} // {}", s.toString(), strMagic);
             return -1;
         }
 
-        // Get Header Length
+        // ヘッダーサイズ取得
         ref.seek(0x0c);
         bref.seek(0x0c);
         int headerLength = ref.readInt();
         int bHeaderLength = bref.readInt();
 
-        ref.readInt(); // Unknown
-        bref.readInt();
+        ref.readInt(); // 不明：4byteスキップ
+        bref.readInt(); // 不明：4byteスキップ
 
-        // Get Header Type, has to be 2 for index
+        // ヘッダータイプを取得します。インデックスは2である必要があります
         int type = ref.readInt();
         int bType = bref.readInt();
 
         if (type != 2 && bType != 2) {
-            Utils.getGlobalLogger().error("SqPack type was incorrect.");
-            Utils.getGlobalLogger().debug("Type was LE: {}, BE: {}", type, bType);
+            Utils.getGlobalLogger().error("SqPackタイプが正しくありませんでした。");
+            Utils.getGlobalLogger().debug("Type LE: {}, BE: {}", type, bType);
             return -1;
         }
 
@@ -256,6 +272,7 @@ public class SqPack_IndexFile {
         return bHeaderLength;
     }
 
+    @SuppressWarnings({"UnusedReturnValue", "unused"})
     private int getSegments(EARandomAccessFile ref, int segmentHeaderStart) throws IOException {
 
         ref.seek(segmentHeaderStart);
@@ -270,8 +287,9 @@ public class SqPack_IndexFile {
             ref.readFully(sha1, 0, 20);
             segments[i] = new SqPack_DataSegment(offset, size, sha1);
 
-            if (i == 0)
+            if (i == 0) {
                 ref.skipBytes(0x4);
+            }
             ref.skipBytes(0x28);
         }
 
@@ -279,21 +297,21 @@ public class SqPack_IndexFile {
     }
 
     /**
-     * Returns the folders in this archive.
+     * このアーカイブ内のフォルダを返します。
      */
     public SqPack_Folder[] getPackFolders() {
         return packFolders;
     }
 
     /**
-     * Returns if this archive has no folders (usually the case with index2 and will be for fastloads)
+     * このアーカイブにフォルダがない場合に返されます（通常はindex2の場合で、高速ロード用になります）
      */
     public boolean hasNoFolders() {
         return noFolder;
     }
 
-    public int getNumUnhashedFiles() {
-        return unhashedFiles;
+    public int getNumUnHashedFiles() {
+        return unHashedFiles;
     }
 
     public int getTotalFiles() {
@@ -323,7 +341,7 @@ public class SqPack_IndexFile {
 
                 b.append(" @ offset ");
 
-                b.append(String.format("%X", getPackFolders()[i].getFiles()[j].dataoffset));
+                b.append(String.format("%X", getPackFolders()[i].getFiles()[j].dataOffset));
                 b.append("\n");
             }
         }
@@ -331,11 +349,11 @@ public class SqPack_IndexFile {
         return b.toString();
     }
 
-    class SqPack_DataSegment {
+    static class SqPack_DataSegment {
 
         private final int offset;
         private final int size;
-        private byte[] sha1 = new byte[20];
+        private final byte[] sha1;
 
         SqPack_DataSegment(int offset, int size, byte[] sha1) {
             this.offset = offset;
@@ -351,6 +369,7 @@ public class SqPack_IndexFile {
             return size;
         }
 
+        @SuppressWarnings("unused")
         public byte[] getSha1() {
             return sha1;
         }
@@ -363,26 +382,48 @@ public class SqPack_IndexFile {
         private final long fileIndexOffset;
         private String name;
 
+        /**
+         * フォルダパス読み込み
+         * @param id フォルダのハッシュ値
+         * @param numFiles ファイル数
+         * @param fileIndexOffset ファイルインデックスのオフセット
+         */
         SqPack_Folder(int id, int numFiles, long fileIndexOffset) {
             this.id = id;
             this.files = new SqPack_File[numFiles];
             this.fileIndexOffset = fileIndexOffset;
             this.name = HashDatabase.getFolder(id);
-            if (this.name == null)
+            if (this.name == null) {
                 this.name = String.format("~%x", id);
-            //else
-            //HashDatabase.flagFolderNameAsUsed(id);
+            }
+            else if (Constants.DEBUG){
+                HashDatabase.flagFolderNameAsUsed(id);
+            }
         }
 
+        /**
+         * ファイル名読み込み(通常読み込み用)
+         * @param ref Indexファイルのバッファ
+         * @param prgLoadingBar プログレスバーコントロールへの参照
+         * @param lblLoadingBarString プログレスバー用テキストコントロールへの参照
+         * @param isIndex2 Index2ファイルの有無
+         * @return ファイル名
+         * @throws IOException IOエラー
+         */
         int readFiles(EARandomAccessFile ref, JProgressBar prgLoadingBar, JLabel lblLoadingBarString, boolean isIndex2) throws IOException {
             ref.seek(fileIndexOffset);
             int namedFiles = 0;
-//            System.out.println(this.id + ": " + this.getName());
-            for (int i = 0; i < files.length; i++) {
-                if (!isIndex2) {
-                    int id, id2;
 
-                    // This should be done with shifting as the hash(es) are actually a long
+            if (Constants.DEBUG){
+                System.out.println(this.id + ": " + this.getName());
+            }
+
+            int i = 0;
+            while (i < files.length) {
+                if (!isIndex2) {
+                    int id, id2; //id:ファイルハッシュ値、id2:フォルダハッシュ値
+
+                    // ハッシュは実際には長いので、シフトして行う必要があります
                     if (ref.isBigEndian()) {
                         id2 = ref.readInt();
                         id = ref.readInt();
@@ -391,58 +432,67 @@ public class SqPack_IndexFile {
                         id2 = ref.readInt();
                     }
 
-                    long dataoffset = ref.readInt();
+                    long dataOffset = ref.readInt();
                     ref.readInt();
 
-                    files[i] = new SqPack_File(id, id2, dataoffset, true);
+                    files[i] = new SqPack_File(id, id2, dataOffset, true);
 
-                    if (prgLoadingBar != null)
-                        prgLoadingBar.setValue(prgLoadingBar.getValue() + 1);
-
-                    if (lblLoadingBarString != null)
-                        lblLoadingBarString.setText((int) (prgLoadingBar.getPercentComplete() * 100) + "%");
                 } else {
+                    //Index2がない場合
                     int id = ref.readInt();
-                    long dataoffset = ref.readInt();
-                    files[i] = new SqPack_File(id, -1, dataoffset, true);
-
-                    if (prgLoadingBar != null)
-                        prgLoadingBar.setValue(prgLoadingBar.getValue() + 1);
-
-                    if (lblLoadingBarString != null)
-                        lblLoadingBarString.setText((int) (prgLoadingBar.getPercentComplete() * 100) + "%");
+                    long dataOffset = ref.readInt();
+                    files[i] = new SqPack_File(id, -1, dataOffset, true);
 
                 }
-//                System.out.println(files[i].id + ": " + files[i].getName());
-//                System.out.println(files[i].id2 + ": " + files[i].getName());
-//                if (!files[i].getName().startsWith("~")) {
-//                    System.out.println(this.getName() + "/" + files[i].getName());
-//                    namedFiles++;
-//                }
 
+                if (prgLoadingBar != null) {
+                    prgLoadingBar.setValue(prgLoadingBar.getValue() + 1);
+                }
+                if (lblLoadingBarString != null) {
+                    lblLoadingBarString.setText((int) (Objects.requireNonNull(prgLoadingBar).getPercentComplete() * 100) + "%");
+                }
+
+                if (Constants.DEBUG){
+                    System.out.println(files[i].id + ": " + files[i].getName());
+                    System.out.println(files[i].id2 + ": " + files[i].getName());
+                    if (!files[i].getName().startsWith("~")) {
+                        System.out.println(this.getName() + "/" + files[i].getName());
+                        namedFiles++;
+                    }
+                }
+                i++;
             }
             return namedFiles;
         }
 
+        /**
+         * ファイル名読み込み(高速読み込み用)※おそらく未使用
+         * @param ref Indexファイルのバッファ
+         * @param isIndex2 Index2ファイルの有無
+         * @return ファイル名
+         * @throws IOException IOエラー
+         */
         int readFiles(EARandomAccessFile ref, boolean isIndex2) throws IOException {
             ref.seek(fileIndexOffset);
             int namedFiles = 0;
 
-            for (int i = 0; i < files.length; i++) {
+            int i = 0;
+            while (i < files.length) {
+                int id = ref.readInt();
                 if (!isIndex2) {
-                    int id = ref.readInt();
                     int id2 = ref.readInt();
-                    long dataoffset = ref.readInt();
+                    long dataOffset = ref.readInt();
                     ref.readInt();
 
-                    files[i] = new SqPack_File(id, id2, dataoffset, true);
+                    files[i] = new SqPack_File(id, id2, dataOffset, true);
                 } else {
-                    int id = ref.readInt();
-                    long dataoffset = ref.readInt();
-                    files[i] = new SqPack_File(id, -1, dataoffset, true);
+                    long dataOffset = ref.readInt();
+                    files[i] = new SqPack_File(id, -1, dataOffset, true);
                 }
-                if (!files[i].getName().startsWith("~"))
+                if (!files[i].getName().startsWith("~")) {
                     namedFiles++;
+                }
+                i++;
             }
             return namedFiles;
         }
@@ -468,41 +518,65 @@ public class SqPack_IndexFile {
     public static class SqPack_File {
         public final int id;
 		final int id2;
-        public final long dataoffset;
+        public final long dataOffset;
         private String name;
 
+        /**
+         * ファイル名読み込み
+         * @param id ファイルまたはフルパスのハッシュ値
+         * @param id2 Index2のハッシュ値
+         * @param offset オフセット
+         * @param loadNames ファイル名の読み込み可否
+         */
         public SqPack_File(int id, int id2, long offset, boolean loadNames) {
             this.id = id;
             this.id2 = id2;
-            this.dataoffset = offset;
+            this.dataOffset = offset;
 
             //For Index2
-            //if (id2 == -1)
-            //this.name = HashDatabase.getFullpath(id);
-            //else
+            if (Constants.DEBUG){
+                if (id2 == -1){
+                    this.name = HashDatabase.getFullpath(id);
+                }
+            }
 
             if (loadNames) {
-                if (id2 != -1)
+                if (id2 != -1) {
                     this.name = HashDatabase.getFileName(id);
-                if (this.name == null)
+                }
+                if (this.name == null) {
                     this.name = String.format("~%x", id);
+                }
             }
-            //else
-            //HashDatabase.flagFileNameAsUsed(id);
+            else if (Constants.DEBUG){
+                HashDatabase.flagFileNameAsUsed(id);
+            }
         }
 
+        /**
+         * ファイルまたはフルパスのハッシュ値を取得
+         * @return ファイルまたはフルパスのハッシュ値
+         */
         public int getId() {
             return id;
         }
 
         public long getOffset() {
-            return dataoffset;
+            return dataOffset;
         }
 
+        /**
+         * フォルダのハッシュ値を取得
+         * @return フォルダのハッシュ値
+         */
         public int getId2() {
             return id2;
         }
 
+        /**
+         *ファイル名を取得
+         * @return ファイル名
+         */
         public String getName() {
             return name;
         }
@@ -512,18 +586,24 @@ public class SqPack_IndexFile {
             return name;
         }
 
+        /**
+         *ファイル名を取得 ファイル名が不明な場合はハッシュ(Hex)を取得
+         * @return ファイル名またはハッシュ(Hex)
+         */
         public String getName2() {
             String name = null;
-            if (id2 != -1)
+            if (id2 != -1) {
                 name = HashDatabase.getFileName(id);
-            if (name == null)
+            }
+            if (name == null) {
                 name = String.format("~%x", id);
+            }
             return name;
         }
     }
 
     /**
-     * Gets the content type of the file at the given offset.
+     * 指定されたオフセットでファイルのコンテンツタイプを取得します。
      */
     public int getContentType(long dataOffset) throws IOException {
         String pathToOpen = path;
@@ -541,30 +621,98 @@ public class SqPack_IndexFile {
     }
 
     /**
-     * Extracts the file at the specified path.
+     * 指定したフルパス先のファイルの存在確認
+     * (今まではファイルhashのチェックのためにデータの解凍までしていたがムダなので別のメソッドに分けた)
+     * @param fullPath ファイルパス
+     * @return true:ファイルがある false:ファイルなし
      */
-    public byte[] extractFile(String path) throws IOException {
-        String folder = path.substring(0, path.lastIndexOf("/"));
-        String file = path.substring(path.lastIndexOf("/") + 1);
+    public boolean existsFile(String fullPath){
+        String folder = fullPath.substring(0, fullPath.lastIndexOf("/"));
+        String file = fullPath.substring(fullPath.lastIndexOf("/") + 1);
+
+        return existsFile(folder, file);
+    }
+
+    /**
+     * 指定したフルパス先のファイルの存在確認
+     * @param folderName フォルダパス
+     * @param filename ファイル名
+     * @return  true:ファイルがある false:ファイルなし
+     */
+    public boolean existsFile(String folderName, String filename){
+        if (getPath().contains("index2")) {
+            String fullPath = folderName + "/" + filename;
+            int hash = HashDatabase.computeCRC(fullPath.toLowerCase().getBytes(), 0, fullPath.getBytes().length);
+            for (SqPack_File f : getPackFolders()[0].getFiles()) {
+                if (f.getId() == hash) {
+                    return true;
+                }
+            }
+        } else {
+            int hash1 = HashDatabase.computeCRC(folderName.toLowerCase().getBytes(), 0, folderName.getBytes().length);
+
+            if (!isFastLoaded) {
+                for (SqPack_Folder f : getPackFolders()) {
+                    if (f.getId() == hash1) {
+
+                        int hash2 = HashDatabase.computeCRC(filename.toLowerCase().getBytes(), 0, filename.getBytes().length);
+                        for (SqPack_File file : f.getFiles()) {
+                            if (file.id == hash2) {
+                                return true;
+                            }
+                        }
+
+                        break;
+                    }
+                }
+            } else {
+                for (int i = 0; i < packFolders[0].getFiles().length; i++) {
+                    SqPack_File file = packFolders[0].getFiles()[i];
+                    if (file.getId2() == hash1) {
+                        int hash2 = HashDatabase.computeCRC(filename.toLowerCase().getBytes(), 0, filename.getBytes().length);
+                        if (file.getId() == hash2) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 指定されたパスでファイルを抽出します
+     * @param fullPath　ファイルパス
+     * @return ファイル
+     * @throws IOException IOエラー
+     */
+    public byte[] extractFile(String fullPath) throws IOException {
+        String folder = fullPath.substring(0, fullPath.lastIndexOf("/"));
+        String file = fullPath.substring(fullPath.lastIndexOf("/") + 1);
 
         return extractFile(folder, file);
     }
 
     /**
-     * Extracts the file at the specified folder with the given filename.
+     * 指定されたファイル名で指定されたフォルダーにあるファイルを抽出します
+     * @param folderName フォルダパス
+     * @param filename ファイル名
+     * @return ファイル
+     * @throws IOException IOエラー
      */
-    public byte[] extractFile(String foldername, String filename) throws IOException {
+    public byte[] extractFile(String folderName, String filename) throws IOException {
         if (getPath().contains("index2")) {
-            String fullPath = foldername + "/" + filename;
+            String fullPath = folderName + "/" + filename;
             int hash = HashDatabase.computeCRC(fullPath.toLowerCase().getBytes(), 0, fullPath.getBytes().length);
             for (SqPack_File f : getPackFolders()[0].getFiles()) {
-                if (f.getId() == hash)
+                if (f.getId() == hash) {
                     return extractFile(f.getOffset());
+                }
             }
         } else {
-            int hash1 = HashDatabase.computeCRC(foldername.toLowerCase().getBytes(), 0, foldername.getBytes().length);
+            int hash1 = HashDatabase.computeCRC(folderName.toLowerCase().getBytes(), 0, folderName.getBytes().length);
 
-            if (!isFastloaded) {
+            if (!isFastLoaded) {
                 for (SqPack_Folder f : getPackFolders()) {
                     if (f.getId() == hash1) {
 
@@ -583,8 +731,9 @@ public class SqPack_IndexFile {
                     SqPack_File file = packFolders[0].getFiles()[i];
                     if (file.getId2() == hash1) {
                         int hash2 = HashDatabase.computeCRC(filename.toLowerCase().getBytes(), 0, filename.getBytes().length);
-                        if (file.getId() == hash2)
+                        if (file.getId() == hash2) {
                             return extractFile(file.getOffset());
+                        }
                     }
                 }
             }
@@ -593,14 +742,21 @@ public class SqPack_IndexFile {
     }
 
     /**
-     * Extracts the file at the specified offset.
+     * 指定されたオフセットでファイルデータを抽出します
+     * @param dataOffset データのオフセット
+     * @return ファイル
+     * @throws IOException IOエラー
      */
-	private byte[] extractFile(long dataoffset) throws IOException {
-        return extractFile(dataoffset, null);
+	private byte[] extractFile(long dataOffset) throws IOException {
+        return extractFile(dataOffset, null);
     }
 
     /**
-     * Extracts the file at the specified offset... loading bar info also given.
+     * 指定されたオフセットでファイルデータを抽出します...進捗バー情報も指定されています
+     * @param dataOffset データのオフセット
+     * @param loadingDialog ダイアログ
+     * @return ファイル
+     * @throws IOException IOエラー
      */
     public byte[] extractFile(long dataOffset, Loading_Dialog loadingDialog) throws IOException {
 
@@ -619,21 +775,24 @@ public class SqPack_IndexFile {
     }
 
     public int getDatNum(long dataOffset) {
-        if (endian == ByteOrder.BIG_ENDIAN)
+        if (endian == ByteOrder.BIG_ENDIAN) {
             return 0;
+        }
         return (int) ((dataOffset & 0x000F) / 2);
     }
 
     public long getOffsetInBytes(long dataOffset) {
-        if (endian == ByteOrder.BIG_ENDIAN)
+        if (endian == ByteOrder.BIG_ENDIAN) {
             return dataOffset * 128;    //128 byte alignment
+        }
 
         dataOffset -= dataOffset & 0x000F;
         return dataOffset * 8;            //8 byte alignment
     }
 
     /**
-     * Returns the index file's name.
+     * インデックスファイルの名前を返します
+     * @return ファイル名
      */
     public String getName() {
 
@@ -651,10 +810,11 @@ public class SqPack_IndexFile {
         return path;
     }
 
-    public Calendar getDatTimestmap(int datNum) throws IOException {
+    @SuppressWarnings("unused")
+    public Calendar getDatTimestamp(int datNum) throws IOException {
         String pathToOpen = path;
 
-        //Get the correct data number
+        //正しいデータ番号を取得する
         pathToOpen = pathToOpen.replace("index2", "dat" + datNum);
         pathToOpen = pathToOpen.replace("index", "dat" + datNum);
 

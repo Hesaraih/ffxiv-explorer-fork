@@ -4,7 +4,7 @@ import com.fragmenterworks.ffxivextract.models.SCD_File;
 
 import javax.swing.*;
 
-@SuppressWarnings("serial")
+@SuppressWarnings("unused")
 class MusicFile_View extends JScrollPane {
 
     JTable stringTable;

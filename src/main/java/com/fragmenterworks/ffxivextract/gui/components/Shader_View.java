@@ -12,17 +12,17 @@ import javax.swing.border.TitledBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 
 public class Shader_View extends JPanel {
 
     private JTree treeParameters;
-    private JComboBox cmbShaderIndex;
+    private JComboBox<String> cmbShaderIndex;
     private Hex_View hexView;
 
     private SHCD_File shader = null;
     private SHPK_File shaderPack = null;
 
+    @SuppressWarnings("unused")
     DefaultMutableTreeNode root;
 
     private JPanel panel;
@@ -40,7 +40,8 @@ public class Shader_View extends JPanel {
     }
 
     /**
-     * @wbp.parser.constructor
+     * コンストラクタ
+     * @param shaderPack シェーダーパックファイルクラス
      */
     public Shader_View(SHPK_File shaderPack) {
 
@@ -48,6 +49,7 @@ public class Shader_View extends JPanel {
 
         initUi();
 
+        @SuppressWarnings("unused")
         String[] list = new String[shaderPack.getNumVertShaders() + shaderPack.getNumPixelShaders()];
 
         for (int i = 0; i < shaderPack.getNumVertShaders(); i++)
@@ -56,13 +58,9 @@ public class Shader_View extends JPanel {
         for (int i = 0; i < shaderPack.getNumPixelShaders(); i++)
             cmbShaderIndex.addItem("Pixel Shader #" + i);
 
-        cmbShaderIndex.addItemListener(new ItemListener() {
-
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                if (e.getStateChange() == ItemEvent.SELECTED) {
-                    loadShader(cmbShaderIndex.getSelectedIndex());
-                }
+        cmbShaderIndex.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                loadShader(cmbShaderIndex.getSelectedIndex());
             }
         });
 
@@ -75,36 +73,36 @@ public class Shader_View extends JPanel {
             hexView.setBytes(shader.getShaderBytecode());
 
             for (ParameterInfo pi : shader.getShaderHeader().paramInfo)
-                Utils.getGlobalLogger().debug("Name: {}, Id: {}", pi.parameterName, String.format("0x%04X", pi.id));
+                Utils.getGlobalLogger().debug("名前: {}, ID: {}", pi.parameterName, String.format("0x%04X", pi.id));
         } else {
             processCTable(i, shaderPack.getShaderType(i), shaderPack.getConstantTable(i));
             hexView.setBytes(shaderPack.getShaderBytecode(i));
 
             for (ParameterInfo pi : shaderPack.getShaderHeader(i).paramInfo)
-                Utils.getGlobalLogger().debug("Name: {}, Id: {}", pi.parameterName, String.format("0x%04X", pi.id));
+                Utils.getGlobalLogger().debug("名前: {}, ID: {}", pi.parameterName, String.format("0x%04X", pi.id));
         }
     }
 
-    private void processCTable(int num, int type, D3DXShader_ConstantTable ctab) {
+    private void processCTable(int num, int type, D3DXShader_ConstantTable cTable) {
         DefaultMutableTreeNode root = new DefaultMutableTreeNode();
         root.setUserObject(type == 0 ? "Vertex Shader" : "Pixel Shader");
 
-        for (int i = 0; i < ctab.constantInfo.length; i++) {
+        for (int i = 0; i < cTable.constantInfo.length; i++) {
             String paramId = "";
 
             if (shader == null) {
                 for (int j = 0; j < shaderPack.getShaderHeader(num).paramInfo.length; j++) {
-                    if (shaderPack.getShaderHeader(num).paramInfo[j].parameterName.equals(ctab.constantInfo[i].Name)) {
+                    if (shaderPack.getShaderHeader(num).paramInfo[j].parameterName.equals(cTable.constantInfo[i].Name)) {
                         paramId = String.format("0x%x", shaderPack.getShaderHeader(num).paramInfo[j].id);
                         break;
                     }
                 }
             }
-            DefaultMutableTreeNode node = new DefaultMutableTreeNode(ctab.constantInfo[i].Name + "[" + ctab.constantInfo[i].TypeInfo.Columns + "x" + ctab.constantInfo[i].TypeInfo.Rows + "]" + " Index: " + ctab.constantInfo[i].RegisterIndex + ", ParamId: " + paramId);
+            DefaultMutableTreeNode node = new DefaultMutableTreeNode(cTable.constantInfo[i].Name + "[" + cTable.constantInfo[i].TypeInfo.Columns + "x" + cTable.constantInfo[i].TypeInfo.Rows + "]" + " Index: " + cTable.constantInfo[i].RegisterIndex + ", ParamId: " + paramId);
             root.add(node);
 
-            for (int j = 0; j < ctab.constantInfo[i].TypeInfo.StructMemberInfo.length; j++) {
-                DefaultMutableTreeNode node2 = new DefaultMutableTreeNode(ctab.constantInfo[i].TypeInfo.StructMemberInfo[j].Name + "[" + ctab.constantInfo[i].TypeInfo.StructMemberInfo[j].TypeInfo.Columns + "x" + ctab.constantInfo[i].TypeInfo.StructMemberInfo[j].TypeInfo.Rows + "]");
+            for (int j = 0; j < cTable.constantInfo[i].TypeInfo.StructMemberInfo.length; j++) {
+                DefaultMutableTreeNode node2 = new DefaultMutableTreeNode(cTable.constantInfo[i].TypeInfo.StructMemberInfo[j].Name + "[" + cTable.constantInfo[i].TypeInfo.StructMemberInfo[j].TypeInfo.Columns + "x" + cTable.constantInfo[i].TypeInfo.StructMemberInfo[j].TypeInfo.Rows + "]");
                 node.add(node2);
             }
         }
@@ -127,15 +125,15 @@ public class Shader_View extends JPanel {
         flowLayout.setAlignment(FlowLayout.LEFT);
         panel_2.add(panel_3, BorderLayout.NORTH);
 
-        JLabel lblNewLabel = new JLabel("Shader: ");
+        JLabel lblNewLabel = new JLabel("シェーダ: ");
         panel_3.add(lblNewLabel);
 
-        cmbShaderIndex = new JComboBox();
+        cmbShaderIndex = new JComboBox<>();
         panel_3.add(cmbShaderIndex);
 
         panel = new JPanel();
         panel_2.add(panel, BorderLayout.CENTER);
-        panel.setBorder(new TitledBorder(null, "Parameters", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+        panel.setBorder(new TitledBorder(null, "パラメータ", TitledBorder.LEADING, TitledBorder.TOP, null, null));
         panel.setLayout(new BorderLayout(0, 0));
 
         JScrollPane scrollPane = new JScrollPane();
@@ -150,7 +148,7 @@ public class Shader_View extends JPanel {
 
         scrollPane.setViewportView(treeParameters);
         JPanel panel_1 = new JPanel();
-        panel_1.setBorder(new TitledBorder(null, "Bytecode", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+        panel_1.setBorder(new TitledBorder(null, "バイトコード", TitledBorder.LEADING, TitledBorder.TOP, null, null));
         add(panel_1, BorderLayout.CENTER);
         panel_1.setLayout(new BorderLayout(0, 0));
 

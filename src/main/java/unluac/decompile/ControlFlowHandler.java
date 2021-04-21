@@ -15,13 +15,12 @@ import unluac.decompile.block.ForBlock;
 import unluac.decompile.block.ElseEndBlock;
 import unluac.decompile.block.ForBlock50;
 import unluac.decompile.block.ForBlock51;
+import unluac.decompile.block.Goto;
 import unluac.decompile.block.IfThenElseBlock;
 import unluac.decompile.block.IfThenEndBlock;
 import unluac.decompile.block.OnceLoop;
 import unluac.decompile.block.RepeatBlock;
 import unluac.decompile.block.SetBlock;
-import unluac.decompile.block.TForBlock50;
-import unluac.decompile.block.TForBlock51;
 import unluac.decompile.block.WhileBlock;
 import unluac.decompile.block.OuterBlock;
 import unluac.decompile.block.TForBlock;
@@ -29,11 +28,12 @@ import unluac.decompile.condition.AndCondition;
 import unluac.decompile.condition.BinaryCondition;
 import unluac.decompile.condition.Condition;
 import unluac.decompile.condition.ConstantCondition;
+import unluac.decompile.condition.FinalSetCondition;
+import unluac.decompile.condition.FixedCondition;
 import unluac.decompile.condition.OrCondition;
-import unluac.decompile.condition.RegisterSetCondition;
-import unluac.decompile.condition.SetCondition;
 import unluac.decompile.condition.TestCondition;
 import unluac.parse.LFunction;
+import unluac.util.Stack;
 
 public class ControlFlowHandler {
   
@@ -52,21 +52,25 @@ public class ControlFlowHandler {
     public Branch previous;
     public Branch next;
     public int line;
+    public int line2;
     public int target;
     public Type type;
     public Condition cond;
     public int targetFirst;
     public int targetSecond;
     public boolean inverseValue;
+    public FinalSetCondition finalset;
     
-    public Branch(int line, Type type, Condition cond, int targetFirst, int targetSecond) {
+    public Branch(int line, int line2, Type type, Condition cond, int targetFirst, int targetSecond, FinalSetCondition finalset) {
       this.line = line;
+      this.line2 = line2;
       this.type = type;
       this.cond = cond;
       this.targetFirst = targetFirst;
       this.targetSecond = targetSecond;
       this.inverseValue = false;
       this.target = -1;
+      this.finalset = finalset;
     }
 
     @Override
@@ -84,18 +88,31 @@ public class ControlFlowHandler {
     public Branch end_branch;
     public Branch[] branches;
     public Branch[] setbranches;
-    public Branch[] finalsetbranches;
+    public ArrayList<List<Branch>> finalsetbranches;
     public boolean[] reverse_targets;
     public int[] resolved;
+    public boolean[] labels;
     public List<Block> blocks;
   }
   
-  public static List<Block> process(Decompiler d, Registers r) {
+  public static class Result {
+    
+    public Result(State state) {
+      blocks = state.blocks;
+      labels = state.labels;
+    }
+    
+    public List<Block> blocks;
+    public boolean[] labels;
+  }
+  
+  public static Result process(Decompiler d, Registers r) {
     State state = new State();
     state.d = d;
     state.function = d.function;
     state.r = r;
     state.code = d.code;
+    state.labels = new boolean[d.code.length + 1];
     find_reverse_targets(state);
     find_branches(state);
     combine_branches(state);
@@ -104,11 +121,9 @@ public class ControlFlowHandler {
     find_fixed_blocks(state);
     find_while_loops(state);
     find_repeat_loops(state);
-    //find_break_statements(state);
-    //find_if_blocks(state);
-    find_other_statements(state, d.declList);
+    find_if_break(state, d.declList);
     find_set_blocks(state);
-    //find_pseudo_goto_statements(state, d.declList);
+    find_pseudo_goto_statements(state, d.declList);
     find_do_blocks(state, d.declList);
     Collections.sort(state.blocks);
     // DEBUG: print branches stuff
@@ -120,7 +135,7 @@ public class ControlFlowHandler {
       b = b.next;
     }
     */
-    return state.blocks;
+    return new Result(state);
   }
   
   private static void find_reverse_targets(State state) {
@@ -165,18 +180,33 @@ public class ControlFlowHandler {
   
   private static int find_loadboolblock(State state, int target) {
     int loadboolblock = -1;
-    if(state.code.op(target) == Op.LOADBOOL) {
+    Op op = state.code.op(target);
+    if(op == Op.LOADBOOL) {
       if(state.code.C(target) != 0) {
         loadboolblock = target;
       } else if(target - 1 >= 1 && state.code.op(target - 1) == Op.LOADBOOL && state.code.C(target - 1) != 0) {
         loadboolblock = target - 1;
       }
+    } else if(op == Op.LFALSESKIP) {
+      loadboolblock = target;
+    } else if(target - 1 >= 1 && op == Op.LOADTRUE && state.code.op(target - 1) == Op.LFALSESKIP) {
+      loadboolblock = target - 1;
     }
     return loadboolblock;
   }
   
   private static void handle_loadboolblock(State state, boolean[] skip, int loadboolblock, Condition c, int line, int target) {
-    int loadboolvalue = state.code.B(target);
+    boolean loadboolvalue;
+    Op op = state.code.op(target);
+    if(op == Op.LOADBOOL) {
+      loadboolvalue = state.code.B(target) != 0;
+    } else if(op == Op.LFALSESKIP) {
+      loadboolvalue = false;
+    } else if(op == Op.LOADTRUE) {
+      loadboolvalue = true;
+    } else {
+      throw new IllegalStateException();
+    }
     int final_line = -1;
     if(loadboolblock - 1 >= 1 && is_jmp(state, loadboolblock - 1)) {
       int boolskip_target = state.code.target(loadboolblock - 1);
@@ -190,7 +220,7 @@ public class ControlFlowHandler {
       }
     }
     boolean inverse = false;
-    if(loadboolvalue == 1) {
+    if(loadboolvalue) {
       inverse = true;
       c = c.inverse();
     }
@@ -200,11 +230,11 @@ public class ControlFlowHandler {
     
     if(constant) {
       begin--;
-      b = new Branch(line, Branch.Type.testset, c, begin, loadboolblock + 2);
+      b = new Branch(line, line, Branch.Type.testset, c, begin, loadboolblock + 2, null);
     } else if(line + 2 == loadboolblock) {
-      b = new Branch(line, Branch.Type.finalset, c, begin, loadboolblock + 2);
+      b = new Branch(loadboolblock, loadboolblock, Branch.Type.finalset, c, begin, loadboolblock + 2, null);
     } else {
-      b = new Branch(line, Branch.Type.testset, c, begin, loadboolblock + 2);
+      b = new Branch(line, line, Branch.Type.testset, c, begin, loadboolblock + 2, null);
     }
     b.target = state.code.A(loadboolblock);
     b.inverseValue = inverse;
@@ -212,117 +242,160 @@ public class ControlFlowHandler {
     
     if(final_line != -1)
     {
-      if(constant && final_line < begin && state.finalsetbranches[final_line + 1] == null) {
-        c = new TestCondition(final_line + 1, state.code.A(target));
-        b = new Branch(final_line + 1, Branch.Type.finalset, c, final_line, loadboolblock + 2);
-        b.target = state.code.A(loadboolblock);
-        insert_branch(state, b);
+      if(constant && final_line < begin) {
+        final_line++;
       }
-      if(final_line >= begin && state.finalsetbranches[final_line] == null) {
-        c = new SetCondition(final_line, get_target(state, final_line));
-        b = new Branch(final_line, Branch.Type.finalset, c, final_line, loadboolblock + 2);
-        b.target = state.code.A(loadboolblock);
-        insert_branch(state, b);
-      }
-      if(final_line + 1 == begin && state.finalsetbranches[final_line + 1] == null) {
-        c = new RegisterSetCondition(loadboolblock, get_target(state, loadboolblock));
-        b = new Branch(final_line + 1, Branch.Type.finalset, c, final_line, loadboolblock + 2);
-        b.target = state.code.A(loadboolblock);
-        insert_branch(state, b);
-      }
+      FinalSetCondition finalc = new FinalSetCondition(final_line, b.target);
+      Branch finalb = new Branch(final_line, final_line, Branch.Type.finalset, finalc, final_line, loadboolblock + 2, finalc);
+      finalb.target = b.target;
+      insert_branch(state, finalb);
+      b.finalset = finalc;
     }
   }
   
-  private static void handle_test(State state, boolean[] skip, int line, Condition c, int target, boolean constant) {
+  private static void handle_test(State state, boolean[] skip, int line, Condition c, int target, boolean constant, boolean invert) {
     Code code = state.code;
     int loadboolblock = find_loadboolblock(state, target);
     if(loadboolblock >= 1) {
-      if(!constant && code.C(line) != 0) c = c.inverse();
+      if(!constant && invert) c = c.inverse();
       handle_loadboolblock(state, skip, loadboolblock, c, line, target);
     } else {
       int ploadboolblock = !constant && target - 2 >= 1 ? find_loadboolblock(state, target - 2) : -1;
       if(ploadboolblock != -1 && ploadboolblock == target - 2 && code.A(target - 2) == c.register() && !has_statement(state, line + 2, target - 3)) {
-        handle_testset(state, skip, line, c, target, c.register());
+        handle_testset(state, skip, line, c, target, c.register(), invert);
       } else {
-        if(!constant && code.C(line) != 0) c = c.inverse();
-        Branch b = new Branch(line, constant ? Branch.Type.testset : Branch.Type.test, c, line + 2, target);
+        if(!constant && invert) c = c.inverse();
+        Branch b = new Branch(line, line, constant ? Branch.Type.testset : Branch.Type.test, c, line + 2, target, null);
         b.target = code.A(line);
-        if(code.C(line) != 0) b.inverseValue = true;
+        if(invert) b.inverseValue = true;
         insert_branch(state, b);
       }
     }
     skip[line + 1] = true;
   }
   
-  private static void handle_testset(State state, boolean[] skip, int line, Condition c, int target, int register) {
-    Code code = state.code;
-    Branch b = new Branch(line, Branch.Type.testset, c, line + 2, target);
+  private static void handle_testset(State state, boolean[] skip, int line, Condition c, int target, int register, boolean invert) {
+    if(state.r.isNoDebug && find_loadboolblock(state, target) == -1) {
+      if(invert) c = c.inverse();
+      Branch b = new Branch(line, line, Branch.Type.test, c, line + 2, target, null);
+      b.target = state.code.A(line);
+      if(invert) b.inverseValue = true;
+      insert_branch(state, b);
+      skip[line + 1] = true;
+      return;
+    }
+    Branch b = new Branch(line, line, Branch.Type.testset, c, line + 2, target, null);
     b.target = register;
-    if(code.C(line) != 0) b.inverseValue = true;
+    if(invert) b.inverseValue = true;
     skip[line + 1] = true;
     insert_branch(state, b);
     int final_line = target - 1;
-    if(state.finalsetbranches[final_line] == null) {
-      int loadboolblock = find_loadboolblock(state, target - 2);
-      if(loadboolblock == -1) {
-        c = null;
-        if(line + 2 == target) {
-          c = new RegisterSetCondition(line, get_target(state, line));
-          final_line = final_line + 1;
-        } else if(code.op(final_line) != Op.JMP && code.op(final_line) != Op.JMP52) {
-          c = new SetCondition(final_line, get_target(state, final_line));
-        }
-        if(c != null) {
-          b = new Branch(final_line, Branch.Type.finalset, c, target, target);
-          b.target = register;
-          insert_branch(state, b);
-        }
+    int branch_line;
+    int loadboolblock = find_loadboolblock(state, target - 2);
+    if(loadboolblock != -1) {
+      final_line = loadboolblock;
+      if(loadboolblock - 2 >= 1 && is_jmp(state, loadboolblock - 1) &&
+        (state.code.target(loadboolblock - 1) == target || is_jmp_raw(state, target) && state.code.target(loadboolblock - 1) == state.code.target(target))
+      ) {
+        final_line = loadboolblock - 2;
       }
+      branch_line = final_line;
+    } else {
+      branch_line = Math.max(final_line, line + 2);
     }
+    FinalSetCondition finalc = new FinalSetCondition(final_line, register);
+    Branch finalb = new Branch(branch_line, branch_line, Branch.Type.finalset, finalc, final_line, target, finalc);
+    finalb.target = register;
+    insert_branch(state, finalb);
+    b.finalset = finalc;
+  }
+  
+  private static void process_condition(State state, boolean[] skip, int line, Condition c, boolean invert) {
+    int target = state.code.target(line + 1);
+    if(invert) {
+      c = c.inverse();
+    }
+    int loadboolblock = find_loadboolblock(state, target);
+    if(loadboolblock >= 1) {
+      handle_loadboolblock(state, skip, loadboolblock, c, line, target);
+    } else {
+      Branch b = new Branch(line, line, Branch.Type.comparison, c, line + 2, target, null);
+      if(invert) {
+        b.inverseValue = true;
+      }
+      insert_branch(state, b);
+    }
+    skip[line + 1] = true;
   }
   
   private static void find_branches(State state) {
     Code code = state.code;
     state.branches = new Branch[state.code.length + 1];
     state.setbranches = new Branch[state.code.length + 1];
-    state.finalsetbranches = new Branch[state.code.length + 1];
+    state.finalsetbranches = new ArrayList<List<Branch>>(state.code.length + 1);
+    for(int i = 0; i <= state.code.length; i++) state.finalsetbranches.add(null);
     boolean[] skip = new boolean[code.length + 1];
     for(int line = 1; line <= code.length; line++) {
       if(!skip[line]) {
         switch(code.op(line)) {
-          case EQ:
-          case LT:
-          case LE: {
+          case EQ: case LT: case LE: {
             BinaryCondition.Operator op = BinaryCondition.Operator.EQ;
             if(code.op(line) == Op.LT) op = BinaryCondition.Operator.LT;
             if(code.op(line) == Op.LE) op = BinaryCondition.Operator.LE;
-            int left = code.B(line);
-            int right = code.C(line);
-            int target = code.target(line + 1);
+            Condition.Operand left = new BinaryCondition.Operand(Condition.OperandType.RK, code.B(line));
+            Condition.Operand right = new BinaryCondition.Operand(Condition.OperandType.RK, code.C(line));
             Condition c = new BinaryCondition(op, line, left, right);
-            if(code.A(line) == 1) {
-              c = c.inverse();
-            }
-            int loadboolblock = find_loadboolblock(state, target);
-            if(loadboolblock >= 1) {
-              handle_loadboolblock(state, skip, loadboolblock, c, line, target);
+            process_condition(state, skip, line, c, code.A(line) != 0);
+            break;
+          }
+          case EQ54: case LT54: case LE54: {
+            BinaryCondition.Operator op = BinaryCondition.Operator.EQ;
+            if(code.op(line) == Op.LT54) op = BinaryCondition.Operator.LT;
+            if(code.op(line) == Op.LE54) op = BinaryCondition.Operator.LE;
+            Condition.Operand left = new Condition.Operand(Condition.OperandType.R, code.A(line));
+            Condition.Operand right = new Condition.Operand(Condition.OperandType.R, code.B(line));
+            Condition c = new BinaryCondition(op, line, left, right);
+            process_condition(state, skip, line, c, code.k(line));
+            break;
+          }
+          case EQK: {
+            BinaryCondition.Operator op = BinaryCondition.Operator.EQ;
+            Condition.Operand right = new Condition.Operand(Condition.OperandType.R, code.A(line));
+            Condition.Operand left = new Condition.Operand(Condition.OperandType.K, code.B(line));
+            Condition c = new BinaryCondition(op, line, left, right);
+            process_condition(state, skip, line, c, code.k(line));
+            break;
+          }
+          case EQI: case LTI: case LEI: case GTI: case GEI: {
+            BinaryCondition.Operator op = BinaryCondition.Operator.EQ;
+            if(code.op(line) == Op.LTI) op = BinaryCondition.Operator.LT;
+            if(code.op(line) == Op.LEI) op = BinaryCondition.Operator.LE;
+            if(code.op(line) == Op.GTI) op = BinaryCondition.Operator.GT;
+            if(code.op(line) == Op.GEI) op = BinaryCondition.Operator.GE;
+            Condition.OperandType operandType;
+            if(code.C(line) != 0) {
+              operandType = Condition.OperandType.F;
             } else {
-              Branch b = new Branch(line, Branch.Type.comparison, c, line + 2, target);
-              if(code.A(line) == 1) {
-                b.inverseValue = true;
-              }
-              insert_branch(state, b);
+              operandType = Condition.OperandType.I;
             }
-            skip[line + 1] = true;
+            Condition.Operand left = new Condition.Operand(Condition.OperandType.R, code.A(line));
+            Condition.Operand right = new Condition.Operand(operandType, code.sB(line));
+            if(op == BinaryCondition.Operator.EQ) {
+              Condition.Operand temp = left;
+              left = right;
+              right = temp;
+            }
+            Condition c = new BinaryCondition(op, line, left, right);
+            process_condition(state, skip, line, c, code.k(line));
             break;
           }
           case TEST50: {
             Condition c = new TestCondition(line, code.B(line));
             int target = code.target(line + 1);
             if(code.A(line) == code.B(line)) {
-              handle_test(state, skip, line, c, target, false);
+              handle_test(state, skip, line, c, target, false, code.C(line) != 0);
             } else {
-              handle_testset(state, skip, line, c, target, code.A(line));
+              handle_testset(state, skip, line, c, target, code.A(line), code.C(line) != 0);
             }
             break;
           }
@@ -336,24 +409,42 @@ public class ControlFlowHandler {
               }
             }
             c = new TestCondition(line, code.A(line));
-            handle_test(state, skip, line, c, target, constant);
+            handle_test(state, skip, line, c, target, constant, code.C(line) != 0);
+            break;
+          }
+          case TEST54: {
+            Condition c;
+            boolean constant = false;
+            int target = code.target(line + 1);
+            if(line - 1 >= 1 && code.op(line - 1) == Op.LOADTRUE && code.A(line - 1) == code.A(line)) {
+              if(target <= code.length && target - 2 >= 1 && code.op(target - 2) == Op.LFALSESKIP) {
+                constant = true;
+              }
+            }
+            c = new TestCondition(line, code.A(line));
+            handle_test(state, skip, line, c, target, constant, code.k(line));
             break;
           }
           case TESTSET: {
             Condition c = new TestCondition(line, code.B(line));
             int target = code.target(line + 1);
-            handle_testset(state, skip, line, c, target, code.A(line));
+            handle_testset(state, skip, line, c, target, code.A(line), code.C(line) != 0);
             break;
           }
-          case JMP:
-          case JMP52: {
+          case TESTSET54: {
+            Condition c = new TestCondition(line, code.B(line));
+            int target = code.target(line + 1);
+            handle_testset(state, skip, line, c, target, code.A(line), code.k(line));
+            break;
+          }
+          case JMP: case JMP52: case JMP54: {
             if(is_jmp(state, line)) {
               int target = code.target(line);
               int loadboolblock = find_loadboolblock(state, target);
               if(loadboolblock >= 1) {
                 handle_loadboolblock(state, skip, loadboolblock, new ConstantCondition(-1, false), line, target);
               } else {
-                Branch b = new Branch(line, Branch.Type.jump, null, target, target);
+                Branch b = new Branch(line, line, Branch.Type.jump, null, target, target, null);
                 insert_branch(state, b);
               }
             }
@@ -384,8 +475,8 @@ public class ControlFlowHandler {
     List<Block> blocks = state.blocks;
     Registers r = state.r;
     Code code = state.code;
-    Op tforTarget = state.function.header.version.getTForTarget();
-    Op forTarget = state.function.header.version.getForTarget();
+    Op tforTarget = state.function.header.version.tfortarget.get();
+    Op forTarget = state.function.header.version.fortarget.get();
     blocks.add(new OuterBlock(state.function, state.code.length));
     
     boolean[] loop = new boolean[state.code.length + 1];
@@ -416,7 +507,7 @@ public class ControlFlowHandler {
             innerClose = true;
           }
           
-          TForBlock block = new TForBlock51(state.function, line + 1, target + 2, A, C, forvarClose, innerClose);
+          TForBlock block = TForBlock.make51(state.function, line + 1, target + 2, A, C, forvarClose, innerClose);
           block.handleVariableDeclarations(r);
           blocks.add(block);
         } else if(code.op(target) == forTarget && !loop[target]) {
@@ -462,6 +553,15 @@ public class ControlFlowHandler {
           blocks.add(block);
           break;
         }
+        case FORPREP54: {
+          int A = code.A(line);
+          int target = code.target(line);
+          
+          ForBlock block = new ForBlock51(state.function, line + 1, target + 1, A, false, false);
+          block.handleVariableDeclarations(r);
+          blocks.add(block);
+          break;
+        }
         case TFORPREP: {
           int target = code.target(line);
           int A = code.A(target);
@@ -473,10 +573,20 @@ public class ControlFlowHandler {
             innerClose = true;
           }
           
-          TForBlock block = new TForBlock50(state.function, line + 1, target + 2, A, C, innerClose);
+          TForBlock block = TForBlock.make50(state.function, line + 1, target + 2, A, C + 1, innerClose);
           block.handleVariableDeclarations(r);
           blocks.add(block);
           remove_branch(state, state.branches[target + 1]);
+          break;
+        }
+        case TFORPREP54: {
+          int target = code.target(line);
+          int A = code.A(line);
+          int C = code.C(target);
+          
+          TForBlock block = TForBlock.make54(state.function, line + 1, target + 2, A, C);
+          block.handleVariableDeclarations(r);
+          blocks.add(block);
           break;
         }
         default:
@@ -489,9 +599,17 @@ public class ControlFlowHandler {
     Branch b = state.begin_branch;
     while(b != null) {
       if(b.line >= begin && b.line < end && b.targetSecond == target) {
-        b.targetSecond = line;
-        if(b.targetFirst == target) {
-          b.targetFirst = line;
+        if(b.type == Branch.Type.finalset) {
+          b.targetFirst = line - 1;
+          b.targetSecond = line;
+          if(b.finalset != null) {
+            b.finalset.line = line - 1;
+          }
+        } else {
+          b.targetSecond = line;
+          if(b.targetFirst == target) {
+            b.targetFirst = line;
+          }
         }
       }
       b = b.next;
@@ -507,9 +625,13 @@ public class ControlFlowHandler {
         int loopback = line;
         int end = j.line + 1;
         Branch b = state.begin_branch;
+        int extent = -1;
         while(b != null) {
-          if(is_conditional(b) && b.line >= loopback && b.line < j.line && state.resolved[b.targetSecond] == state.resolved[end]) {
+          if(is_conditional(b) && b.line >= loopback && b.line < j.line && state.resolved[b.targetSecond] == state.resolved[end] && extent <= b.line) {
             break;
+          }
+          if(b.line >= loopback) {
+            extent = Math.max(extent, b.targetSecond);
           }
           b = b.next;
         }
@@ -521,7 +643,7 @@ public class ControlFlowHandler {
           }
           state.reverse_targets[loopback] = reverse;
         }
-        if(state.function.header.version == Version.LUA50) {
+        if(state.function.header.version.whileformat.get() == Version.WhileFormat.BOTTOM_CONDITION) {
           b = null; // while loop aren't this style
         }
         Block loop;
@@ -529,22 +651,42 @@ public class ControlFlowHandler {
           b.targetSecond = end;
           remove_branch(state, b);
           //System.err.println("while " + b.targetFirst + " " + b.targetSecond);
-          loop = new WhileBlock(state.function, b.cond, b.targetFirst, b.targetSecond);
+          loop = new WhileBlock(state.function, b.cond, b.targetFirst, b.targetSecond, loopback);
           unredirect(state, loopback, end, j.line, loopback);
         } else {
-          boolean repeat = false;
-          if(state.function.header.version == Version.LUA50) {
-            repeat = true;
-            if(loopback - 1 >= 1 && state.branches[loopback - 1] != null) {
-              Branch head = state.branches[loopback - 1];
-              if(head.type == Branch.Type.jump && head.targetFirst == j.line) {
-                remove_branch(state, head);
-                repeat = false;
+          if(j.line - 5 >= 1 && state.code.op(j.line - 3) == Op.CLOSE
+            && is_jmp_raw(state, j.line - 2) && state.code.target(j.line - 2) == end
+            && state.code.op(j.line - 1) == Op.CLOSE
+          ) {
+            b = j.previous;
+            while(b != null && !(is_conditional(b) && b.line2 == j.line - 5)) {
+              b = b.previous;
+            }
+            if(b == null) throw new IllegalStateException();
+            Branch skip = state.branches[j.line - 2];
+            if(skip == null) throw new IllegalStateException();
+            int scopeEnd = j.line - 3;
+            if(state.function.header.version.closeinscope.get()) {
+              scopeEnd = j.line - 2;
+            }
+            loop = new RepeatBlock(state.function, b.cond, j.targetFirst, j.line + 1, scopeEnd);
+            remove_branch(state, b);
+            remove_branch(state, skip);
+          } else {
+            boolean repeat = false;
+            if(state.function.header.version.whileformat.get() == Version.WhileFormat.BOTTOM_CONDITION) {
+              repeat = true;
+              if(loopback - 1 >= 1 && state.branches[loopback - 1] != null) {
+                Branch head = state.branches[loopback - 1];
+                if(head.type == Branch.Type.jump && head.targetFirst == j.line) {
+                  remove_branch(state, head);
+                  repeat = false;
+                }
               }
             }
+            loop = new AlwaysLoop(state.function, loopback, end, repeat);
+            unredirect(state, loopback, end, j.line, loopback);
           }
-          loop = new AlwaysLoop(state.function, loopback, end, repeat);
-          unredirect(state, loopback, end, j.line, loopback);
         }
         remove_branch(state, j);
         blocks.add(loop);
@@ -560,7 +702,7 @@ public class ControlFlowHandler {
       if(is_conditional(b)) {
         if(b.targetSecond < b.targetFirst) {
           Block block = null;
-          if(state.function.header.version == Version.LUA50) {
+          if(state.function.header.version.whileformat.get() == Version.WhileFormat.BOTTOM_CONDITION) {
             int head = b.targetSecond - 1;
             if(head >= 1 && state.branches[head] != null && state.branches[head].type == Branch.Type.jump) {
               Branch headb = state.branches[head];
@@ -569,7 +711,7 @@ public class ControlFlowHandler {
                   headb = null;
                 }
                 if(headb != null) {
-                  block = new WhileBlock(state.function, b.cond.inverse(), head + 1, b.targetFirst);
+                  block = new WhileBlock(state.function, b.cond.inverse(), head + 1, b.targetFirst, -1);
                   remove_branch(state, headb);
                   unredirect(state, 1, headb.line, headb.line, headb.targetSecond);
                 }
@@ -587,64 +729,376 @@ public class ControlFlowHandler {
     }
   }
   
-  private static void find_if_blocks(State state) {
+  private static boolean splits_decl(int begin, int end, Declaration[] declList) {
+    for(Declaration decl : declList) {
+      if(decl.isSplitBy(begin, end)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  private static int stack_reach(State state, Stack<Branch> stack) {
+    for(int i = 0; i < stack.size(); i++) {
+      Branch b = stack.peek(i);
+      Block breakable = enclosing_breakable_block(state, b.line);
+      if(breakable != null && breakable.end == b.targetSecond) {
+        // next
+      } else {
+        return b.targetSecond;
+      }
+    }
+    return Integer.MAX_VALUE;
+  }
+  
+  private static void resolve_if_stack(State state, Stack<Branch> stack, int line, int count) {
+    while(!stack.isEmpty() && stack_reach(state, stack) <= line && count != 0) {
+      if(count > 0) count--;
+      Branch top = stack.pop();
+      Block breakable = enclosing_breakable_block(state, top.line);
+      if(breakable != null && breakable.end == top.targetSecond) {
+        // 5.2-style if-break
+        Block block = new IfThenEndBlock(state.function, state.r, top.cond.inverse(), top.targetFirst - 1, top.targetFirst - 1, false);
+        block.addStatement(new Break(state.function, top.targetFirst - 1, top.targetSecond));
+        state.blocks.add(block);
+        throw new IllegalStateException();
+      } else {
+        int literalEnd = state.code.target(top.targetFirst - 1);
+        state.blocks.add(new IfThenEndBlock(state.function, state.r, top.cond, top.targetFirst, top.targetSecond, literalEnd != top.targetSecond));
+      }
+      remove_branch(state, top);
+    }
+    if(count > 0) {
+      throw new IllegalStateException();
+    }
+  }
+  
+  private static void resolve_else(State state, Stack<Branch> stack, Stack<Branch> hanging, Stack<ElseEndBlock> elseStack, Branch top, Branch b, int tailTargetSecond) {
+    while(!elseStack.isEmpty() && elseStack.peek().end == tailTargetSecond && elseStack.peek().begin >= top.targetFirst) {
+      elseStack.pop().end = b.line;
+    }
+    
+    Stack<Branch> replace = new Stack<Branch>();
+    while(!hanging.isEmpty() && hanging.peek().targetSecond == tailTargetSecond && hanging.peek().line > top.line) {
+      Branch hanger = hanging.pop();
+      hanger.targetSecond = b.line;
+      Block breakable = enclosing_breakable_block(state, hanger.line);
+      if(breakable != null && hanger.targetSecond >= breakable.end) {
+        replace.push(hanger);
+      } else {
+        stack.push(hanger);
+        resolve_if_stack(state, stack, b.line, 1);
+      }
+    }
+    while(!replace.isEmpty()) {
+      hanging.push(replace.pop());
+    }
+    
+    unredirect_finalsets(state, tailTargetSecond, b.line, top.targetFirst);
+    
+    Stack<Branch> restore = new Stack<Branch>();
+    while(!stack.isEmpty() && stack.peek().line > top.line && stack.peek().targetSecond == b.targetSecond) {
+      stack.peek().targetSecond = b.line;
+      restore.push(stack.pop());
+    }
+    while(!restore.isEmpty()) {
+      stack.push(restore.pop());
+    }
+    
+    b.targetSecond = tailTargetSecond;
+    state.blocks.add(new IfThenElseBlock(state.function, top.cond, top.targetFirst, top.targetSecond, b.targetSecond));
+    ElseEndBlock elseBlock = new ElseEndBlock(state.function, top.targetSecond, b.targetSecond);
+    state.blocks.add(elseBlock);
+    elseStack.push(elseBlock);
+    remove_branch(state, b);
+  }
+  
+  private static void resolve_hangers(State state, Stack<Branch> stack, Stack<Branch> hanging, Branch b) {
+    if(b != null) {
+      Block enclosing = enclosing_block(state, b.line);
+      while(!hanging.isEmpty() && hanging.peek().targetSecond == b.targetFirst && enclosing_block(state, hanging.peek().line) == enclosing) {
+        Branch hanger = hanging.pop();
+        hanger.targetSecond = b.line;
+        stack.push(hanger);
+        resolve_if_stack(state, stack, b.line, 1);
+      }
+    }
+  }
+  
+  private static void find_if_break(State state, Declaration[] declList) {
+    Stack<Branch> stack = new Stack<Branch>();
+    Stack<Branch> hanging = new Stack<Branch>();
+    Stack<ElseEndBlock> elseStack = new Stack<ElseEndBlock>();
     Branch b = state.begin_branch;
+    Stack<Branch> hangingResolver = new Stack<Branch>();
+    
     while(b != null) {
+      resolve_if_stack(state, stack, b.line2, -1);
+      while(!elseStack.isEmpty() && elseStack.peek().end <= b.line) {
+        elseStack.pop();
+      }
+      
       if(is_conditional(b)) {
-        Block enclosing;
-        enclosing = enclosing_unprotected_block(state, b.line);
+        Block enclosing = enclosing_unprotected_block(state, b.line);
+        if(b.targetFirst > b.targetSecond) throw new IllegalStateException();
         if(enclosing != null && !enclosing.contains(b.targetSecond)) {
           if(b.targetSecond == enclosing.getUnprotectedTarget()) {
             b.targetSecond = enclosing.getUnprotectedLine();
           }
         }
-        Branch tail = b.targetSecond >= 1 ? state.branches[b.targetSecond - 1] : null;
-        if(tail != null && !is_conditional(tail)) {
-          enclosing = enclosing_unprotected_block(state, tail.line);
-          if(enclosing != null && !enclosing.contains(tail.targetSecond)) {
-            if(tail.targetSecond == state.resolved[enclosing.getUnprotectedTarget()]) {
-              tail.targetSecond = enclosing.getUnprotectedLine();
-            }             
+        Block breakable = enclosing_breakable_block(state, b.line);
+        if(!stack.isEmpty() && stack.peek().targetSecond < b.targetSecond) {
+          while(!hangingResolver.isEmpty() && hangingResolver.peek().targetFirst <= b.line) {
+            resolve_hangers(state, stack, hanging, hangingResolver.pop());
           }
-          //System.err.println("else end " + b.targetFirst + " " + b.targetSecond + " " + tail.targetSecond + " enclosing " + (enclosing != null ? enclosing.begin : -1) + " " + + (enclosing != null ? enclosing.end : -1));
-          state.blocks.add(new IfThenElseBlock(state.function, b.cond, b.targetFirst, b.targetSecond, tail.targetSecond));
-          if(b.targetSecond != tail.targetSecond) {
-            state.blocks.add(new ElseEndBlock(state.function, b.targetSecond, tail.targetSecond));
-          } // else "empty else" case
-          remove_branch(state, tail);
-          unredirect(state, b.targetFirst, b.targetSecond, b.targetSecond - 1, tail.targetSecond);
+          hanging.push(b);
+        } else if(breakable != null && b.targetSecond >= breakable.end) {
+          while(!hangingResolver.isEmpty()) {
+            resolve_hangers(state, stack, hanging, hangingResolver.pop());
+          }
+          hanging.push(b);
         } else {
-          //System.err.println("if end " + b.targetFirst + " " + b.targetSecond);
-          
-          Block breakable = enclosing_breakable_block(state, b.line);
-          if(breakable != null && breakable.end == b.targetSecond) {
-            // 5.2-style if-break
-            Block block = new IfThenEndBlock(state.function, state.r, b.cond.inverse(), b.targetFirst - 1, b.targetFirst - 1, false);
-            block.addStatement(new Break(state.function, b.targetFirst - 1, b.targetSecond));
-            state.blocks.add(block);
-          } else {
-            int literalEnd = state.code.target(b.targetFirst - 1);
-            state.blocks.add(new IfThenEndBlock(state.function, state.r, b.cond, b.targetFirst, b.targetSecond, literalEnd != b.targetSecond));
-          }
+          stack.push(b);
+        }
+      } else if(b.type == Branch.Type.jump) {
+        int line = b.line;
+        
+        Block enclosing = enclosing_block(state, b.line);
+        
+        int tailTargetSecond = b.targetSecond;
+        Block unprotected = enclosing_unprotected_block(state, b.line);
+        if(unprotected != null && !unprotected.contains(b.targetSecond)) {
+          if(tailTargetSecond == state.resolved[unprotected.getUnprotectedTarget()]) {
+            tailTargetSecond = unprotected.getUnprotectedLine();
+          }             
         }
         
-        remove_branch(state, b);
+        Block breakable = enclosing_breakable_block(state, line);
+        if(breakable != null && (b.targetFirst == breakable.end || b.targetFirst == state.resolved[breakable.end])) {
+          Break block = new Break(state.function, b.line, b.targetFirst);
+          if(!hanging.isEmpty() && hanging.peek().targetSecond == b.targetFirst
+            && enclosing_block(state, hanging.peek().line) == enclosing
+            && (stack.isEmpty()
+              || stack.peek().line < hanging.peek().line
+              || hanging.peek().line > stack.peek().line)
+          ) {
+            while(!hangingResolver.isEmpty() && hangingResolver.peek().targetFirst != b.targetFirst) {
+              resolve_hangers(state, stack, hanging, hangingResolver.pop());
+            }
+            hangingResolver.push(b);
+          }
+          unredirect_finalsets(state, b.targetFirst, line, breakable.begin);
+          state.blocks.add(block);
+          remove_branch(state, b);
+        } else if(state.function.header.version.usegoto.get() && breakable != null && !breakable.contains(b.targetFirst) && state.resolved[b.targetFirst] != state.resolved[breakable.end]) {
+          Goto block = new Goto(state.function, b.line, b.targetFirst);
+          if(!hanging.isEmpty() && hanging.peek().targetSecond == b.targetFirst
+            && enclosing_block(state, hanging.peek().line) == enclosing
+            && (stack.isEmpty() || hanging.peek().line > stack.peek().line)
+          ) {
+            while(!hangingResolver.isEmpty() && hangingResolver.peek().targetFirst != b.targetFirst) {
+              resolve_hangers(state, stack, hanging, hangingResolver.pop());
+            }
+            hangingResolver.push(b);
+          }
+          unredirect_finalsets(state, b.targetFirst, line, 1);
+          state.blocks.add(block);
+          state.labels[b.targetFirst] = true;
+          remove_branch(state, b);
+        } else if(!stack.isEmpty() && stack.peek().targetSecond - 1 == b.line) {
+          Branch top = stack.peek();
+          while(top != null && top.targetSecond - 1 == b.line && splits_decl(top.targetFirst, top.targetSecond, declList)) {
+            resolve_if_stack(state, stack, top.targetSecond, 1);
+            top = stack.isEmpty() ? null : stack.peek();
+          }
+          if(top != null && top.targetSecond - 1 == b.line) {
+            if(top.targetSecond != b.targetSecond) {
+              while(!hangingResolver.isEmpty() && !hanging.isEmpty() && hangingResolver.peek().targetFirst == hanging.peek().targetSecond) {
+                resolve_hangers(state, stack, hanging, hangingResolver.pop());
+              }
+              resolve_else(state, stack, hanging, elseStack, top, b, tailTargetSecond);
+              stack.pop();
+            } else if(!splits_decl(top.targetFirst, top.targetSecond - 1, declList)) {
+              // "empty else" case
+              b.targetSecond = tailTargetSecond;
+              state.blocks.add(new IfThenElseBlock(state.function, top.cond, top.targetFirst, top.targetSecond, b.targetSecond));
+              remove_branch(state, b);
+              stack.pop();
+            }
+          }
+        } else if(
+          breakable != null
+          && !hanging.isEmpty() && state.resolved[hanging.peek().targetSecond] == state.resolved[breakable.end]
+          && line + 1 < state.branches.length && state.branches[line + 1] != null
+          && state.branches[line + 1].type == Branch.Type.jump
+          && state.branches[line + 1].targetFirst == hanging.peek().targetSecond
+        ) {
+          // else break
+          Branch top = hanging.pop();
+          if(!hangingResolver.isEmpty() && hangingResolver.peek().targetFirst == top.targetSecond) {
+            hangingResolver.pop();
+          }
+          top.targetSecond = line + 1;
+          resolve_else(state, stack, hanging, elseStack, top, b, tailTargetSecond);
+        } else if(
+          breakable != null && breakable.isSplitable()
+          && state.resolved[b.targetFirst] == breakable.getUnprotectedTarget()
+          && line + 1 < state.branches.length && state.branches[line + 1] != null
+          && state.branches[line + 1].type == Branch.Type.jump
+          && state.resolved[state.branches[line + 1].targetFirst] == state.resolved[breakable.end]
+        ) {
+          // split while condition (else break)
+          Block[] split = breakable.split(b.line);
+          for(Block block : split) {
+            state.blocks.add(block);
+          }
+          remove_branch(state, b);
+        } else if(
+          !stack.isEmpty() && stack.peek().targetSecond == b.targetFirst
+          && line + 1 < state.branches.length && state.branches[line + 1] != null
+          && state.branches[line + 1].type == Branch.Type.jump
+          && state.branches[line + 1].targetFirst == b.targetFirst
+        ) {
+          // empty else (redirected)
+          Branch top = stack.peek();
+          if(!splits_decl(top.targetFirst, b.line, declList)) {
+            top.targetSecond = line + 1;
+            b.targetSecond = line + 1;
+            state.blocks.add(new IfThenElseBlock(state.function, top.cond, top.targetFirst, top.targetSecond, b.targetSecond));
+            remove_branch(state, b);
+            stack.pop();
+          }
+        } else if(
+          !hanging.isEmpty() && hanging.peek().targetSecond == b.targetFirst
+          && line + 1 < state.branches.length && state.branches[line + 1] != null
+          && state.branches[line + 1].type == Branch.Type.jump
+          && state.branches[line + 1].targetFirst == b.targetFirst
+        ) {
+          // empty else (redirected)
+          Branch top = hanging.peek();
+          if(!splits_decl(top.targetFirst, b.line, declList)) {
+            if(!hangingResolver.isEmpty() && hangingResolver.peek().targetFirst == top.targetSecond) {
+              hangingResolver.pop();
+            }
+            top.targetSecond = line + 1;
+            b.targetSecond = line + 1;
+            state.blocks.add(new IfThenElseBlock(state.function, top.cond, top.targetFirst, top.targetSecond, b.targetSecond));
+            remove_branch(state, b);
+            hanging.pop();
+          }
+        } else if(state.function.header.version.usegoto.get() || state.r.isNoDebug) {
+          Goto block = new Goto(state.function, b.line, b.targetFirst);
+          if(!hanging.isEmpty() && hanging.peek().targetSecond == b.targetFirst && enclosing_block(state, hanging.peek().line) == enclosing) {
+            while(!hangingResolver.isEmpty() && hangingResolver.peek().targetFirst != b.targetFirst) {
+              resolve_hangers(state, stack, hanging, hangingResolver.pop());
+            }
+            hangingResolver.push(b);
+          }
+          state.blocks.add(block);
+          state.labels[b.targetFirst] = true;
+          remove_branch(state, b);
+        }
+      }
+      b = b.next;
+    }
+    while(!hangingResolver.isEmpty()) {
+      resolve_hangers(state, stack, hanging, hangingResolver.pop());
+    }
+    while(!hanging.isEmpty()) {
+      // if break (or if goto)
+      Branch top = hanging.pop();
+      Block breakable = enclosing_breakable_block(state, top.line);
+      if(breakable != null && breakable.end == top.targetSecond) {
+        if(state.function.header.version.useifbreakrewrite.get() || state.r.isNoDebug) {
+          Block block = new IfThenEndBlock(state.function, state.r, top.cond.inverse(), top.targetFirst - 1, top.targetFirst - 1, false);
+          block.addStatement(new Break(state.function, top.targetFirst - 1, top.targetSecond));
+          state.blocks.add(block);
+        } else {
+          throw new IllegalStateException();
+        }
+      } else if(state.function.header.version.usegoto.get() || state.r.isNoDebug) {
+        if(state.function.header.version.useifbreakrewrite.get() || state.r.isNoDebug) {
+          Block block = new IfThenEndBlock(state.function, state.r, top.cond.inverse(), top.targetFirst - 1, top.targetFirst - 1, false);
+          block.addStatement(new Goto(state.function, top.targetFirst - 1, top.targetSecond));
+          state.blocks.add(block);
+          state.labels[top.targetSecond] = true;
+        } else {
+          // No version supports goto without if break rewrite
+          throw new IllegalStateException();
+        }
+      } else {
+        throw new IllegalStateException();
+      }
+      remove_branch(state, top);
+    }
+    resolve_if_stack(state, stack, Integer.MAX_VALUE, -1);
+  }
+  
+  private static void unredirect_finalsets(State state, int target, int line, int begin) {
+    Branch b = state.begin_branch;
+    while(b != null) {
+      if(b.type == Branch.Type.finalset) {
+        if(b.targetSecond == target && b.line < line && b.line >= begin) {
+          b.targetFirst = line - 1;
+          b.targetSecond = line;
+          if(b.finalset != null) {
+            b.finalset.line = line - 1;
+          }
+        }
       }
       b = b.next;
     }
   }
- 
+  
   private static void find_set_blocks(State state) {
     List<Block> blocks = state.blocks;
     Branch b = state.begin_branch;
     while(b != null) {
       if(is_assignment(b) || b.type == Branch.Type.finalset) {
-        Block block = new SetBlock(state.function, b.cond, b.target, b.line, b.targetFirst, b.targetSecond, state.r);
-        blocks.add(block);
-        remove_branch(state, b);
+        if(b.finalset != null) {
+          FinalSetCondition c = b.finalset;
+          Op op = state.code.op(c.line);
+          if(c.line >= 2 && (op == Op.MMBIN || op == Op.MMBINI || op == Op.MMBINK || op == Op.EXTRAARG)) {
+            c.line--;
+            if(b.targetFirst == c.line + 1) {
+              b.targetFirst = c.line;
+            }
+          }
+          while(state.code.isUpvalueDeclaration(c.line)) {
+            c.line--;
+            if(b.targetFirst == c.line + 1) {
+              b.targetFirst = c.line;
+            }
+          }
+          
+          if(is_jmp_raw(state, c.line)) {
+            c.type = FinalSetCondition.Type.REGISTER;
+          } else {
+            c.type = FinalSetCondition.Type.VALUE;
+          }
+        }
+        if(b.cond == b.finalset) {
+          remove_branch(state, b);
+        } else {
+          Block block = new SetBlock(state.function, b.cond, b.target, b.line, b.targetFirst, b.targetSecond, state.r);
+          blocks.add(block);
+          remove_branch(state, b);
+        }
       }
       b = b.next;
     }
+  }
+  
+  private static Block enclosing_block(State state, int line) {
+    Block enclosing = null;
+    for(Block block : state.blocks) {
+      if(block.contains(line)) {
+        if(enclosing == null || enclosing.contains(block)) {
+          enclosing = block;
+        }
+      }
+    }
+    return enclosing;
   }
   
   private static Block enclosing_breakable_block(State state, int line) {
@@ -669,675 +1123,6 @@ public class ControlFlowHandler {
       }
     }
     return enclosing;
-  }
-  
-  private static void unredirect_break(State state, int line, Block enclosing) {
-    Branch b = state.begin_branch;
-    while(b != null) {
-      Block breakable = enclosing_breakable_block(state, b.line);
-      if(b.line != line && breakable != null && b.type == Branch.Type.jump && breakable == enclosing && b.targetFirst == enclosing.end) {
-        //System.err.println("redirect break " + b.line + " from " + b.targetFirst + " to " + line);
-        boolean condsplit = false;
-        Branch c = state.begin_branch;
-        while(c != null) {
-          if(is_conditional(c) && c.targetSecond < breakable.end) {
-            if(c.targetFirst <= line && line < c.targetSecond) {
-              if(c.targetFirst <= b.line && b.line < c.targetSecond) {
-                
-              } else {
-                condsplit = true;
-                break;
-              }
-            }
-          }
-          c = c.next;
-        }
-        if(!condsplit) {
-          b.targetFirst = line;
-          b.targetSecond = line;
-        }
-      }
-      b = b.next;
-    }
-  }
-  
-  private static class ResolutionState {
-    ResolutionState(State state, Block container) {
-      this.container = container;
-      resolution = new BranchResolution[state.code.length + 1];
-      results = new ArrayList<ResolutionResult>();
-      blocks = new ResolutionBlocks();
-      for(Declaration decl : state.d.declList) {
-        if(container == null || (container.contains(decl.begin) && decl.end <= container.scopeEnd())) {
-          blocks.addDecl(decl);
-        }
-      }
-    }
-    
-    Block container;
-    BranchResolution[] resolution;
-    List<ResolutionResult> results;
-    ResolutionBlocks blocks;
-  }
-  
-  private static class BranchResolution {
-    
-    enum Type {
-      IF_END,
-      IF_ELSE,
-      IF_BREAK,
-      ELSE,
-      BREAK,
-      PSEUDO_GOTO,
-    };
-    
-    Type type;
-    int line;
-    boolean matched;
-    int earliestMatch;
-    
-  }
-  
-  private static class ResolutionBlocks {
-    
-    ResolutionBlocks() {
-      blocks = new ArrayList<Pair>();
-      decls = new ArrayList<Pair>();
-    }
-    
-    enum Type
-    {
-      PSEUDO_GOTO,
-      IF_END,
-      IF_ELSE,
-      ELSE_END,
-      IF_ELSE_END;
-    }
-    
-    boolean push(int begin, int end, Type type) {
-      for(Pair b : blocks) {
-        if(end <= b.begin) {
-          // okay
-        } else if(b.end <= begin) {
-          // okay
-        } else if(begin <= b.begin && b.end <= end) {
-          // okay
-        } else if(b.begin <= begin && end <= b.end) {
-          // okay
-        } else {
-          if(debug_resolution) System.err.println("early invalid overlap");
-          return false;
-        }
-      }
-      if(type == Type.IF_END) {
-        for(Pair d : decls) {
-          if(end - 1 <= d.begin) {
-            // okay
-          } else if(d.end <= begin) {
-            // okay
-          } else if(begin <= d.begin && d.end <= end - 1) {
-            // okay
-          } else if(d.begin <= begin && end - 1 <= d.end) {
-            // okay
-          } else {
-            if(debug_resolution) System.err.println("early invalid scope overlap");
-            return false;
-          }
-        }
-      } else if(type == Type.IF_ELSE) {
-        for(Pair d : decls) {
-          if(end <= d.begin) {
-            // okay
-          } else if(d.end <= begin) {
-            // okay
-          } else if(begin <= d.begin && d.end <= end) {
-            // okay
-          } else if(d.begin <= begin && end <= d.end) {
-            // okay
-          } else {
-            if(debug_resolution) System.err.println("early invalid scope overlap");
-            return false;
-          }
-        }
-      }
-      blocks.add(new Pair(begin, end));
-      return true;
-    }
-    
-    void addDecl(Declaration decl) {
-      decls.add(new Pair(decl.begin, decl.end));
-    }
-    
-    int save() {
-      return blocks.size();
-    }
-    
-    void restore(int size) {
-      while(blocks.size() > size) {
-        blocks.remove(blocks.size() - 1);
-      }
-    }
-    
-    List<Pair> blocks;
-    List<Pair> decls;
-  }
-  
-  private static class Pair {
-    
-    Pair(int begin, int end) {
-      this.begin = begin;
-      this.end = end;
-    }
-    
-    int begin;
-    int end;
-  }
-  
-  private static class ResolutionResult {
-    
-    List<Block> blocks = new ArrayList<Block>();
-    
-  }
-  
-  private static ResolutionResult finishResolution(State state, Declaration[] declList, ResolutionState rstate) {
-    ResolutionResult result = new ResolutionResult();
-    for(int i = 0; i < rstate.resolution.length; i++) {
-      BranchResolution r = rstate.resolution[i];
-      if(r != null) {
-        Branch b = state.branches[i];
-        if(b == null) throw new IllegalStateException();
-        switch(r.type) {
-        case ELSE:
-          break;
-        case BREAK:
-          result.blocks.add(new Break(state.function, b.line, r.line));
-          break;
-        case PSEUDO_GOTO:
-          // handled in second pass
-          break;
-        case IF_END:
-          int literalEnd = state.code.target(b.targetFirst - 1);
-          result.blocks.add(new IfThenEndBlock(state.function, state.r, b.cond, b.targetFirst, r.line, literalEnd != r.line));
-          break;
-        case IF_ELSE:
-          BranchResolution r_else = rstate.resolution[r.line - 1];
-          if(r_else == null) throw new IllegalStateException();
-          result.blocks.add(new IfThenElseBlock(state.function, b.cond, b.targetFirst, r.line, r_else.line));
-          if(r.line != r_else.line) {
-            result.blocks.add(new ElseEndBlock(state.function, r.line, r_else.line));
-          } // else "empty else" case
-          break;
-        case IF_BREAK:
-          Block block = new IfThenEndBlock(state.function, state.r, b.cond.inverse(), b.targetFirst - 1, b.targetFirst - 1, false);
-          block.addStatement(new Break(state.function, b.targetFirst - 1, r.line));
-          result.blocks.add(block);
-          break;
-        default:
-          throw new IllegalStateException();
-        }
-      }
-    }
-    for(int i = 0; i < rstate.resolution.length; i++) {
-      BranchResolution r = rstate.resolution[i];
-      if(r != null) {
-        Branch b = state.branches[i];
-        if(b == null) throw new IllegalStateException();
-        if(r.type == BranchResolution.Type.PSEUDO_GOTO) {
-          Block smallest = rstate.container;
-          if(smallest == null) smallest = state.blocks.get(0); // outer block TODO cleaner way to get
-          for(Block newblock : result.blocks) {
-            if(smallest.contains(newblock) && newblock.contains(b.line) && newblock.contains(r.line - 1)) {
-              smallest = newblock;
-            }
-          }
-          Block wrapping = null;
-          for(Block block : result.blocks) {
-            if(block != smallest && smallest.contains(block) && block.contains(b.line)) {
-              if(wrapping == null || block.contains(wrapping)) {
-                wrapping = block;
-              }
-            }
-          }
-          for(Block block : state.blocks) {
-            if(block != smallest && smallest.contains(block) && block.contains(b.line)) {
-              if(wrapping == null || block.contains(wrapping)) {
-                wrapping = block;
-              }
-            }
-          }
-          int begin;
-          if(wrapping != null) {
-            begin = wrapping.begin - 1;
-          } else {
-            begin = b.line;
-          }
-          
-          for(Declaration decl : declList) {
-            if(decl.begin >= begin && decl.begin < r.line) {
-              
-            }
-            if(decl.end >= begin && decl.end < r.line) {
-              if(decl.begin < begin) {
-                begin = decl.begin;
-              }
-            }
-          }
-          
-          result.blocks.add(new OnceLoop(state.function, begin, r.line));
-          result.blocks.add(new Break(state.function, b.line, r.line));
-        }
-      }
-    }
-    return result;
-  }
-  
-  private static int findEarliestIfElseLine(State state, ResolutionState rstate, Branch b) {
-    int earliest = Integer.MAX_VALUE;
-    Branch p = state.end_branch;
-    while(p != null) {
-      if(is_conditional(p) && enclosing_breakable_block(state, p.line) == rstate.container) {
-        if(p.targetSecond - 1 == b.line) {
-          earliest = Math.min(earliest, p.line);
-        }
-      } else if(p.type == Branch.Type.jump && enclosing_breakable_block(state, p.line) == rstate.container && p != b) {
-        if(p.line - 1 == b.line) {
-          Branch p2 = state.end_branch;
-          while(p2 != null) {
-            if(is_conditional(p2) && enclosing_breakable_block(state, p2.line) == rstate.container) {
-              if(p.targetFirst == p2.targetSecond) {
-                earliest = Math.min(earliest, p2.line);
-              }
-            }
-            p2 = p2.previous;
-          }
-        }
-      }
-      p = p.previous;
-    }
-    return earliest;
-  }
-  
-  private static boolean debug_resolution = false;
-  
-  private static boolean checkResolution(State state, ResolutionState rstate) {
-    List<Pair> blocks = new ArrayList<Pair>();
-    List<Pair> pseudoGotos = new ArrayList<Pair>();
-    for(int i = 0; i < rstate.resolution.length; i++) {
-      BranchResolution r = rstate.resolution[i];
-      if(r != null) {
-        Branch b = state.branches[i];
-        if(b == null) throw new IllegalStateException();
-        switch(r.type) {
-        case ELSE:
-          if(!r.matched) {
-            if(debug_resolution) System.err.println("unmatched else");
-            return false;
-          }
-          if(rstate.container != null && r.line >= rstate.container.end) {
-            if(debug_resolution) System.err.println("invalid else");
-            return false;
-          }
-          break;
-        case BREAK:
-          if(rstate.container == null || r.line < rstate.container.end) {
-            if(debug_resolution) System.err.println("invalid break");
-            return false;
-          }
-          break;
-        case PSEUDO_GOTO:
-          if(rstate.container != null && r.line >= rstate.container.end) {
-            if(debug_resolution) System.err.println("invalid pseudo goto");
-            return false;
-          }
-          pseudoGotos.add(new Pair(b.line, r.line));
-          break;
-        case IF_END:
-          if(rstate.container != null && r.line >= rstate.container.end) {
-            if(debug_resolution) System.err.println("invalid if end");
-            return false;
-          }
-          blocks.add(new Pair(b.line + 1, r.line));
-          break;
-        case IF_ELSE:
-          if(rstate.container != null && r.line >= rstate.container.end) {
-            if(debug_resolution) System.err.println("invalid if else");
-            return false;
-          }
-          BranchResolution r_else = rstate.resolution[r.line - 1];
-          if(r_else == null) throw new IllegalStateException();
-          blocks.add(new Pair(b.line + 1, r.line - 1));
-          blocks.add(new Pair(r.line, r_else.line));
-          blocks.add(new Pair(b.line + 1, r_else.line));
-          break;
-        case IF_BREAK:
-          if(rstate.container == null || r.line < rstate.container.end) {
-            if(debug_resolution) System.err.println("invalid if break");
-            return false;
-          }
-          break;
-        default:
-          throw new IllegalStateException();
-        }
-      }
-    }
-    for(int i = 0; i < blocks.size(); i++) {
-      for(int j = i + 1; j < blocks.size(); j++) {
-        Pair block1 = blocks.get(i);
-        Pair block2 = blocks.get(j);
-        if(block1.end <= block2.begin) {
-          // okay
-        } else if(block2.end <= block1.begin) {
-          // okay
-        } else if(block1.begin <= block2.begin && block2.end <= block1.end) {
-          // okay
-        } else if(block2.begin <= block1.begin && block1.end <= block2.end) {
-          // okay
-        } else {
-          if(debug_resolution) {
-            System.err.println("invalid block overlap");
-            //System.err.println("  block1: " + block1.begin + " " + block1.end);
-            //System.err.println("  block2: " + block2.begin + " " + block2.end);
-          }
-          return false;
-        }
-      }
-    }
-    for(Pair pseudoGoto : pseudoGotos) {
-      for(Pair block : blocks) {
-        if(block.begin <= pseudoGoto.end && block.end > pseudoGoto.end) {
-          // block contains end
-          if(block.begin > pseudoGoto.begin || block.end <= pseudoGoto.begin) {
-            // doesn't contain goto
-            if(debug_resolution) System.err.println("invalid pseudo goto block overlap");
-            return false;
-          }
-        }
-      }
-    }
-    for(int i = 0; i < pseudoGotos.size(); i++) {
-      for(int j = 0; j < pseudoGotos.size(); j++) {
-        Pair goto1 = pseudoGotos.get(i);
-        Pair goto2 = pseudoGotos.get(j);
-        if(goto1.begin >= goto2.begin && goto1.begin < goto2.end) {
-          if(debug_resolution) System.err.println("invalid pseudo goto overlap");
-          if(goto1.end > goto2.end) return false;
-        }
-        if(goto2.begin >= goto1.begin && goto2.begin < goto1.end) {
-          if(debug_resolution) System.err.println("invalid pseudo goto overlap");
-          if(goto2.end > goto1.end) return false;
-        }
-      }
-    }
-    // TODO: check for break out of OnceBlock
-    return true;
-  }
-  
-  private static void printResolution(State state, ResolutionState rstate) {
-    for(int i = 0; i < rstate.resolution.length; i++) {
-      BranchResolution r = rstate.resolution[i];
-      if(r != null) {
-        Branch b = state.branches[i];
-        if(b == null) throw new IllegalStateException();
-        System.err.print(r.type + " " + b.line + " " + r.line);
-        if(b.cond != null) System.err.print(" " + b.cond);
-        System.err.println();
-      }
-    }
-  }
-  
-  private static boolean is_break(State state, Block container, int line) {
-    if(container == null || line < container.end) return false;
-    if(line == container.end) return true;
-    return state.resolved[container.end] == state.resolved[line];
-  }
-  
-  private static void resolve(State state, Declaration[] declList, ResolutionState rstate, Branch b) {
-    if(b == null) {
-      if(checkResolution(state, rstate)) {
-        // printResolution(state, rstate);
-        // System.err.println();
-        rstate.results.add(finishResolution(state, declList, rstate));
-      } else {
-        // System.err.println("failed resolution:");
-        // printResolution(state, rstate);
-      }
-      return;
-    }
-    // fail fast
-    for(int i = 0; i < rstate.resolution.length; i++) {
-      BranchResolution res = rstate.resolution[i];
-      if(res != null && res.type == BranchResolution.Type.ELSE && !res.matched && res.earliestMatch > b.line) {
-        return;
-      }
-    }
-    // end fail fast
-    Branch next = b.previous;
-    while(next != null && enclosing_breakable_block(state, next.line) != rstate.container) {
-      next = next.previous;
-    }
-    if(is_conditional(b)) {
-      BranchResolution r = new BranchResolution();
-      rstate.resolution[b.line] = r;
-      if(is_break(state, rstate.container, b.targetSecond)) {
-        if(state.function.header.version.usesIfBreakRewrite()) {
-          r.type = BranchResolution.Type.IF_BREAK;
-          r.line = rstate.container.end;
-          resolve(state, declList, rstate, next);
-          if(!rstate.results.isEmpty()) return;
-        }
-      }
-      BranchResolution prevlineres = null;
-      r.line = b.targetSecond;
-      if(b.targetSecond - 1 >= 1) {
-        prevlineres = rstate.resolution[b.targetSecond - 1];
-      }
-      if(prevlineres != null && prevlineres.type == BranchResolution.Type.ELSE && !prevlineres.matched) {
-        r.type = BranchResolution.Type.IF_ELSE;
-        prevlineres.matched = true;
-        if(b.line < prevlineres.earliestMatch) throw new IllegalStateException("unexpected else match: " + b.line + " (" + prevlineres.earliestMatch + ")");
-        int blocksSize = rstate.blocks.save();
-        if(rstate.blocks.push(b.line + 1, r.line - 1, ResolutionBlocks.Type.IF_ELSE) && rstate.blocks.push(r.line, prevlineres.line, ResolutionBlocks.Type.ELSE_END) && rstate.blocks.push(b.line + 1,  prevlineres.line, ResolutionBlocks.Type.IF_ELSE_END)) {
-          resolve(state, declList, rstate, next);
-        }
-        rstate.blocks.restore(blocksSize);;
-        if(!rstate.results.isEmpty()) return;
-        prevlineres.matched = false;
-      }
-      if(b.targetSecond - 1 >= 1 && state.code.op(b.targetSecond - 1) == Op.JMP52 && is_close(state, b.targetSecond - 1)) {
-        r.line--;
-        r.type = BranchResolution.Type.IF_END;
-        int blocksSize = rstate.blocks.save();
-        if(rstate.blocks.push(b.line + 1, r.line, ResolutionBlocks.Type.IF_END)) {
-          resolve(state, declList, rstate, next);
-        }
-        rstate.blocks.restore(blocksSize);
-        if(!rstate.results.isEmpty()) return;
-        r.line++;
-      }
-      r.type = BranchResolution.Type.IF_END;
-      int blocksSize = rstate.blocks.save();
-      if(rstate.blocks.push(b.line + 1, r.line, ResolutionBlocks.Type.IF_END)) {
-        resolve(state, declList, rstate, next);
-      }
-      rstate.blocks.restore(blocksSize);
-      if(!rstate.results.isEmpty()) return;
-      Branch p = state.end_branch;
-      while(p != b) {
-        if(p.type == Branch.Type.jump && enclosing_breakable_block(state, p.line) == rstate.container) {
-          if(p.targetFirst == b.targetSecond) {
-            r.line = p.line;
-            if(p.line - 1 >= 1) {
-              prevlineres = rstate.resolution[p.line - 1];
-            }
-            if(prevlineres != null && prevlineres.type == BranchResolution.Type.ELSE && !prevlineres.matched) {
-              r.type = BranchResolution.Type.IF_ELSE;
-              prevlineres.matched = true;
-              if(b.line < prevlineres.earliestMatch) throw new IllegalStateException("unexpected else match: " + b.line + " (" + prevlineres.earliestMatch + "); " + p.line);
-              resolve(state, declList, rstate, next);
-              if(!rstate.results.isEmpty()) return;
-              prevlineres.matched = false;
-            }
-            r.type = BranchResolution.Type.IF_END;
-            blocksSize = rstate.blocks.save();
-            if(rstate.blocks.push(b.line + 1, r.line, ResolutionBlocks.Type.IF_END)) {
-              resolve(state, declList, rstate, next);
-            }
-            rstate.blocks.restore(blocksSize);
-            if(!rstate.results.isEmpty()) return;
-          }
-        }
-        p = p.previous;
-      }
-      rstate.resolution[b.line] = null;
-    } else if(b.type == Branch.Type.jump) {
-      BranchResolution r = new BranchResolution();
-      rstate.resolution[b.line] = r;
-      if(is_break(state, rstate.container, b.targetFirst)) {
-        r.type = BranchResolution.Type.BREAK;
-        r.line = rstate.container.end;
-        resolve(state, declList, rstate, next);
-        if(!rstate.results.isEmpty()) return;
-      }
-      r.type = BranchResolution.Type.ELSE;
-      r.line = b.targetFirst;
-      r.earliestMatch = findEarliestIfElseLine(state, rstate, b);
-      resolve(state, declList, rstate, next);
-      if(!rstate.results.isEmpty()) return;
-      Branch p = state.end_branch;
-      while(p != b) {
-        if(p.type == Branch.Type.jump && enclosing_breakable_block(state, p.line) == rstate.container) {
-          if(p.targetFirst == b.targetFirst) {
-            r.type = BranchResolution.Type.ELSE;
-            r.line = p.line;
-            r.earliestMatch = findEarliestIfElseLine(state, rstate, b);
-            resolve(state, declList, rstate, next);
-            if(!rstate.results.isEmpty()) return;
-          }
-        }
-        p = p.previous;
-      }
-      r.type = BranchResolution.Type.PSEUDO_GOTO;
-      resolve(state, declList, rstate, next);
-      if(!rstate.results.isEmpty()) return;
-      rstate.resolution[b.line] = null;
-    } else {
-      resolve(state, declList, rstate, next);
-      if(!rstate.results.isEmpty()) return;
-    }
-  }
-  
-  private static void find_other_statements(State state, Declaration[] declList) {
-    List<Block> containers = new ArrayList<Block>();
-    for(Block block : state.blocks) {
-      if(block.breakable()) {
-        containers.add(block);
-      }
-    }
-    containers.add(null);
-    
-    for(Block container : containers) {
-      Branch b = state.end_branch;
-      while(b != null && enclosing_breakable_block(state, b.line) != container) {
-        b = b.previous;
-      }
-      
-      //System.out.println("resolve " + (container == null ? 0 : container.begin));
-      ResolutionState rstate = new ResolutionState(state, container);
-      resolve(state, declList, rstate, b);
-      if(rstate.results.isEmpty()) throw new IllegalStateException("couldn't resolve breaks for " + (container == null ? 0 : container.begin));
-      state.blocks.addAll(rstate.results.get(0).blocks);
-    }
-  }
-  
-  private static void find_break_statements(State state) {
-    List<Block> blocks = state.blocks;
-    Branch b = state.end_branch;
-    LinkedList<Branch> breaks = new LinkedList<Branch>();
-    while(b != null) {
-      if(b.type == Branch.Type.jump) {
-        int line = b.line;
-        Block enclosing = enclosing_breakable_block(state, line);
-        if(enclosing != null && (b.targetFirst == enclosing.end || b.targetFirst == state.resolved[enclosing.end])) {
-          Break block = new Break(state.function, b.line, b.targetFirst);
-          unredirect_break(state, line, enclosing);
-          blocks.add(block);
-          breaks.addFirst(b);
-        }
-      }
-      b = b.previous;
-    }
-    
-    b = state.begin_branch;
-    List<Branch> ifStack = new ArrayList<Branch>(); 
-    while(b != null) {
-      Block enclosing = enclosing_breakable_block(state, b.line);
-      while(!ifStack.isEmpty()) {
-        Block outer = enclosing_breakable_block(state, ifStack.get(ifStack.size() - 1).line); 
-        if(enclosing == null || (outer != enclosing && !outer.contains(enclosing))) {
-          ifStack.remove(ifStack.size() - 1);
-        } else {
-          break;
-        }
-      }
-      if(is_conditional(b)) {
-        //System.err.println("conditional " + b.line + " " + b.targetSecond);
-        if(enclosing != null && b.targetSecond >= enclosing.end) {
-          ifStack.add(b);
-        }
-      } else if(b.type == Branch.Type.jump) {
-        //System.err.println("lingering jump " + b.line);
-        if(enclosing != null && b.targetFirst < enclosing.end && !ifStack.isEmpty()) {
-          if(b.line <= state.code.length - 1 && state.branches[b.line + 1] != null) {
-            Branch prev = state.branches[b.line + 1];
-            if(prev.type == Branch.Type.jump && (prev.targetFirst == enclosing.end || prev.targetFirst == state.resolved[enclosing.end])) {
-              Branch candidate = ifStack.get(ifStack.size() - 1);
-              if(state.resolved[candidate.targetSecond] == state.resolved[prev.targetFirst]) {
-                candidate.targetSecond = prev.line;
-                ifStack.remove(ifStack.size() - 1);
-              }
-            }
-          }
-        }
-      }
-      b = b.next;
-    }
-    
-    b = state.begin_branch;
-    while(b != null) {
-      if(is_conditional(b)) {
-        Block enclosing = enclosing_breakable_block(state, b.line);
-        if(enclosing != null && (b.targetSecond >= enclosing.end || b.targetSecond < enclosing.begin)) {
-          if(state.function.header.version.usesIfBreakRewrite()) {
-            Block block = new IfThenEndBlock(state.function, state.r, b.cond.inverse(), b.targetFirst - 1, b.targetFirst - 1, false);
-            block.addStatement(new Break(state.function, b.targetFirst - 1, b.targetSecond));
-            state.blocks.add(block);
-            remove_branch(state, b);
-          } else {
-            for(Branch br : breaks) {
-              if(br.line >= b.targetFirst && br.line < b.targetSecond && br.line < enclosing.end) {
-                Branch tbr = br;
-                while(b.targetSecond != tbr.targetSecond) {
-                  Branch next = state.branches[tbr.targetSecond];
-                  if(next != null && next.type == Branch.Type.jump) {
-                    tbr = next; // TODO: guard against infinite loop
-                  } else {
-                    break;
-                  }
-                }
-                if(b.targetSecond == tbr.targetSecond) {
-                  b.targetSecond = br.line;
-                }
-              }
-            }
-          }
-        }
-      }
-      b = b.next;
-    }
-    
-    for(Branch br : breaks) {
-      remove_branch(state, br);
-    }
   }
   
   private static void find_pseudo_goto_statements(State state, Declaration[] declList) {
@@ -1370,16 +1155,17 @@ public class ControlFlowHandler {
           }
           int lowerBound = Integer.MIN_VALUE;
           int upperBound = Integer.MAX_VALUE;
+          final int scopeAdjust = -1;
           for(Declaration decl : declList) {
-            if(decl.begin >= begin && decl.begin < end) {
+            //if(decl.begin >= begin && decl.begin < end) {
               
-            }
-            if(decl.end >= begin && decl.end < end) {
+            //}
+            if(decl.end >= begin && decl.end <= end + scopeAdjust) {
               if(decl.begin < begin) {
                 upperBound = Math.min(decl.begin, upperBound);
               }
             }
-            if(decl.begin >= begin && decl.end > end) {
+            if(decl.begin >= begin && decl.begin <= end + scopeAdjust && decl.end > end + scopeAdjust) {
               lowerBound = Math.max(decl.begin + 1, lowerBound);
               begin = decl.begin + 1;
             }
@@ -1389,8 +1175,27 @@ public class ControlFlowHandler {
           }
           begin = Math.max(lowerBound, begin);
           begin = Math.min(upperBound, begin);
-          state.blocks.add(new OnceLoop(state.function, begin, end));
-          state.blocks.add(new Break(state.function, b.line, b.targetFirst));
+          Block breakable = enclosing_breakable_block(state, b.line);
+          if(breakable != null) {
+            begin = Math.max(breakable.begin, begin);
+          }
+          boolean containsBreak = false;
+          OnceLoop loop = new OnceLoop(state.function, begin, end);
+          for(Block block : state.blocks) {
+            if(loop.contains(block) && block instanceof Break) {
+              containsBreak = true;
+              break;
+            }
+          }
+          if(containsBreak) {
+            state.blocks.add(new IfThenElseBlock(state.function, FixedCondition.TRUE, begin, b.line + 1, end));
+            state.blocks.add(new ElseEndBlock(state.function, b.line + 1, end));
+          } else {
+            state.blocks.add(loop);
+            Break breakStatement = new Break(state.function, b.line, b.targetFirst);
+            state.blocks.add(breakStatement);
+            breakStatement.comment = "pseudo-goto";
+          }
           remove_branch(state, b);
         }
       }
@@ -1437,7 +1242,10 @@ public class ControlFlowHandler {
   }
   
   private static boolean adjacent(State state, Branch branch0, Branch branch1) {
-    if(branch0 == null || branch1 == null) {
+    if(branch1.finalset != null && branch0.finalset == branch1.finalset) {
+      // With redirects, there can be real statements between a finalset and paired branches.
+      return true;
+    } else if(branch0 == null || branch1 == null) {
       return false;
     } else {
       boolean adjacent = branch0.targetFirst <= branch1.line;
@@ -1481,7 +1289,7 @@ public class ControlFlowHandler {
         // Combination if not branch0 or branch1 then
         branch0 = combine_conditional(state, branch0);
         Condition c = new OrCondition(branch0.cond.inverse(), branch1.cond);
-        Branch branchn = new Branch(branch0.line, Branch.Type.comparison, c, branch1.targetFirst, branch1.targetSecond);
+        Branch branchn = new Branch(branch0.line, branch1.line2, Branch.Type.comparison, c, branch1.targetFirst, branch1.targetSecond, branch1.finalset);
         branchn.inverseValue = branch1.inverseValue;
         if(verbose) System.err.println("conditional or " + branchn.line);
         replace_branch(state, branch0, branch1, branchn);
@@ -1490,7 +1298,7 @@ public class ControlFlowHandler {
         // Combination if branch0 and branch1 then
         branch0 = combine_conditional(state, branch0);
         Condition c = new AndCondition(branch0.cond, branch1.cond);
-        Branch branchn = new Branch(branch0.line, Branch.Type.comparison, c, branch1.targetFirst, branch1.targetSecond);
+        Branch branchn = new Branch(branch0.line, branch1.line2, Branch.Type.comparison, c, branch1.targetFirst, branch1.targetSecond, branch1.finalset);
         branchn.inverseValue = branch1.inverseValue;
         if(verbose) System.err.println("conditional and " + branchn.line);
         replace_branch(state, branch0, branch1, branchn);
@@ -1505,7 +1313,13 @@ public class ControlFlowHandler {
     Branch branchn = branch1;
     while(branch0 != null && branchn == branch1) {
       branchn = combine_assignment_helper(state, branch0, branch1);
-      if(branch0.targetSecond > branch1.targetFirst) break;
+      if(branch1.cond == branch1.finalset) {
+        // keep searching for the first branch paired with a raw finalset
+      } else if(branch0.cond == branch0.finalset) {
+        // ignore duped finalset
+      } else if(branch0.targetSecond > branch1.targetFirst) {
+        break;
+      }
       branch0 = branch0.previous;
     }
     return branchn;
@@ -1533,7 +1347,7 @@ public class ControlFlowHandler {
             //System.err.println("bridge and " + branch0.line + " " + branch0.inverseValue);
             c = new AndCondition(branch0.cond, branch1.cond);
           }
-          Branch branchn = new Branch(branch0.line, branch1.type, c, branch1.targetFirst, branch1.targetSecond);
+          Branch branchn = new Branch(branch0.line, branch1.line2, branch1.type, c, branch1.targetFirst, branch1.targetSecond, branch1.finalset);
           branchn.inverseValue = branch1.inverseValue;
           branchn.target = register;
           replace_branch(state, branch0, branch1, branchn);
@@ -1570,7 +1384,7 @@ public class ControlFlowHandler {
             //System.err.println("assign or " + branch1.line + " " + branch0.line);
             c = new AndCondition(branch0.cond, branch1.cond);
           }
-          Branch branchn = new Branch(branch0.line, branch1.type, c, branch1.targetFirst, branch1.targetSecond);
+          Branch branchn = new Branch(branch0.line, branch1.line2, branch1.type, c, branch1.targetFirst, branch1.targetSecond, branch1.finalset);
           branchn.inverseValue = branch1.inverseValue;
           branchn.target = register;
           replace_branch(state, branch0, branch1, branchn);
@@ -1581,6 +1395,17 @@ public class ControlFlowHandler {
         if(branch0.targetSecond == branch1.targetSecond) {
           Condition c;
           //System.err.println("final preassign " + branch1.line + " " + branch0.line);
+          if(branch0.finalset != null && branch0.finalset != branch1.finalset) {
+            Branch b = branch0.next;
+            while(b != null) {
+              if(b.cond == branch0.finalset) {
+                remove_branch(state, b);
+                break;
+              }
+              b = b.next;
+            }
+          }
+          
           if(is_conditional(branch0)) {
             branch0 = combine_conditional(state, branch0);
             if(branch0.inverseValue) {
@@ -1600,7 +1425,7 @@ public class ControlFlowHandler {
             //System.err.println("final assign and " + branch1.line + " " + branch0.line);
             c = new AndCondition(branch0.cond, branch1.cond);
           }
-          Branch branchn = new Branch(branch0.line, Branch.Type.finalset, c, branch1.targetFirst, branch1.targetSecond);
+          Branch branchn = new Branch(branch0.line, branch1.line2, Branch.Type.finalset, c, branch1.targetFirst, branch1.targetSecond, branch1.finalset);
           branchn.target = register;
           replace_branch(state, branch0, branch1, branchn);
           return combine_assignment(state, branchn);
@@ -1610,19 +1435,38 @@ public class ControlFlowHandler {
     return branch1;
   }
   
-  private static Branch[] branches(State state, Branch b) {
+  private static void raw_add_branch(State state, Branch b) {
     if(b.type == Branch.Type.finalset) {
-      return state.finalsetbranches;
+      List<Branch> list = state.finalsetbranches.get(b.line);
+      if(list == null) {
+        list = new LinkedList<Branch>();
+        state.finalsetbranches.set(b.line, list);
+      }
+      list.add(b);
     } else if(b.type == Branch.Type.testset) {
-      return state.setbranches;
+      state.setbranches[b.line] = b;
     } else {
-      return state.branches;
+      state.branches[b.line] = b;
+    }
+  }
+  
+  private static void raw_remove_branch(State state, Branch b) {
+    if(b.type == Branch.Type.finalset) {
+      List<Branch> list = state.finalsetbranches.get(b.line);
+      if(list == null) {
+        throw new IllegalStateException();
+      }
+      list.remove(b);
+    } else if(b.type == Branch.Type.testset) {
+      state.setbranches[b.line] = null;
+    } else {
+      state.branches[b.line] = null;
     }
   }
   
   private static void replace_branch(State state, Branch branch0, Branch branch1, Branch branchn) {
     remove_branch(state, branch0);
-    branches(state, branch1)[branch1.line] = null;
+    raw_remove_branch(state, branch1);
     branchn.previous = branch1.previous;
     if(branchn.previous == null) {
       state.begin_branch = branchn;
@@ -1635,11 +1479,11 @@ public class ControlFlowHandler {
     } else {
       branchn.next.previous = branchn;
     }
-    branches(state, branchn)[branchn.line] = branchn;
+    raw_add_branch(state, branchn);
   }
   
   private static void remove_branch(State state, Branch b) {
-    branches(state, b)[b.line] = null;
+    raw_remove_branch(state, b);
     Branch prev = b.previous;
     Branch next = b.next;
     if(prev != null) {
@@ -1655,94 +1499,58 @@ public class ControlFlowHandler {
   }
   
   private static void insert_branch(State state, Branch b) {
-    branches(state, b)[b.line] = b;
+    raw_add_branch(state, b);
   }
   
   private static void link_branches(State state) {
     Branch previous = null;
     for(int index = 0; index < state.branches.length; index++) {
       for(int array = 0; array < 3; array ++) {
-        Branch[] branches;
         if(array == 0) {
-          branches = state.finalsetbranches;
-        } else if(array == 1) {
-          branches = state.setbranches;
-        } else {
-          branches = state.branches;
-        }
-        Branch b = branches[index];
-        if(b != null) {
-          b.previous = previous;
-          if(previous != null) {
-            previous.next = b;
-          } else {
-            state.begin_branch = b;
+          List<Branch> list = state.finalsetbranches.get(index);
+          if(list != null) {
+            for(Branch b : list) {
+              b.previous = previous;
+              if(previous != null) {
+                previous.next = b;
+              } else {
+                state.begin_branch = b;
+              }
+              previous = b;
+            }
           }
-          previous = b;
+        } else {
+          Branch[] branches;
+          if(array == 1) {
+            branches = state.setbranches;
+          } else {
+            branches = state.branches;
+          }
+          Branch b = branches[index];
+          if(b != null) {
+            b.previous = previous;
+            if(previous != null) {
+              previous.next = b;
+            } else {
+              state.begin_branch = b;
+            }
+            previous = b;
+          }
         }
       }
     }
     state.end_branch = previous;
   }
   
-  private static int get_target(State state, int line) {
-    Code code = state.code;
-    if(code.isUpvalueDeclaration(line)) {
-      line--;
-      while(code.op(line) != Op.CLOSURE) line--;
-      int codepoint = code.codepoint(line);
-      int target = Op.CLOSURE.target(codepoint, code.getExtractor());
-      return target;
-    } else {
-      Op op = code.op(line);
-      int codepoint = code.codepoint(line);
-      int target = op.target(codepoint, code.getExtractor());
-      if(target == -1) {
-        // Special handling for table literals
-        //  also TESTSET (since line will be JMP)
-        switch(op) {
-        case SETLIST:
-        case SETLISTO:
-        case SETLIST50:
-        case SETLIST52:
-        case SETTABLE:
-          target = code.A(line);
-          break;
-        case EXTRABYTE:
-          if(line >= 2 && code.op(line - 1) == Op.SETLIST) {
-            target = code.A(line - 1);
-          }
-          break;
-        case EXTRAARG:
-          if(line >= 2 && code.op(line - 1) == Op.SETLIST52) {
-            target = code.A(line - 1);
-          }
-          break;
-        case JMP:
-        case JMP52:
-          if(line >= 2) {
-            if(code.op(line - 1) == Op.TESTSET || code.op(line - 1) == Op.TEST50) {
-              target = code.op(line - 1).target(code.codepoint(line - 1), code.getExtractor());
-            }
-          }
-          break;
-        default:
-          break;
-        }
-      }
-      return target;
-    }
-  }
-  
   private static boolean is_jmp_raw(State state, int line) {
     Op op = state.code.op(line);
-    return op == Op.JMP || op == Op.JMP52;
+    return op == Op.JMP || op == Op.JMP52 || op == Op.JMP54;
   }
   
   private static boolean is_jmp(State state, int line) {
     Code code = state.code;
     Op op = code.op(line);
-    if(op == Op.JMP) {
+    if(op == Op.JMP || op == Op.JMP54) {
       return true;
     } else if(op == Op.JMP52) {
       return !is_close(state, line);
@@ -1789,36 +1597,27 @@ public class ControlFlowHandler {
     if(code.isUpvalueDeclaration(line)) return false;
     switch(code.op(line)) {
       case MOVE:
-      case LOADK:
-      case LOADKX:
-      case LOADBOOL:
-      case GETUPVAL:
-      case GETTABUP:
+      case LOADI: case LOADF: case LOADK: case LOADKX:
+      case LOADBOOL: case LOADFALSE: case LOADTRUE: case LFALSESKIP:
       case GETGLOBAL:
-      case GETTABLE:
-      case NEWTABLE:
-      case NEWTABLE50:
-      case ADD:
-      case SUB:
-      case MUL:
-      case DIV:
-      case MOD:
-      case POW:
-      case IDIV:
-      case BAND:
-      case BOR:
-      case BXOR:
-      case SHL:
-      case SHR:
-      case UNM:
-      case NOT:
-      case LEN:
-      case BNOT:
-      case CONCAT:
+      case GETUPVAL:
+      case GETTABUP: case GETTABUP54:
+      case GETTABLE: case GETTABLE54: case GETI: case GETFIELD:
+      case NEWTABLE50: case NEWTABLE: case NEWTABLE54:
+      case ADD: case SUB: case MUL: case DIV: case IDIV: case MOD: case POW: case BAND: case BOR: case BXOR: case SHL: case SHR:
+      case UNM: case NOT: case LEN: case BNOT:
+      case CONCAT: case CONCAT54:
       case CLOSURE:
-      case TESTSET:
+      case TESTSET: case TESTSET54:
         return r.isLocal(code.A(line), line);
-      case LOADNIL:
+      case ADD54: case SUB54: case MUL54: case DIV54: case IDIV54: case MOD54: case POW54: case BAND54: case BOR54: case BXOR54: case SHL54: case SHR54:
+      case ADDK: case SUBK: case MULK: case DIVK: case IDIVK: case MODK: case POWK: case BANDK: case BORK: case BXORK:
+      case ADDI: case SHLI: case SHRI:
+        return false; // only count following MMBIN* instruction
+      case MMBIN: case MMBINI: case MMBINK:
+        if(line <= 1) throw new IllegalStateException();
+        return r.isLocal(code.A(line - 1), line - 1);
+     case LOADNIL:
         for(int register = code.A(line); register <= code.B(line); register++) {
           if(r.isLocal(register, line)) {
             return true;
@@ -1834,33 +1633,33 @@ public class ControlFlowHandler {
         return false;
       case SETGLOBAL:
       case SETUPVAL:
-      case SETTABUP:
-      case TAILCALL:
-      case RETURN:
-      case FORLOOP:
-      case FORPREP:
-      case TFORCALL:
-      case TFORLOOP:
-      case TFORPREP:
+      case SETTABUP: case SETTABUP54:
+      case TAILCALL: case TAILCALL54:
+      case RETURN: case RETURN54: case RETURN0: case RETURN1:
+      case FORLOOP: case FORLOOP54:
+      case FORPREP: case FORPREP54:
+      case TFORCALL: case TFORCALL54:
+      case TFORLOOP: case TFORLOOP52: case TFORLOOP54:
+      case TFORPREP: case TFORPREP54:
       case CLOSE:
+      case TBC: // TODO: ?
         return true;
       case TEST50:
         return code.A(line) != code.B(line) && r.isLocal(code.A(line), line);
-      case SELF:
+      case SELF: case SELF54:
         return r.isLocal(code.A(line), line) || r.isLocal(code.A(line) + 1, line);
-      case EQ:
-      case LT:
-      case LE:
-      case TEST:
-      case SETLIST:
-      case SETLIST52:
-      case SETLIST50:
-      case SETLISTO:
+      case EQ: case LT: case LE:
+      case EQ54: case LT54: case LE54:
+      case EQK: case EQI: case LTI: case LEI: case GTI: case GEI:
+      case TEST: case TEST54:
+      case SETLIST50: case SETLISTO: case SETLIST: case SETLIST52: case SETLIST54:
+      case VARARGPREP:
       case EXTRAARG:
       case EXTRABYTE:
         return false;
       case JMP:
       case JMP52: // TODO: CLOSE?
+      case JMP54:
         if(line == 1) {
           return true;
         } else {
@@ -1869,10 +1668,22 @@ public class ControlFlowHandler {
           if(prev == Op.EQ) return false;
           if(prev == Op.LT) return false;
           if(prev == Op.LE) return false;
-          if(prev == Op.TEST) return false;
-          if(prev == Op.TESTSET) return false;
+          if(prev == Op.EQ54) return false;
+          if(prev == Op.LT54) return false;
+          if(prev == Op.LE54) return false;
+          if(prev == Op.EQK) return false;
+          if(prev == Op.EQI) return false;
+          if(prev == Op.LTI) return false;
+          if(prev == Op.LEI) return false;
+          if(prev == Op.GTI) return false;
+          if(prev == Op.GEI) return false;
           if(prev == Op.TEST50) return false;
+          if(prev == Op.TEST) return false;
+          if(prev == Op.TEST54) return false;
+          if(prev == Op.TESTSET) return false;
+          if(prev == Op.TESTSET54) return false;
           if(next == Op.LOADBOOL && code.C(line + 1) != 0) return false;
+          if(next == Op.LFALSESKIP) return false;
           return true;
         }
       case CALL: {
@@ -1900,7 +1711,19 @@ public class ControlFlowHandler {
         }
         return false;
       }
-      case SETTABLE:
+      case VARARG54: {
+        int a = code.A(line);
+        int c = code.C(line);
+        if(c == 0) c = r.registers - a + 1;
+        for(int register = a; register < a + c - 1; register++) {
+          if(r.isLocal(register, line)) {
+            return true;
+          }
+        }
+        return false;
+      }
+      case SETTABLE: case SETTABLE54:
+      case SETI: case SETFIELD:
         // special case -- this is actually ambiguous and must be resolved by the decompiler check
         return false;
     }

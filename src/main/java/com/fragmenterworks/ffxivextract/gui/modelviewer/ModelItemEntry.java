@@ -6,6 +6,7 @@ public class ModelItemEntry {
     final public int id;
     final public int model;
     final public int varient;
+    @SuppressWarnings({"unused", "FieldCanBeLocal"})
     private final int type;
 
     public ModelItemEntry(String name, int id, int model, int varient, int type) {

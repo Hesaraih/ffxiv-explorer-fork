@@ -33,7 +33,7 @@ public class Log_File {
     private static final int CHANNEL_YELL = 0x1E;
     private static final int CHANNEL_SYSTEM = 0x39;
 
-    private Log_Entry[] entries;
+    private final Log_Entry[] entries;
 
     public Log_File(String path) throws IOException {
         EARandomAccessFile file = new EARandomAccessFile(path, "r", ByteOrder.LITTLE_ENDIAN);
@@ -53,14 +53,18 @@ public class Log_File {
             offsets[i] = file.readInt();
             if (i == 0)
                 maxBufferSize = offsets[i];
-            else if (i != 0 && offsets[i] - offsets[i - 1] > maxBufferSize)
-                maxBufferSize = offsets[i] - offsets[i - 1];
+            else {
+                final int offset1 = offsets[i] - offsets[i - 1];
+                if (offset1 > maxBufferSize)
+                    maxBufferSize = offset1;
+            }
         }
 
         //Read in log entries
         byte[] buffer = new byte[maxBufferSize];
         for (int i = 0; i < offsets.length; i++) {
-            file.read(buffer, 0, offsets[i] - (i == 0 ? 0 : offsets[i - 1]));
+            final int offsetLen = offsets[i] - (i == 0 ? 0 : offsets[i - 1]);
+            file.read(buffer, 0, offsetLen);
 
             //Corrupted?
             if (buffer[0] == 0 && buffer[1] == 0 && buffer[2] == 0 && buffer[3] == 0 && buffer[4] == 0 && buffer[5] == 0 && buffer[6] == 0 && buffer[7] == 0) {
@@ -68,14 +72,14 @@ public class Log_File {
                 continue;
             }
 
-            String data = new String(buffer, 0, offsets[i] - (i == 0 ? 0 : offsets[i - 1]));
+            String data = new String(buffer, 0, offsetLen);
 
             String[] splitData = data.split(":");
 
             String info = splitData[0];
             String sender = splitData.length >= 2 ? FFXIV_String.parseFFXIVString(splitData[1].getBytes()) : "";
 
-            //This is for fuckups where a : may be in the message string
+            //Tこれは、メッセージ文字列に：が含まれている可能性があるファックアップ用です
             if (splitData.length > 3) {
                 for (int s = 3; s < splitData.length; s++)
                     splitData[2] += splitData[s];
@@ -116,9 +120,8 @@ public class Log_File {
             Date date = new Date(time * 1000);
             DateFormat format = new SimpleDateFormat("dd/MM/yy HH:mm:ss");
             format.setTimeZone(TimeZone.getTimeZone("Etc/UTC"));
-            String formatted = format.format(date);
 
-            formattedTime = formatted;
+            formattedTime = format.format(date);
         }
 
         @Override

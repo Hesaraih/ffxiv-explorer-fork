@@ -14,6 +14,7 @@ public class WDHDEntry {
     private final int unknown_0x4; //structEntry("index", UNSIGNED_LONG_PACK),
     public final int width; //structEntry("unkn_a", UNSIGNED_CHAR_PACK, 5),
     public final int height; //structEntry("unkn_b", UNSIGNED_CHAR_PACK, 6),
+    @SuppressWarnings("unused")
     private int type; // structEntry("type", UNSIGNED_CHAR_PACK, 7),
     private final int count; //structEntry("count", UNSIGNED_LONG_PACK, 8),
     private final int size; //structEntry("size", UNSIGNED_SHORT_PACK, 12),

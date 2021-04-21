@@ -7,9 +7,9 @@ import java.io.IOException;
 
 public class BlendShader extends Shader {
 
-    private int tex1Location;
-    private int tex2Location;
-    private int intensityLocation;
+    private final int tex1Location;
+    private final int tex2Location;
+    private final int intensityLocation;
 
     public BlendShader(GL3 gl) throws IOException {
         //super(gl, "/res/shaders/fbout_vert.glsl", "/res/shaders/blend_frag.glsl", true);

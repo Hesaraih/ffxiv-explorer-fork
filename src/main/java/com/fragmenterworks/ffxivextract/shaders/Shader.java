@@ -15,35 +15,35 @@ public class Shader {
 
     int shaderProgram;
 
-    private int modelLocation;
-    private int viewLocation;
-    private int projLocation;
-    private int numBonesLocation;
-    private int boneArrayLocation;
+    private final int modelLocation;
+    private final int viewLocation;
+    private final int projLocation;
+    private final int numBonesLocation;
+    private final int boneArrayLocation;
 
-    private int positionLocation;
-    private int blendWeightLocation;
-    private int blendIndexLocation;
-    private int normalLocation;
-    private int texCoordLocation;
-    private int tangentLocation;
-    private int binormalLocation;
+    private final int positionLocation;
+    private final int blendWeightLocation;
+    private final int blendIndexLocation;
+    private final int normalLocation;
+    private final int texCoordLocation;
+    private final int tangentLocation;
+    private final int biNormalLocation;
 
-    private int colorLocation;
+    private final int colorLocation;
 
-    private int diffuseTexLocation;
-    private int maskTexLocation;
-    private int normalTexLocation;
-    private int specularTexLocation;
-    private int colorSetTexLocation;
+    private final int diffuseTexLocation;
+    private final int maskTexLocation;
+    private final int normalTexLocation;
+    private final int specularTexLocation;
+    private final int colorSetTexLocation;
 
-    private int usesDiffuseLocation;
-    private int usesMaskLocation;
-    private int usesNormalLocation;
-    private int usesSpecularLocation;
-    private int usesColorSetLocation;
+    private final int usesDiffuseLocation;
+    private final int usesMaskLocation;
+    private final int usesNormalLocation;
+    private final int usesSpecularLocation;
+    private final int usesColorSetLocation;
 
-    private int isGlowPassLocation;
+    private final int isGlowPassLocation;
 
     Shader(GL3 gl, String vert, String frag, boolean isPath) throws IOException {
         //Build shader
@@ -78,7 +78,7 @@ public class Shader {
         normalLocation = gl.glGetAttribLocation(shaderProgram, "aNormal");
         texCoordLocation = gl.glGetAttribLocation(shaderProgram, "aTexCoord");
         tangentLocation = gl.glGetAttribLocation(shaderProgram, "aBiTangent");
-        binormalLocation = gl.glGetAttribLocation(shaderProgram, "aBiNormal");
+        biNormalLocation = gl.glGetAttribLocation(shaderProgram, "aBiNormal");
         colorLocation = gl.glGetAttribLocation(shaderProgram, "aColor");
 
         //Set Uniform Locations
@@ -109,14 +109,11 @@ public class Shader {
         if (ins == null) {
             throw new IOException("Could not read from stream.");
         }
-        StringBuffer buffer = new StringBuffer();
-        Scanner scanner = new Scanner(ins);
-        try {
+        StringBuilder buffer = new StringBuilder();
+        try (Scanner scanner = new Scanner(ins)) {
             while (scanner.hasNextLine()) {
                 buffer.append(scanner.nextLine()).append("\n");
             }
-        } finally {
-            scanner.close();
         }
         return buffer.toString();
     }
@@ -221,8 +218,9 @@ public class Shader {
         return tangentLocation;
     }
 
+    @SuppressWarnings("unused")
     public int getAttribBiNormal() {
-        return binormalLocation;
+        return biNormalLocation;
     }
 
     public int getAttribTexCoord() {
@@ -236,7 +234,7 @@ public class Shader {
         gl.glEnableVertexAttribArray(normalLocation);
         gl.glEnableVertexAttribArray(texCoordLocation);
         gl.glEnableVertexAttribArray(tangentLocation);
-        gl.glEnableVertexAttribArray(binormalLocation);
+        gl.glEnableVertexAttribArray(biNormalLocation);
         gl.glEnableVertexAttribArray(colorLocation);
     }
 
@@ -247,7 +245,7 @@ public class Shader {
         gl.glDisableVertexAttribArray(normalLocation);
         gl.glDisableVertexAttribArray(texCoordLocation);
         gl.glDisableVertexAttribArray(tangentLocation);
-        gl.glDisableVertexAttribArray(binormalLocation);
+        gl.glDisableVertexAttribArray(biNormalLocation);
         gl.glDisableVertexAttribArray(colorLocation);
     }
 

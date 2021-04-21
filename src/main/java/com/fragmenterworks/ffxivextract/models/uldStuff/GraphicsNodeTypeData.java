@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
  */
 public abstract class GraphicsNodeTypeData {
 
+    @SuppressWarnings("unused")
     GraphicsNodeTypeData(ByteBuffer data) {
     }
 }

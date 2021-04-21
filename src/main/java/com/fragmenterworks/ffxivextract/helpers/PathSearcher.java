@@ -73,9 +73,9 @@ public class PathSearcher extends JFrame {
                     SqPack_File fi = f.getFiles()[j];
                     byte[] data;
                     try {
-                        if (currentIndexFile.getContentType(fi.dataoffset) == 4)
+                        if (currentIndexFile.getContentType(fi.dataOffset) == 4)
                             continue;
-                        data = currentIndexFile.extractFile(fi.dataoffset, null);
+                        data = currentIndexFile.extractFile(fi.dataOffset, null);
                         if (data == null || (data.length >= 8 && data[0] == 'S' && data[1] == 'E' && data[2] == 'D' && data[3] == 'B' && data[4] == 'S' && data[5] == 'S' && data[6] == 'C' && data[7] == 'F'))
                             continue;
 

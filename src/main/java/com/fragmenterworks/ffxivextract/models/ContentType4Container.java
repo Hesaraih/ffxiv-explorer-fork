@@ -2,6 +2,7 @@ package com.fragmenterworks.ffxivextract.models;
 
 import com.fragmenterworks.ffxivextract.models.SqPack_DatFile.TextureBlocks;
 
+@SuppressWarnings("unused")
 class ContentType4Container {
 
     private final TextureBlocks[] blocks;

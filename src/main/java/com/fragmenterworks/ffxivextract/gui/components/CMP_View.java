@@ -9,16 +9,13 @@ import java.awt.image.BufferedImage;
 
 public class CMP_View extends JPanel {
 
-    private final CMP_File currentCMP;
-    private final JLabel canvas = new JLabel();
-
+    @SuppressWarnings("unused")
     public CMP_View(CMP_File file) {
         setBorder(new TitledBorder(null, "CMP File", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 
-        currentCMP = file;
-
         setLayout(new BorderLayout(0, 0));
 
+        JLabel canvas = new JLabel();
         add(canvas, BorderLayout.CENTER);
 
         int w = 8;

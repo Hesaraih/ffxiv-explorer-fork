@@ -20,4 +20,14 @@ public class ParameterInfo {
         registerCount = bb.getShort();
 
     }
+
+    @SuppressWarnings("unused")
+    public int getRegisterIndex() {
+        return registerIndex;
+    }
+
+    @SuppressWarnings("unused")
+    public int getRegisterCount() {
+        return registerCount;
+    }
 }

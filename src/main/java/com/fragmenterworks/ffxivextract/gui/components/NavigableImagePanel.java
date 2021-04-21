@@ -9,115 +9,97 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
- * <p>
- * <code>NavigableImagePanel</code> is a lightweight container displaying
- * an image that can be zoomed in and out and panned with ease and simplicity,
- * using an adaptive rendering for high quality display and satisfactory performance.
- * </p>
+ * <code>NavigableImagePanel</code>は、高品質の表示と満足のいくパフォーマンスを実現する適応レンダリングを使用して、
+ * 簡単かつ簡単にズームインおよびズームアウトおよびパンできる画像を表示する軽量コンテナです。
  * <p>
  * <h3>Image</h3>
- * <p>An image is loaded either via a constructor:</p>
+ * <p>画像はコンストラクターを介して読み込まれます:</p>
  * <pre>
  * NavigableImagePanel panel = new NavigableImagePanel(image);
  * </pre>
- * or using a setter:
+ * またはセッターを使用:
  * <pre>
  * NavigableImagePanel panel = new NavigableImagePanel();
  * panel.setImage(image);
  * </pre>
- * When an image is set, it is initially painted centered in the component,
- * at the largest possible size, fully visible, with its aspect ratio is preserved.
- * This is defined as 100% of the image size and its corresponding zoom level is 1.0.
+ * 画像を設定すると、最初はコンポーネントの中央にペイントされ、アスペクト比が維持された状態で、
+ * 可能な限り最大のサイズで完全に表示されます。 これは画像サイズの100％として定義され、対応するズームレベルは1.0です。
  * </p>
  * <h3>Zooming</h3>
  * <p>
- * Zooming can be controlled interactively, using either the mouse scroll wheel (default)
- * or the mouse two buttons, or programmatically, allowing the programmer to
- * implement other custom zooming methods. If the mouse does not have a scroll wheel,
- * set the zooming device to mouse buttons:
+ * ズームは、マウスのスクロールホイール（デフォルト）またはマウスの2つのボタンを使用して * インタラクティブに制御することも、
+ * プログラムで制御して、プログラマーが他のカスタムズーム方法を実装できるようにすることもできます。
+ * マウスにスクロールホイールがない場合は、ズームデバイスをマウスボタンに設定します:
  * <pre>
  * panel.setZoomDevice(ZoomDevice.MOUSE_BUTTON);
  * </pre>
- * The left mouse button works as a toggle switch between zooming in and zooming out
- * modes, and the right button zooms an image by one increment (default is 20%).
- * You can change the zoom increment value by:
+ * マウスの左ボタンは、ズームインモードとズームアウトモードを切り替えるトグルスイッチとして機能し、
+ * 右ボタンは画像を1つずつズームします（デフォルトは20％）。 ズームの増分値は、次の方法で変更できます:
  * <pre>
  * panel.setZoomIncrement(newZoomIncrement);
  * </pre>
- * If you intend to provide programmatic zoom control, set the zoom device to none
- * to disable both the mouse wheel and buttons for zooming purposes:
+ * プログラムによるズーム制御を提供する場合は、ズームデバイスをnoneに設定して、
+ * ズームの目的でマウスホイールとボタンの両方を無効にします:
  * <pre>
  * panel.setZoomDevice(ZoomDevice.NONE);
  * </pre>
- * and use <code>setZoom()</code> to change the zoom level.
+ * <code>setZoom()</code>を使用してズームレベルを変更します
  * </p>
  * <p>
- * Zooming is always around the point the mouse pointer is currently at, so that
- * this point (called a zooming center) remains stationary ensuring that the area
- * of an image we are zooming into does not disappear off the screen. The zooming center
- * stays at the same location on the screen and all other points move radially away from
- * it (when zooming in), or towards it (when zooming out). For programmatically
- * controlled zooming the zooming center is either specified when <code>setZoom()</code>
- * is called:
+ * ズームは常にマウスポインタが現在あるポイントの周りにあるため、このポイント(ズームセンターと呼ばれます)は静止したままであり、
+ * ズームインしている画像の領域が画面から消えないようにします。 ズームセンターは画面上の同じ位置に留まり、
+ * 他のすべてのポイントは半径方向に離れる方向（ズームイン時）またはそれに向かって移動します（ズームアウト時）。
+ * プログラムで制御されるズームの場合、ズーム中心は<code>setZoom()</code>が呼び出されたときに指定されます。:
  * <pre>
  * panel.setZoom(newZoomLevel, newZoomingCenter);
  * </pre>
- * or assumed to be the point of an image which is
- * the closest to the center of the panel, if no zooming center is specified:
+ * または、ズームの中心が指定されていない場合は、パネルの中心に最も近い画像のポイントと見なされます:
  * <pre>
  * panel.setZoom(newZoomLevel);
  * </pre>
  * </p>
  * <p>
- * There are no lower or upper zoom level limits.
+ * ズームレベルの下限や上限はありません。
  * </p>
  * <h3>Navigation</h3>
- * <p><code>NavigableImagePanel</code> does not use scroll bars for navigation,
- * but relies on a navigation image located in the upper left corner of the panel.
- * The navigation image is a small replica of the image displayed in the panel.
- * When you click on any point of the navigation image that part of the image
- * is displayed in the panel, centered. The navigation image can also be
- * zoomed in the same way as the main image.</p>
- * <p>In order to adjust the position of an image in the panel, it can be dragged
- * with the mouse, using the left button.
- * </p>
- * <p>For programmatic image navigation, disable the navigation image:
+ * <p><code>NavigableImagePanel</code>は、ナビゲーションにスクロールバーを使用しませんが、
+ * パネルの左上隅にあるナビゲーション画像に依存します。ナビゲーション画像は、パネルに表示される画像の小さな複製です。
+ * ナビゲーション画像の任意のポイントをクリックすると、画像のその部分は、中央に配置されてパネルに表示されます。
+ * ナビゲーション画像もメイン画像と同じようにズームできます。
+ * パネル内の画像の位置を調整するには、左ボタンを使用してマウスで画像をドラッグします。
+ * プログラムによる画像ナビゲーションの場合、ナビゲーション画像を無効にします:
  * <pre>
  * panel.setNavigationImageEnabled(false)
  * </pre>
- * and use <code>getImageOrigin()</code> and
- * <code>setImageOrigin()</code> to move the image around the panel.
- * </p>
+ * <code>getImageOrigin()</code>と<code>setImageOrigin()</code>を使用して、パネル内で画像を移動します。</p>
  * <h3>Rendering</h3>
- * <p><code>NavigableImagePanel</code> uses the Nearest Neighbor interpolation
- * for image rendering (default in Java).
- * When the scaled image becomes larger than the original image,
- * the Bilinear interpolation is applied, but only to the part
- * of the image which is displayed in the panel. This interpolation change threshold
- * can be controlled by adjusting the value of
- * <code>HIGH_QUALITY_RENDERING_SCALE_THRESHOLD</code>.</p>
+ * <p><code>NavigableImagePanel</code>は、画像レンダリングに最近隣内挿法を使用します(Javaのデフォルト)。
+ * 拡大縮小された画像が元の画像よりも大きくなると、双一次補間が適用されますが、
+ * パネルに表示されている画像の部分にのみ適用されます。 この補間変更しきい値は、
+ * <code>HIGH_QUALITY_RENDERING_SCALE_THRESHOLD</code>の値を調整することで制御できます。</p>
  */
 public class NavigableImagePanel extends JPanel {
 
     /**
-     * <p>Identifies a change to the zoom level.</p>
+     * ズームレベルの変更を識別
      */
     private static final String ZOOM_LEVEL_CHANGED_PROPERTY = "zoomLevel";
 
     /**
-     * <p>Identifies a change to the zoom increment.</p>
+     * ズーム増分の変更を識別
      */
     private static final String ZOOM_INCREMENT_CHANGED_PROPERTY = "zoomIncrement";
 
     /**
-     * <p>Identifies that the image in the panel has changed.</p>
+     * パネル内の画像が変更されたことを識別
      */
     private static final String IMAGE_CHANGED_PROPERTY = "image";
 
-    private static final double SCREEN_NAV_IMAGE_FACTOR = 0.15; // 15% of panel's width
-    private static final double NAV_IMAGE_FACTOR = 0.3; // 30% of panel's width
+    private static final double SCREEN_NAV_IMAGE_FACTOR = 0.15; // パネル幅の15%
+    private static final double NAV_IMAGE_FACTOR = 0.3; // パネル幅の30%
     private static final double HIGH_QUALITY_RENDERING_SCALE_THRESHOLD = 1.0;
     private static final Object INTERPOLATION_TYPE =
             RenderingHints.VALUE_INTERPOLATION_BILINEAR;
@@ -145,22 +127,22 @@ public class NavigableImagePanel extends JPanel {
     private ButtonZoomDevice buttonZoomDevice = null;
 
     /**
-     * <p>Defines zoom devices.</p>
+     * ズームデバイスを定義
      */
     public static class ZoomDevice {
         /**
-         * <p>Identifies that the panel does not implement zooming,
-         * but the component using the panel does (programmatic zooming method).</p>
+         * パネルがズームを実装していないが、パネルを使用しているコンポーネントが
+         * 実装していることを識別します（プログラムによるズーム方法）。
          */
         static final ZoomDevice NONE = new ZoomDevice("none");
 
         /**
-         * <p>Identifies the left and right mouse buttons as the zooming device.</p>
+         * マウスの左ボタンと右ボタンをズームデバイスとして識別
          */
         static final ZoomDevice MOUSE_BUTTON = new ZoomDevice("mouseButton");
 
         /**
-         * <p>Identifies the mouse scroll wheel as the zooming device.</p>
+         * マウスのスクロールホイールをズームデバイスとして識別
          */
         static final ZoomDevice MOUSE_WHEEL = new ZoomDevice("mouseWheel");
 
@@ -175,8 +157,8 @@ public class NavigableImagePanel extends JPanel {
         }
     }
 
-    //This class is required for high precision image coordinates translation.
-    private class Coords {
+    //このクラスは、高精度の画像座標変換に必要です。
+    private static class Coords {
         double x;
         double y;
 
@@ -199,6 +181,7 @@ public class NavigableImagePanel extends JPanel {
     }
 
     private class WheelZoomDevice implements MouseWheelListener {
+        @SuppressWarnings("ConstantConditions")
         public void mouseWheelMoved(MouseWheelEvent e) {
             Point p = e.getPoint();
             if (p == null)
@@ -246,13 +229,13 @@ public class NavigableImagePanel extends JPanel {
     }
 
     /**
-     * <p>Creates a new navigable image panel with no default image and
-     * the mouse scroll wheel as the zooming device.</p>
+     * デフォルトの画像がなく、ズームデバイスとしてマウスのスクロールホイールを使用して、
+     * 新しいナビゲート可能な画像パネルを作成
      */
     public NavigableImagePanel() {
         setNavigationImageEnabled(false);
         try {
-            bg = ImageIO.read(getClass().getResource("/bg.png"));
+            bg = ImageIO.read(Objects.requireNonNull(getClass().getResource("/bg.png")));
         } catch (IOException e1) {
             Utils.getGlobalLogger().error(e1);
         }
@@ -301,8 +284,7 @@ public class NavigableImagePanel extends JPanel {
             }
 
             public void mouseMoved(MouseEvent e) {
-                //we need the mouse position so that after zooming
-                //that position of the image is maintained
+                //ズームした後、画像のその位置が維持されるように、マウスの位置が必要
                 mousePosition = e.getPoint();
             }
         });
@@ -311,9 +293,9 @@ public class NavigableImagePanel extends JPanel {
     }
 
     /**
-     * <p>Creates a new navigable image panel with the specified image
-     * and the mouse scroll wheel as the zooming device.</p>
+     * 指定された画像とズームデバイスとしてのマウススクロールホイールを使用して、新しいナビゲート可能な画像パネルを作成
      */
+    @SuppressWarnings("unused")
     public NavigableImagePanel(BufferedImage image) {
         this();
         setImage(image);
@@ -348,10 +330,11 @@ public class NavigableImagePanel extends JPanel {
     }
 
     /**
-     * <p>Sets a new zoom device.</p>
+     * 新しいズームデバイスを設定
      *
-     * @param newZoomDevice specifies the type of a new zoom device.
+     * @param newZoomDevice 新しいズームデバイスのタイプを指定
      */
+    @SuppressWarnings("SameParameterValue")
     private void setZoomDevice(ZoomDevice newZoomDevice) {
         if (newZoomDevice == ZoomDevice.NONE) {
             removeWheelZoomDevice();
@@ -366,8 +349,9 @@ public class NavigableImagePanel extends JPanel {
     }
 
     /**
-     * <p>Gets the current zoom device.</p>
+     * 現在のズームデバイスを取得
      */
+    @SuppressWarnings("unused")
     public ZoomDevice getZoomDevice() {
         if (buttonZoomDevice != null) {
             return ZoomDevice.MOUSE_BUTTON;
@@ -378,33 +362,39 @@ public class NavigableImagePanel extends JPanel {
         }
     }
 
-    //Called from paintComponent() when a new image is set.
+    /**
+     * 新しい画像が設定されたときにpaintComponent()から呼び出されます
+     */
     private void initializeParams() {
         double xScale = (double) getWidth() / image.getWidth();
         double yScale = (double) getHeight() / image.getHeight();
         initialScale = Math.min(xScale, yScale);
         scale = initialScale;
 
-        //An image is initially centered
+        //画像は最初は中央に配置されます
         centerImage();
         if (isNavigationImageEnabled()) {
             createNavigationImage();
         }
     }
 
-    //Centers the current image in the panel.
+    /**
+     * 現在の画像をパネルの中央に配置
+     */
     private void centerImage() {
         originX = (getWidth() - getScreenImageWidth()) / 2;
         originY = (getHeight() - getScreenImageHeight()) / 2;
     }
 
-    //Creates and renders the navigation image in the upper let corner of the panel.
+    /**
+     * パネルの上部レットコーナーにナビゲーション画像を作成してレンダリングします。
+     */
     private void createNavigationImage() {
-        //We keep the original navigation image larger than initially
-        //displayed to allow for zooming into it without pixellation effect.
+        //ピクセル化効果なしでズームインできるように、元のナビゲーション画像を最初に表示されたものよりも大きく保持します。
         navImageWidth = (int) (getWidth() * NAV_IMAGE_FACTOR);
         navImageHeight = navImageWidth * image.getHeight() / image.getWidth();
         int scrNavImageWidth = (int) (getWidth() * SCREEN_NAV_IMAGE_FACTOR);
+        @SuppressWarnings("unused")
         int scrNavImageHeight = scrNavImageWidth * image.getHeight() / image.getWidth();
         navScale = (double) scrNavImageWidth / navImageWidth;
         navigationImage = new BufferedImage(navImageWidth, navImageHeight,
@@ -414,47 +404,61 @@ public class NavigableImagePanel extends JPanel {
     }
 
     /**
-     * <p>Sets an image for display in the panel.</p>
+     * パネルに表示する画像を設定
      *
-     * @param image an image to be set in the panel
+     * @param image パネルに設定する画像
      */
     public void setImage(BufferedImage image) {
         BufferedImage oldImage = this.image;
         this.image = image;
-        //Reset scale so that initializeParameters() is called in paintComponent()
-        //for the new image.
+        //新しい画像のpaintComponent()でinitializeParameters()が呼び出されるように、スケールをリセット
         scale = 0.0;
         firePropertyChange(IMAGE_CHANGED_PROPERTY, oldImage, image);
         repaint();
     }
 
     /**
-     * <p>Tests whether an image uses the standard RGB color space.</p>
+     * <画像が標準のRGB色空間を使用しているかどうかをテスト
      */
+    @SuppressWarnings("unused")
     public static boolean isStandardRGBImage(BufferedImage bImage) {
         return bImage.getColorModel().getColorSpace().isCS_sRGB();
     }
 
-    //Converts this panel's coordinates into the original image coordinates
+    /**
+     * このパネルの座標を元の画像の座標に変換
+     * @param p パネルの座標
+     * @return 画像の座標
+     */
     private Coords panelToImageCoords(Point p) {
         return new Coords((p.x - originX) / scale, (p.y - originY) / scale);
     }
 
-    //Converts the original image coordinates into this panel's coordinates
+    /**
+     * 元の画像の座標をこのパネルの座標に変換
+     * @param p 画像の座標
+     * @return パネルの座標
+     */
     private Coords imageToPanelCoords(Coords p) {
         return new Coords((p.x * scale) + originX, (p.y * scale) + originY);
     }
 
-    //Converts the navigation image coordinates into the zoomed image coordinates
+    /**
+     * ナビゲーション画像の座標をズームされた画像の座標に変換
+     * @param p ナビゲーション画像の座標
+     * @return ズームされた画像の座標
+     */
     private Point navToZoomedImageCoords(Point p) {
         int x = p.x * getScreenImageWidth() / getScreenNavImageWidth();
         int y = p.y * getScreenImageHeight() / getScreenNavImageHeight();
         return new Point(x, y);
     }
 
-    //The user clicked within the navigation image and this part of the image
-    //is displayed in the panel.
-    //The clicked point of the image is centered in the panel.
+    /**
+     * ユーザーがナビゲーション画像内をクリックすると、画像のこの部分がパネルに表示されます。
+     * 画像のクリックされたポイントは、パネルの中央に配置
+     * @param p 画像のクリックされたポイント
+     */
     private void displayImageAt(Point p) {
         Point scrImagePoint = navToZoomedImageCoords(p);
         originX = -(scrImagePoint.x - getWidth() / 2);
@@ -462,7 +466,11 @@ public class NavigableImagePanel extends JPanel {
         repaint();
     }
 
-    //Tests whether a given point in the panel falls within the image boundaries.
+    /**
+     * パネル内の特定のポイントが画像の境界内にあるかどうかをテスト
+     * @param p パネル内の特定のポイント
+     * @return 結果
+     */
     private boolean isInImage(Point p) {
         Coords coords = panelToImageCoords(p);
         int x = coords.getIntX();
@@ -470,14 +478,20 @@ public class NavigableImagePanel extends JPanel {
         return (x >= 0 && x < image.getWidth() && y >= 0 && y < image.getHeight());
     }
 
-    //Tests whether a given point in the panel falls within the navigation image
-    //boundaries.
+    /**
+     * パネル内の特定のポイントがナビゲーション画像の境界内にあるかどうかをテスト
+     * @param p パネル内の特定のポイント
+     * @return 結果
+     */
     private boolean isInNavigationImage(Point p) {
         return (isNavigationImageEnabled() && p.x < getScreenNavImageWidth()
                 && p.y < getScreenNavImageHeight());
     }
 
-    //Used when the image is resized.
+    /**
+     * 画像のサイズが変更されるときに使用
+     * @return 結果
+     */
     private boolean isImageEdgeInPanel() {
         if (previousPanelSize == null) {
             return false;
@@ -487,100 +501,112 @@ public class NavigableImagePanel extends JPanel {
                 || originY > 0 && originY < previousPanelSize.height);
     }
 
-    //Tests whether the image is displayed in its entirety in the panel.
+    /**
+     * 画像全体がパネルに表示されているかどうかをテスト
+     * @return 結果
+     */
     private boolean isFullImageInPanel() {
         return (originX >= 0 && (originX + getScreenImageWidth()) < getWidth()
                 && originY >= 0 && (originY + getScreenImageHeight()) < getHeight());
     }
 
     /**
-     * <p>Indicates whether the high quality rendering feature is enabled.</p>
+     * 高品質のレンダリング機能が有効になっているかどうかテスト
      *
-     * @return true if high quality rendering is enabled, false otherwise.
+     * @return 高品質のレンダリングが有効になっている場合はtrue、それ以外の場合はfalse
      */
+    @SuppressWarnings("unused")
     public boolean isHighQualityRenderingEnabled() {
         return highQualityRenderingEnabled;
     }
 
     /**
-     * <p>Enables/disables high quality rendering.</p>
+     * 高品質のレンダリングを有効/無効にします。
      *
-     * @param enabled enables/disables high quality rendering
+     * @param enabled 高品質のレンダリングを有効:true / 無効:false
      */
     public void setHighQualityRenderingEnabled(boolean enabled) {
         highQualityRenderingEnabled = enabled;
     }
 
-    //High quality rendering kicks in when when a scaled image is larger
-    //than the original image. In other words,
-    //when image decimation stops and interpolation starts.
+    /**
+     * 拡大縮小された画像が元の画像よりも大きい場合、高品質のレンダリングが開始されます。
+     * つまり、画像のデシメーションが停止し、補間が開始されたときです。
+     * @return 結果
+     */
     private boolean isHighQualityRendering() {
         return (highQualityRenderingEnabled
                 && scale > HIGH_QUALITY_RENDERING_SCALE_THRESHOLD);
     }
 
     /**
-     * <p>Indicates whether navigation image is enabled.<p>
+     * ナビゲーション画像が有効かどうかを示
      *
-     * @return true when navigation image is enabled, false otherwise.
+     * @return ナビゲーション画像が有効な場合はtrue、それ以外の場合はfalse
      */
     private boolean isNavigationImageEnabled() {
         return navigationImageEnabled;
     }
 
     /**
-     * <p>Enables/disables navigation with the navigation image.</p>
-     * <p>Navigation image should be disabled when custom, programmatic navigation
-     * is implemented.</p>
+     * ナビゲーション画像によるナビゲーションを有効/無効にします
+     * カスタムのプログラムナビゲーションを実装する場合は、ナビゲーション画像を無効にする必要があります。
      *
-     * @param enabled true when navigation image is enabled, false otherwise.
+     * @param enabled ナビゲーション画像が有効な場合はtrue、それ以外の場合はfalse
      */
+    @SuppressWarnings("SameParameterValue")
     private void setNavigationImageEnabled(boolean enabled) {
         navigationImageEnabled = enabled;
         repaint();
     }
 
-    //Used when the panel is resized
+    /**
+     * パネルのサイズが変更されたときに使用されます
+     */
     private void scaleOrigin() {
         originX = originX * getWidth() / previousPanelSize.width;
         originY = originY * getHeight() / previousPanelSize.height;
         repaint();
     }
 
-    //Converts the specified zoom level	to scale.
+    /**
+     * 指定されたズームレベルをスケールに変換
+     * @param zoom ズームレベル
+     * @return スケール
+     */
     private double zoomToScale(double zoom) {
         return initialScale * zoom;
     }
 
     /**
-     * <p>Gets the current zoom level.</p>
+     * 現在のズームレベルを取得
      *
-     * @return the current zoom level
+     * @return 現在のズームレベル
      */
     private double getZoom() {
         return scale / initialScale;
     }
 
     /**
-     * <p>Sets the zoom level used to display the image.</p>
-     * <p>This method is used in programmatic zooming. The zooming center is
-     * the point of the image closest to the center of the panel.
-     * After a new zoom level is set the image is repainted.</p>
+     * 画像の表示に使用するズームレベルを設定
+     * この方法は、プログラムによるズームで使用されます。
+     * ズームの中心は、パネルの中心に最も近い画像のポイントです。
+     * 新しいズームレベルが設定された後、画像が再描画されます。
      *
-     * @param newZoom the zoom level used to display this panel's image.
+     * @param newZoom パネルの画像を表示するために使用されるズームレベル
      */
+    @SuppressWarnings("unused")
     public void setZoom(double newZoom) {
         Point zoomingCenter = new Point(getWidth() / 2, getHeight() / 2);
         setZoom(newZoom, zoomingCenter);
     }
 
     /**
-     * <p>Sets the zoom level used to display the image, and the zooming center,
-     * around which zooming is done.</p>
-     * <p>This method is used in programmatic zooming.
-     * After a new zoom level is set the image is repainted.</p>
+     * 画像の表示に使用するズームレベルと、ズームが行われるズームセンターを設定
+     * この方法は、プログラムによるズームで使用されます。
+     * 新しいズームレベルが設定されると、画像が再描画されます。
      *
-     * @param newZoom the zoom level used to display this panel's image.
+     * @param newZoom パネルの画像を表示するために使用されるズームレベル
      */
     private void setZoom(double newZoom, Point zoomingCenter) {
         Coords imageP = panelToImageCoords(zoomingCenter);
@@ -612,19 +638,21 @@ public class NavigableImagePanel extends JPanel {
     }
 
     /**
-     * <p>Gets the current zoom increment.</p>
+     * 現在のズーム増分を取得
      *
-     * @return the current zoom increment
+     * @return 現在のズーム増分
      */
+    @SuppressWarnings("unused")
     public double getZoomIncrement() {
         return zoomIncrement;
     }
 
     /**
-     * <p>Sets a new zoom increment value.</p>
+     * 新しいズーム増分値を設定
      *
-     * @param newZoomIncrement new zoom increment value
+     * @param newZoomIncrement 新しいズーム増分値
      */
+    @SuppressWarnings("unused")
     public void setZoomIncrement(double newZoomIncrement) {
         double oldZoomIncrement = zoomIncrement;
         zoomIncrement = newZoomIncrement;
@@ -632,8 +660,10 @@ public class NavigableImagePanel extends JPanel {
                 new Double(oldZoomIncrement), new Double(zoomIncrement));
     }
 
-    //Zooms an image in the panel by repainting it at the new zoom level.
-    //The current mouse position is the zooming center.
+    /**
+     * パネル内の画像を新しいズームレベルで再描画してズームします。
+     * 現在のマウスの位置はズームの中心です。
+     */
     private void zoomImage() {
         Coords imageP = panelToImageCoords(mousePosition);
         double oldZoom = getZoom();
@@ -649,44 +679,46 @@ public class NavigableImagePanel extends JPanel {
         repaint();
     }
 
-    //Zooms the navigation image
+    /**
+     * ナビゲーション画像をズーム
+     */
     private void zoomNavigationImage() {
         navScale *= navZoomFactor;
         repaint();
     }
 
     /**
-     * <p>Gets the image origin.</p>
-     * <p>Image origin is defined as the upper, left corner of the image in
-     * the panel's coordinate system.</p>
+     * 画像の原点を取得
+     * 画像の原点は、パネルの座標系での画像の左上隅として定義されます。
      *
-     * @return the point of the upper, left corner of the image in the panel's coordinates
-     * system.
+     * @return パネルの座標系における画像の左上隅のポイント
      */
+    @SuppressWarnings("unused")
     public Point getImageOrigin() {
         return new Point(originX, originY);
     }
 
     /**
-     * <p>Sets the image origin.</p>
-     * <p>Image origin is defined as the upper, left corner of the image in
-     * the panel's coordinate system. After a new origin is set, the image is repainted.
-     * This method is used for programmatic image navigation.</p>
+     * 画像の原点を設定
+     * 画像の原点は、パネルの座標系での画像の左上隅として定義されます。
+     * 新しい原点が設定された後、画像が再描画されます。
+     * このメソッドは、プログラムによる画像ナビゲーションに使用されます。
      *
-     * @param x the x coordinate of the new image origin
-     * @param y the y coordinate of the new image origin
+     * @param x 新しい画像の原点のx座標
+     * @param y 新しい画像の原点のy座標
      */
+    @SuppressWarnings("unused")
     public void setImageOrigin(int x, int y) {
         setImageOrigin(new Point(x, y));
     }
 
     /**
-     * <p>Sets the image origin.</p>
-     * <p>Image origin is defined as the upper, left corner of the image in
-     * the panel's coordinate system. After a new origin is set, the image is repainted.
-     * This method is used for programmatic image navigation.</p>
+     * 画像の原点を設定
+     * 画像の原点は、パネルの座標系での画像の左上隅として定義されます。
+     * 新しい原点が設定された後、画像が再描画されます。
+     * このメソッドは、プログラムによる画像ナビゲーションに使用されます。
      *
-     * @param newOrigin the value of a new image origin
+     * @param newOrigin 新しい画像の原点の値
      */
     private void setImageOrigin(Point newOrigin) {
         originX = newOrigin.x;
@@ -694,7 +726,10 @@ public class NavigableImagePanel extends JPanel {
         repaint();
     }
 
-    //Moves te image (by dragging with the mouse) to a new mouse position p.
+    /**
+     * （マウスでドラッグして）画像を新しいマウス位置pに移動します。
+     * @param p 新しいマウス位置
+     */
     private void moveImage(Point p) {
         int xDelta = p.x - mousePosition.x;
         int yDelta = p.y - mousePosition.y;
@@ -704,8 +739,10 @@ public class NavigableImagePanel extends JPanel {
         repaint();
     }
 
-    //Gets the bounds of the image area currently displayed in the panel (in image
-    //coordinates).
+    /**
+     * パネルに現在表示されている画像領域の境界を取得します（画像座標で）。
+     * @return 画像座標
+     */
     private Rectangle getImageClipBounds() {
         Coords startCoords = panelToImageCoords(new Point(0, 0));
         Coords endCoords = panelToImageCoords(new Point(getWidth() - 1, getHeight() - 1));
@@ -713,7 +750,7 @@ public class NavigableImagePanel extends JPanel {
         int panelY1 = startCoords.getIntY();
         int panelX2 = endCoords.getIntX();
         int panelY2 = endCoords.getIntY();
-        //No intersection?
+        //交差点はありませんか？
         if (panelX1 >= image.getWidth() || panelX2 < 0 || panelY1 >= image.getHeight() || panelY2 < 0) {
             return null;
         }
@@ -725,16 +762,15 @@ public class NavigableImagePanel extends JPanel {
         return new Rectangle(x1, y1, x2 - x1 + 1, y2 - y1 + 1);
     }
 
-    /**
-     * Paints the panel and its image at the current zoom level, location, and
-     * interpolation method dependent on the image scale.</p>
-     *
-     * @param g the <code>Graphics</code> context for painting
-     */
     private TexturePaint paint;
 
+    /**
+     * パネルとその画像を、画像の縮尺に応じて、現在のズームレベル、位置、および補間方法でペイントします。
+     *
+     * @param g ペイントのためのグラフィックスコンテキスト
+     */
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g); // Paints the background
+        super.paintComponent(g); // 背景をペイントします
 
         if (paint == null)
             paint = new TexturePaint(bg, new Rectangle(10, 10));
@@ -753,23 +789,23 @@ public class NavigableImagePanel extends JPanel {
 
         if (isHighQualityRendering()) {
             Rectangle rect = getImageClipBounds();
-            if (rect == null || rect.width == 0 || rect.height == 0) { // no part of image is displayed in the panel
+            if (rect == null || rect.width == 0 || rect.height == 0) { // パネルに画像の一部が表示されない
                 return;
             }
 
-            BufferedImage subimage = image.getSubimage(rect.x, rect.y, rect.width,
+            BufferedImage subImage = image.getSubimage(rect.x, rect.y, rect.width,
                     rect.height);
             Graphics2D g2 = (Graphics2D) g;
             g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, INTERPOLATION_TYPE);
-            g2.drawImage(subimage, Math.max(0, originX), Math.max(0, originY),
-                    Math.min((int) (subimage.getWidth() * scale), getWidth()),
-                    Math.min((int) (subimage.getHeight() * scale), getHeight()), null);
+            g2.drawImage(subImage, Math.max(0, originX), Math.max(0, originY),
+                    Math.min((int) (subImage.getWidth() * scale), getWidth()),
+                    Math.min((int) (subImage.getHeight() * scale), getHeight()), null);
         } else {
             g.drawImage(image, originX, originY, getScreenImageWidth(),
                     getScreenImageHeight(), null);
         }
 
-        //Draw navigation image
+        //ナビゲーション画像を描く
         if (isNavigationImageEnabled()) {
             g.drawImage(navigationImage, 0, 0, getScreenNavImageWidth(),
                     getScreenNavImageHeight(), null);
@@ -777,8 +813,10 @@ public class NavigableImagePanel extends JPanel {
         }
     }
 
-    //Paints a white outline over the navigation image indicating
-    //the area of the image currently displayed in the panel.
+    /**
+     * パネルに現在表示されている画像の領域を示すナビゲーション画像の上に白い輪郭を描きます。
+     * @param g グラフィックスコンテキスト
+     */
     private void drawZoomAreaOutline(Graphics g) {
         if (isFullImageInPanel()) {
             return;
@@ -817,6 +855,7 @@ public class NavigableImagePanel extends JPanel {
         return names;
     }
 
+    @SuppressWarnings("unused")
     private static boolean endsWithImageFormatExtension(String name) {
         int dotIndex = name.lastIndexOf(".");
         if (dotIndex == -1) {

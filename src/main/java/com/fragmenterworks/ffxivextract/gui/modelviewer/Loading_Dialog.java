@@ -10,18 +10,20 @@ public class Loading_Dialog extends JDialog {
     private final JProgressBar fileProgress;
 
     private final int numFiles;
+    @SuppressWarnings("unused")
     private int numBlocks;
 
+    @SuppressWarnings("unused")
     public boolean isCancelled = false;
 
     public Loading_Dialog(JFrame parent, int numFiles) {
         super(parent, ModalityType.APPLICATION_MODAL);
-        setTitle("Loading...");
+        setTitle("ロード中...");
         this.numFiles = numFiles;
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.PAGE_AXIS));
 
-        txtCurrentFile = new JLabel("No File");
+        txtCurrentFile = new JLabel("ファイルなし");
 
         fileProgress = new JProgressBar();
         fileProgress.setAlignmentX(Component.LEFT_ALIGNMENT);

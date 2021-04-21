@@ -28,7 +28,7 @@ class AboutWindow extends JFrame {
 
     private final JLabel meImage = new JLabel();
 
-    private int easterEggActivate = 0;
+    private int easterEggActivate = Constants.EASTER_EGG;
 
     private Font titleFont;
     private Font standardFont;
@@ -44,8 +44,8 @@ class AboutWindow extends JFrame {
 
         container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
 
-        titleFont = new Font("Helvetica", Font.BOLD, 20);
-        standardFont = new Font("Helvetica", Font.PLAIN, 14);
+        titleFont = new Font("ＭＳ Ｐゴシック", Font.BOLD, 20);
+        standardFont = new Font("ＭＳ Ｐゴシック", Font.PLAIN, 14);
 
         appname.setFont(titleFont);
         author.setFont(standardFont);
@@ -87,7 +87,7 @@ class AboutWindow extends JFrame {
         this.setSize(getWidth(), getHeight() - 10);
         this.setResizable(false);
 
-        //Easter Egg :)
+        //イースターエッグ
         meImage.addMouseListener(new MouseListener() {
 
             @Override
@@ -112,6 +112,7 @@ class AboutWindow extends JFrame {
 
                 if (easterEggActivate >= 5) {
                     try {
+                        //エオルゼア文字に変更
                         Constants.setUIFont(new FontUIResource(Font.createFont(Font.TRUETYPE_FONT, getClass().getResource("/cache").openStream()).deriveFont(13.5f)));
 
                         titleFont = Font.createFont(Font.TRUETYPE_FONT, getClass().getResource("/cache").openStream()).deriveFont(20.0f);
@@ -141,7 +142,7 @@ class AboutWindow extends JFrame {
                 try {
                     Desktop.getDesktop().browse(new URI(Constants.URL_WEBSITE));
                 } catch (IOException ex) {
-                    //It looks like there's a problem
+                    //問題があるようです
                 } catch (URISyntaxException e1) {
                     Utils.getGlobalLogger().error(e1);
                 }

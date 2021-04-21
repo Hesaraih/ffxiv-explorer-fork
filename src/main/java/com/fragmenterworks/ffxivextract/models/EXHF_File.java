@@ -13,7 +13,8 @@ import java.nio.ByteOrder;
 public class EXHF_File extends Game_File {
 
     public final static String[] languageCodes = {"", "_ja", "_en", "_de", "_fr", "_chs", "_cht", "_ko"};
-    public final static String[] languageNames = {"", "Japanese", "English", "German", "French", "Chinese - Singapore", "Chinese - Traditional", "Korean"};
+    public final static String[] languageNames = {"", "日本語", "英語", "ドイツ語", "フランス語", "中国語(簡体字)", "中国語(繁体字)", "韓国語"};
+    //public final static String[] languageNames = {"", "Japanese", "English", "German", "French", "Chinese - Singapore", "Chinese - Traditional", "Korean"};
 
     private EXDF_Dataset[] datasetTable;
     private EXDF_Page[] pageTable;
@@ -27,13 +28,17 @@ public class EXHF_File extends Game_File {
         loadEXHF(data);
     }
 
+    @SuppressWarnings("unused")
     public EXHF_File(String path) throws IOException {
         super(ByteOrder.BIG_ENDIAN);
         File file = new File(path);
-        FileInputStream fis = new FileInputStream(file);
-        byte[] data = new byte[(int) file.length()];
-        fis.read(data);
-        fis.close();
+        byte[] data;
+        try (FileInputStream fis = new FileInputStream(file)) {
+            data = new byte[(int) file.length()];
+            while (fis.read(data) != -1){
+                Utils.getGlobalLogger().debug("EXHF読み取り");
+            }
+        }
 
         loadEXHF(data);
     }
@@ -47,7 +52,7 @@ public class EXHF_File extends Game_File {
             int version = buffer.getShort();
 
             if (magic != 0x45584846 || version != 3) {
-                Utils.getGlobalLogger().error("EXHF magic was incorrect.");
+                Utils.getGlobalLogger().error("EXHF magicが間違っている");
                 Utils.getGlobalLogger().debug("Magic was {}", String.format("0x%08X", magic));
                 return;
             }
@@ -67,24 +72,17 @@ public class EXHF_File extends Game_File {
             pageTable = new EXDF_Page[numPageTable];
             langTable = new int[numLangTable];
 
-            //Dataset Table
+            //データセットテーブル
             for (int i = 0; i < numDataSetTable; i++)
                 datasetTable[i] = new EXDF_Dataset(buffer.getShort(), buffer.getShort());
-			
-			/*Arrays.sort(datasetTable, new Comparator<EXDF_Dataset>() {
-				@Override
-				public int compare(EXDF_Dataset a, EXDF_Dataset b) {
-					return a.offset - b.offset;
-				}
-			});*/
 
-            //Page Table
+            //ページテーブル
             for (int i = 0; i < numPageTable; i++) {
                 pageTable[i] = new EXDF_Page(buffer.getInt(), buffer.getInt());
                 trueNumEntries += pageTable[i].numEntries;
             }
 
-            //Lang Table
+            //言語テーブル
             for (int i = 0; i < numLangTable; i++) {
                 langTable[i] = buffer.get();
                 buffer.get();

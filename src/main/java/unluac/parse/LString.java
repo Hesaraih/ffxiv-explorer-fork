@@ -1,18 +1,15 @@
 package unluac.parse;
 
-import unluac.Version;
-
+import unluac.util.StringUtils;
 
 public class LString extends LObject {
 
-  public final BSizeT size;
   public final String value;
-  public final boolean reserved;
+  public boolean islong;
   
-  public LString(Version version, BSizeT size, String value) {    
-    this.size = size;
-    this.value = value.length() == 0 ? "" : value.substring(0, value.length() - 1);
-    this.reserved = version.isReserved(this.value);
+  public LString(String value) {    
+    this.value = value;
+    islong = false;
   }
   
   @Override
@@ -20,20 +17,18 @@ public class LString extends LObject {
     return value;
   }
   
-  public boolean reserved() {
-    return reserved;
-  }
-  
   @Override
-  public String toString() {
-    return "\"" + value + "\"";
+  public String toPrintString() {
+    String prefix = "";
+    if(islong) prefix = "L";
+    return prefix + StringUtils.toPrintString(value);
   }
   
   @Override
   public boolean equals(Object o) {
     if(o instanceof LString) {
       LString os = (LString) o;
-      return os.value.equals(value);
+      return os.value.equals(value) && os.islong == islong;
     }
     return false;
   }

@@ -5,17 +5,18 @@ import java.util.Enumeration;
 
 import javax.swing.UIManager;
 
+@SuppressWarnings({"SpellCheckingInspection", "unused"})
 public class Constants {
 
 	public static final String APPNAME = "FFXIV Data Explorer";
-	public static final String VERSION = "v1.8";
+	public static final String VERSION = "v1.9";
 	public static final int APP_VERSION_CODE = 10;
 	public static final int DB_VERSION_CODE = 8;	
 	
 	public static final String COMMIT = "5eabfdab3245a3188bc62454fe6f1f9bf471c053";
 	public static boolean HAVOK_ENABLED = false;
 	public static boolean DEBUG = false;
-	public static boolean EASTER_EGG = false;
+	public static int EASTER_EGG = 0;
 
 	public static Connection GLOBAL_CONN;
 
@@ -36,14 +37,17 @@ public class Constants {
 	public static final String EXH_NAMES_PATH = "./tablenames/";
 	
 	public static String datPath = null;
-	public static int defaultLanguage = 1;
+	/**
+	 * 最初に表示する言語 0:日本語、1=英語 2=ドイツ語 3=フランス語
+	 */
+	public static int defaultLanguage = 0;
 
 	// ///DEFAULT COLORS//////
-	public static float defaultHairColor[] = { 0.2941176f, 0.2117647f,
+	public static float[] defaultHairColor = { 0.2941176f, 0.2117647f,
 			0.105882f, 1.0f };
-	public static float defaultHighlightColor[] = { 0.650f, 0.502f, 0.392f,
+	public static float[] defaultHighlightColor = { 0.650f, 0.502f, 0.392f,
 			1.0f };
-	public static float defaultEyeColor[] = { 0.0f, 0.302f, 0.0f, 1.0f };
+	public static float[] defaultEyeColor = { 0.0f, 0.302f, 0.0f, 1.0f };
 	// ///DEFAULT COLORS//////
 
 	public static final int[] macroIconList = {0, 66001, 66101, 66102, 66103, 66121,
@@ -63,8 +67,7 @@ public class Constants {
 		while (keys.hasMoreElements()) {
 			Object key = keys.nextElement();
 			Object value = UIManager.get(key);
-			if (value != null
-					&& value instanceof javax.swing.plaf.FontUIResource)
+			if (value instanceof javax.swing.plaf.FontUIResource)
 				UIManager.put(key, f);
 		}
 	}

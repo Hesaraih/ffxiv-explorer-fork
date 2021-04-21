@@ -6,10 +6,10 @@ import java.io.IOException;
 
 public class BlurShader extends Shader {
 
-    private int texLocation;
-    private int texelSizeLocation;
-    private int dirLocation;
-    private int radiusLocation;
+    private final int texLocation;
+    private final int texelSizeLocation;
+    private final int dirLocation;
+    private final int radiusLocation;
 
     public BlurShader(GL3 gl) throws IOException {
         //super(gl, "/res/shaders/fbout_vert.glsl", "/res/shaders/blur_frag.glsl", true);
@@ -28,6 +28,7 @@ public class BlurShader extends Shader {
 
         gl.glUniform2f(texelSizeLocation, width != 0.0f ? 1.0f / (float) width : 0.0f, height != 0.0f ? 1.0f / (float) height : 0.0f);
         gl.glUniform1i(dirLocation, direction);
+        gl.glUniform1i(radiusLocation, radius);
         gl.glUniform1i(radiusLocation, 1);
     }
 

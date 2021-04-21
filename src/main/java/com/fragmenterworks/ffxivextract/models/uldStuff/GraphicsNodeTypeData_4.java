@@ -18,6 +18,7 @@ public class GraphicsNodeTypeData_4 extends GraphicsNodeTypeData {
     public final int tphdRegion;
     public final int tphdIndex;
 
+    @SuppressWarnings("unused")
     public GraphicsNodeTypeData_4(final ByteBuffer data) {
         super(data);
         int offset = data.position();

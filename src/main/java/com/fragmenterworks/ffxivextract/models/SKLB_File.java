@@ -12,13 +12,17 @@ public class SKLB_File extends Game_File {
 
     private byte[] havokData;
 
+    @SuppressWarnings("unused")
     public SKLB_File(String path, ByteOrder endian) throws IOException {
         super(endian);
         File file = new File(path);
-        FileInputStream fis = new FileInputStream(file);
-        byte[] data = new byte[(int) file.length()];
-        fis.read(data);
-        fis.close();
+        byte[] data;
+        try (FileInputStream fis = new FileInputStream(file)) {
+            data = new byte[(int) file.length()];
+            while (fis.read(data) != -1) {
+                Utils.getGlobalLogger().debug("SKLB読み取り");
+            }
+        }
         loadSKLB(data);
     }
 
@@ -27,6 +31,7 @@ public class SKLB_File extends Game_File {
         loadSKLB(data);
     }
 
+    @SuppressWarnings({"unused", "UnusedAssignment"})
     private void loadSKLB(byte[] data) {
         ByteBuffer bb = ByteBuffer.wrap(data);
         bb.order(endian);
@@ -40,19 +45,19 @@ public class SKLB_File extends Game_File {
 
         int version = bb.getInt();
 
-        int offsetToSkelSection = -1;
+        int offsetToSkeletonSection = -1;
         int offsetToHavokFile = -1;
 
         //Different depending if 0031 or 0021
         if (version == 0x31333030) {
-            offsetToSkelSection = bb.getInt();
+            offsetToSkeletonSection = bb.getInt();
             offsetToHavokFile = bb.getInt();
             bb.getShort();
             bb.getShort();
             bb.getInt();
             bb.getInt();
         } else if (version == 0x31323030) {
-            offsetToSkelSection = bb.getShort();
+            offsetToSkeletonSection = bb.getShort();
             offsetToHavokFile = bb.getShort();
             bb.getShort();
             bb.getShort();

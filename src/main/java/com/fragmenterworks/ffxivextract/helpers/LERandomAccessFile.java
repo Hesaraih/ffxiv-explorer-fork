@@ -60,30 +60,29 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
     // -------------------------- PUBLIC INSTANCE  METHODS --------------------------
 
     /**
-     * constructor.
+     * コンストラクタ
      *
-     * @param file file to read/write.
+     * @param file ファイル名
      * @param rw   like {@link java.io.RandomAccessFile} where "r" for read "rw" for read and write, "rws" for
-     *             read-write sync, and "rwd" for read-write dsync. Sync ensures the physical I/O has completed befor
+     *             read-write sync, and "rwd" for read-write desync. Sync ensures the physical I/O has completed before
      *             the method returns.
      * @throws java.io.FileNotFoundException if open fails.
      */
-    public LERandomAccessFile(File file,
-                              String rw) throws FileNotFoundException {
+    @SuppressWarnings("unused")
+    public LERandomAccessFile(File file, String rw) throws FileNotFoundException {
         raf = new RandomAccessFile(file, rw);
         work = new byte[8];
     }
 
     /**
-     * constructors.
+     * コンストラクタ
      *
-     * @param file name of file.
-     * @param rw   string "r" or "rw" depending on read or read/write.
-     * @throws java.io.FileNotFoundException if open fails.
+     * @param file ファイル名
+     * @param rw   r:読み取り、rw:読み取り/書き込み
+     * @throws java.io.FileNotFoundException ファイルが開けない
      * @noinspection SameParameterValue
      */
-    public LERandomAccessFile(String file,
-                              String rw) throws FileNotFoundException {
+    public LERandomAccessFile(String file, String rw) throws FileNotFoundException {
         raf = new RandomAccessFile(file, rw);
         work = new byte[8];
     }
@@ -103,6 +102,7 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
      * @return file descriptor (handle to open file)
      * @throws IOException if get fails.
      */
+    @SuppressWarnings("unused")
     public final FileDescriptor getFD() throws IOException {
         return raf.getFD();
     }
@@ -113,6 +113,7 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
      * @return offset where we are in the file.
      * @throws IOException if get fails.
      */
+    @SuppressWarnings("unused")
     public final long getFilePointer() throws IOException {
         return raf.getFilePointer();
     }
@@ -182,7 +183,7 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
     }
 
     /**
-     * Read a char. like RandomAcessFile.readChar except little endian.
+     * Read a char. like RandomAccessFile.readChar except little endian.
      *
      * @return char read.
      * @throws IOException if read fails.
@@ -193,7 +194,7 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
     }
 
     /**
-     * read a double. like RandomAcessFile.readDouble except little endian.
+     * read a double. like RandomAccessFile.readDouble except little endian.
      *
      * @return the double read.
      * @throws IOException if read fails.
@@ -203,7 +204,7 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
     }
 
     /**
-     * read a float. like RandomAcessFile.readFloat except little endian.
+     * read a float. like RandomAccessFile.readFloat except little endian.
      *
      * @return float read.
      * @throws IOException if read fails.
@@ -264,7 +265,7 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
     /**
      * Read a long, 64 bits.
      *
-     * @return long read. like RandomAcessFile.readLong except little endian.
+     * @return long read. like RandomAccessFile.readLong except little endian.
      * @throws IOException if read fails.
      */
     public final long readLong() throws IOException {
@@ -284,7 +285,7 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
     /**
      * Read a short, 16 bits.
      *
-     * @return short read. like RandomAcessFile.readShort except little endian.
+     * @return short read. like RandomAccessFile.readShort except little endian.
      * @throws IOException if read fails.
      */
     public final short readShort() throws IOException {
@@ -303,7 +304,7 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
     }
 
     /**
-     * return an unsigned byte. Noote: returns an int, even though says Byte.
+     * return an unsigned byte. Note: returns an int, even though says Byte.
      *
      * @return the byte read.
      * @throws IOException if read fails.
@@ -313,7 +314,7 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
     }
 
     /**
-     * Read an unsigned short, 16 bits. Like RandomAcessFile.readUnsignedShort except little endian. Note, returns int
+     * Read an unsigned short, 16 bits. Like RandomAccessFile.readUnsignedShort except little endian. Note, returns int
      * even though it reads a short.
      *
      * @return little-endian unsigned short, as an int.
@@ -418,7 +419,7 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
     /**
      * Write a char.  note param is an int though writes a char.
      *
-     * @param v char to write. like RandomAcessFile.writeChar. Note the parm is an int even though this as a writeChar
+     * @param v char to write. like RandomAccessFile.writeChar. Note the param is an int even though this as a writeChar
      * @throws IOException if read fails.
      */
     public final void writeChar(int v) throws IOException {
@@ -429,9 +430,9 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
     }
 
     /**
-     * Write a string, even though method called writeChars. like RandomAcessFile.writeChars, has to flip each char.
+     * Write a string, even though method called writeChars. like RandomAccessFile.writeChars, has to flip each char.
      *
-     * @param s Strinhg to write.
+     * @param s String to write.
      * @throws IOException if read fails.
      */
     public final void writeChars(String s) throws IOException {
@@ -442,7 +443,7 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
     }// end writeChars
 
     /**
-     * Write a double. Like RandomAcessFile.writeDouble.
+     * Write a double. Like RandomAccessFile.writeDouble.
      *
      * @param v double to write.
      * @throws IOException if read fails.
@@ -452,7 +453,7 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
     }
 
     /**
-     * Write a float. Like RandomAcessFile.writeFloat.
+     * Write a float. Like RandomAccessFile.writeFloat.
      *
      * @param v float to write.
      * @throws java.io.IOException if read fails.
@@ -462,7 +463,7 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
     }
 
     /**
-     * write an int, 32-bits. Like RandomAcessFile.writeInt.
+     * write an int, 32-bits. Like RandomAccessFile.writeInt.
      *
      * @param v int to write.
      * @throws IOException if read fails.
@@ -495,7 +496,7 @@ public final class LERandomAccessFile implements DataInput, DataOutput {
     }
 
     /**
-     * Write an signed short even though parameter is an int. Like java.io.RandomAcessFile#writeShort. also acts as a
+     * Write an signed short even though parameter is an int. Like java.io.RandomAccessFile#writeShort. also acts as a
      * writeUnsignedShort.
      *
      * @param v signed number to write

@@ -38,6 +38,7 @@ public class TLHDSetTypeB_Entry {
         data.position(offset + size);
     }
 
+    @SuppressWarnings("unused")
     private static void putTLHDAType(int kind, Class<? extends TLHDSetTypeB_Entry_Item_Type> node) {
         tlhdBTypes.put(kind, node);
     }
@@ -46,8 +47,8 @@ public class TLHDSetTypeB_Entry {
         Class<? extends TLHDSetTypeB_Entry_Item_Type> aClass = tlhdBTypes.get(type);
         if (aClass != null) {
             try {
-                Constructor c = aClass.getDeclaredConstructor(ByteBuffer.class);
-                return (TLHDSetTypeB_Entry_Item_Type) c.newInstance(data);
+                Constructor<? extends TLHDSetTypeB_Entry_Item_Type> c = aClass.getDeclaredConstructor(ByteBuffer.class);
+                return c.newInstance(data);
             } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException | InstantiationException e) {
                 Utils.getGlobalLogger().error(e);
             }
@@ -79,6 +80,7 @@ public class TLHDSetTypeB_Entry {
     }
 
     public static abstract class TLHDSetTypeB_Entry_Item_Type {
+        @SuppressWarnings("unused")
         public TLHDSetTypeB_Entry_Item_Type(ByteBuffer data) {
 
         }

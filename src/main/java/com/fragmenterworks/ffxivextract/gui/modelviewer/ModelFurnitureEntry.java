@@ -6,6 +6,7 @@ class ModelFurnitureEntry {
     public static final int TYPE_YARDOBJECT = 1;
 
     final public int modelType;
+    @SuppressWarnings({"FieldCanBeLocal", "unused"})
     private final int id;
     final public String name;
     final public int model;

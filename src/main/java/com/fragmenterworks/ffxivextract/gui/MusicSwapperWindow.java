@@ -207,7 +207,7 @@ class MusicSwapperWindow extends JFrame {
                 if (event.getValueIsAdjusting() || lstSet.getModel().getSize() == 0)
                     return;
                 txtSetTo.setText(String.format(Strings.MUSICSWAPPER_CURRENTOFFSET, editedFiles[lstOriginal.getSelectedIndex()].getOffset()));
-                if (editedFiles[lstOriginal.getSelectedIndex()].getOffset() != originalMusicFile.getPackFolders()[0].getFiles()[lstOriginal.getSelectedIndex()].dataoffset)
+                if (editedFiles[lstOriginal.getSelectedIndex()].getOffset() != originalMusicFile.getPackFolders()[0].getFiles()[lstOriginal.getSelectedIndex()].dataOffset)
                     txtSetTo.setForeground(Color.RED);
                 else
                     txtSetTo.setForeground(Color.decode("#006400"));
@@ -572,7 +572,7 @@ class MusicSwapperWindow extends JFrame {
 
         //Init this since the list listener doesn't fire
         txtSetTo.setText(String.format(Strings.MUSICSWAPPER_CURRENTOFFSET, editedFiles[lstOriginal.getSelectedIndex()].getOffset()));
-        if (editedFiles[lstOriginal.getSelectedIndex()].getOffset() != originalMusicFile.getPackFolders()[0].getFiles()[lstOriginal.getSelectedIndex()].dataoffset)
+        if (editedFiles[lstOriginal.getSelectedIndex()].getOffset() != originalMusicFile.getPackFolders()[0].getFiles()[lstOriginal.getSelectedIndex()].dataOffset)
             txtSetTo.setForeground(Color.RED);
         else
             txtSetTo.setForeground(Color.decode("#006400"));
@@ -630,7 +630,7 @@ class MusicSwapperWindow extends JFrame {
 
         //Init this since the list listener doesn't fire
         txtSetTo.setText(String.format(Strings.MUSICSWAPPER_CURRENTOFFSET, editedFiles[0].getOffset()));
-        if (editedFiles[0].getOffset() != originalMusicFile.getPackFolders()[0].getFiles()[0].dataoffset)
+        if (editedFiles[0].getOffset() != originalMusicFile.getPackFolders()[0].getFiles()[0].dataOffset)
             txtSetTo.setForeground(Color.RED);
         else
             txtSetTo.setForeground(Color.decode("#006400"));
@@ -905,10 +905,10 @@ class MusicSwapperWindow extends JFrame {
             Color background;
             Color foreground;
 
-            int lastVal = (int) ((editedFiles[index].dataoffset) & 0xF);
+            int lastVal = (int) ((editedFiles[index].dataOffset) & 0xF);
 
             boolean flagAsInvalid = false;
-            if (!customIndexes.contains(editedFiles[index].dataoffset) && lastVal == (currentDatIndex + 1))
+            if (!customIndexes.contains(editedFiles[index].dataOffset) && lastVal == (currentDatIndex + 1))
                 flagAsInvalid = true;
 
             if (isSelected) {

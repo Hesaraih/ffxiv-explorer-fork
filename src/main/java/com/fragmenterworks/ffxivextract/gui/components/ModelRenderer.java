@@ -23,7 +23,7 @@ import java.util.ArrayList;
 public class ModelRenderer implements GLEventListener {
 
     private final ArrayList<Model> models;
-    private final ArrayList<Model> modelsToUnload = new ArrayList<Model>();
+    private final ArrayList<Model> modelsToUnload = new ArrayList<>();
     private float zoom = -7;
     private float panX = 0;
     private float panY = 0;
@@ -55,16 +55,17 @@ public class ModelRenderer implements GLEventListener {
     private final FloatBuffer drawQuad;
 
     public ModelRenderer() {
-        models = new ArrayList<Model>();
+        models = new ArrayList<>();
         drawQuad = Buffers.newDirectFloatBuffer(new float[]{-1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f});
     }
 
     public ModelRenderer(Model model) {
-        models = new ArrayList<Model>();
+        models = new ArrayList<>();
         models.add(model);
         drawQuad = Buffers.newDirectFloatBuffer(new float[]{-1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f});
     }
 
+    @SuppressWarnings("unused")
     public ModelRenderer(ArrayList<Model> models) {
         this.models = models;
         drawQuad = Buffers.newDirectFloatBuffer(new float[]{-1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f});
@@ -90,6 +91,7 @@ public class ModelRenderer implements GLEventListener {
 
     }
 
+    @SuppressWarnings("unused")
     public void addModel(Model model) {
         models.add(model);
         model.resetVRAM();
@@ -106,6 +108,7 @@ public class ModelRenderer implements GLEventListener {
         zoom += notches * 0.25f;
     }
 
+    @SuppressWarnings("PointlessArithmeticExpression")
     public void rotate(float x, float y) {
         angleX += x * 1.0f;
         angleY += y * 1.0f;
@@ -202,7 +205,7 @@ public class ModelRenderer implements GLEventListener {
             gl.glDrawArrays(GL3.GL_TRIANGLES, 0, 6);
             gl.glDisableVertexAttribArray(blurShader.getAttribPosition());
 
-            //Combine blur/notblur
+            //Combine blur/not blur
             gl.glBindFramebuffer(GL3.GL_FRAMEBUFFER, fboId[3]);
             gl.glViewport(0, 0, canvasWidth, canvasHeight);
             gl.glClear(GL3.GL_COLOR_BUFFER_BIT | GL3.GL_DEPTH_BUFFER_BIT);

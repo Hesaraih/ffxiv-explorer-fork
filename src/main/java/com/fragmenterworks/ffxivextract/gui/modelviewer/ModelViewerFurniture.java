@@ -17,13 +17,11 @@ import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Objects;
 
 class ModelViewerFurniture extends JPanel {
 
@@ -35,23 +33,22 @@ class ModelViewerFurniture extends JPanel {
 
     private final ModelViewerWindow parent;
 
-    private final ArrayList<ModelFurnitureEntry> entries = new ArrayList<ModelFurnitureEntry>();
+    private final ArrayList<ModelFurnitureEntry> entries = new ArrayList<>();
 
+    @SuppressWarnings("unused")
     OpenGL_View view3D;
-    private final JList lstFurniture;
+    private final JList<String> lstFurniture;
 
     private final JLabel txtPath;
-    private final JButton btnResetCamera;
     private final JCheckBox chkGlowToggle;
 
-    private final FPSAnimator animator;
-
-    private ModelRenderer renderer;
+    private final ModelRenderer renderer;
 
     private boolean leftMouseDown = false;
     private boolean rightMouseDown = false;
 
-    private int currentLoD = 0;
+    @SuppressWarnings("unused")
+    private final int currentLoD = 0;
     private int lastOriginX, lastOriginY;
     private int lastX, lastY;
 
@@ -69,7 +66,7 @@ class ModelViewerFurniture extends JPanel {
         panel_1.setLayout(new BorderLayout(0, 0));
 
         JPanel panel_2 = new JPanel();
-        panel_2.setBorder(new TitledBorder(null, "Info", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+        panel_2.setBorder(new TitledBorder(null, "情報", TitledBorder.LEADING, TitledBorder.TOP, null, null));
         panel_1.add(panel_2, BorderLayout.NORTH);
         panel_2.setLayout(new BoxLayout(panel_2, BoxLayout.Y_AXIS));
 
@@ -79,8 +76,8 @@ class ModelViewerFurniture extends JPanel {
         flowLayout.setAlignment(FlowLayout.LEFT);
         panel_2.add(panelInfo_1);
 
-        JLabel lblBleh = new JLabel("Path: ");
-        panelInfo_1.add(lblBleh);
+        JLabel lblPath = new JLabel("パス: ");
+        panelInfo_1.add(lblPath);
 
         txtPath = new JLabel("-");
         panelInfo_1.add(txtPath);
@@ -90,10 +87,10 @@ class ModelViewerFurniture extends JPanel {
         flowLayout_2.setAlignment(FlowLayout.LEFT);
         panel_2.add(panelInfo_3);
 
-        btnResetCamera = new JButton("Reset Camera");
+        JButton btnResetCamera = new JButton("カメラをリセット");
         panelInfo_3.add(btnResetCamera);
 
-        chkGlowToggle = new JCheckBox("Glow Shader", true);
+        chkGlowToggle = new JCheckBox("Glow(発光)シェーダ", true);
         panelInfo_3.add(chkGlowToggle);
 
         chkGlowToggle.addChangeListener(new ChangeListener() {
@@ -123,7 +120,7 @@ class ModelViewerFurniture extends JPanel {
         JScrollPane scrollPane = new JScrollPane();
         panel.add(scrollPane, BorderLayout.WEST);
 
-        lstFurniture = new JList();
+        lstFurniture = new JList<>();
 
         scrollPane.setViewportView(lstFurniture);
 
@@ -132,7 +129,7 @@ class ModelViewerFurniture extends JPanel {
         final GLCanvas glcanvas = new GLCanvas(glcapabilities);
         renderer = new ModelRenderer();
         glcanvas.addGLEventListener(renderer);
-        animator = new FPSAnimator(glcanvas, 30);
+        FPSAnimator animator = new FPSAnimator(glcanvas, 30);
         animator.start();
         glcanvas.addMouseMotionListener(new MouseMotionListener() {
 
@@ -159,10 +156,12 @@ class ModelViewerFurniture extends JPanel {
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (e.getButton() == MouseEvent.BUTTON1)
+                if (e.getButton() == MouseEvent.BUTTON1) {
                     leftMouseDown = false;
-                if (e.getButton() == MouseEvent.BUTTON3)
+                }
+                if (e.getButton() == MouseEvent.BUTTON3) {
                     rightMouseDown = false;
+                }
             }
 
             @Override
@@ -195,67 +194,58 @@ class ModelViewerFurniture extends JPanel {
             public void mouseClicked(MouseEvent arg0) {
             }
         });
-        addMouseWheelListener(new MouseWheelListener() {
-
-            @Override
-            public void mouseWheelMoved(MouseWheelEvent e) {
-                int notches = e.getWheelRotation();
-                renderer.zoom(-notches);
-            }
+        addMouseWheelListener(e -> {
+            int notches = e.getWheelRotation();
+            renderer.zoom(-notches);
         });
 
         try {
             if (!loadFurniture()) {
                 removeAll();
-                JLabel errorLabel = new JLabel("There was an error loading the furniture list.");
+                JLabel errorLabel = new JLabel("家具リストの読み込み中にエラーが発生しました。");
                 add(errorLabel);
                 return;
             }
-        } catch (FileNotFoundException e1) {
-            Utils.getGlobalLogger().error(e1);
         } catch (IOException e1) {
             Utils.getGlobalLogger().error(e1);
         }
 
-        lstFurniture.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+        lstFurniture.getSelectionModel().addListSelectionListener(event -> {
 
-            @Override
-            public void valueChanged(ListSelectionEvent event) {
-
-                if (event.getValueIsAdjusting() || lstFurniture.getModel().getSize() == 0)
-                    return;
-
-                int selected = lstFurniture.getSelectedIndex();
-
-                if (selected == -1)
-                    return;
-
-                String modelPath = null;
-                byte[] modelData = null;
-                try {
-
-                    if (entries.get(selected).modelType == ModelFurnitureEntry.TYPE_FURNITURE)
-                        modelPath = String.format("bgcommon/hou/indoor/general/%04d/bgparts/fun_b0_m%04d.mdl", entries.get(selected).model, entries.get(selected).model);
-                    else if (entries.get(selected).modelType == ModelFurnitureEntry.TYPE_YARDOBJECT)
-                        modelPath = String.format("bgcommon/hou/outdoor/general/%04d/bgparts/gar_b0_m%04d.mdl", entries.get(selected).model, entries.get(selected).model);
-
-                    modelData = modelIndexFile.extractFile(modelPath);
-
-
-                } catch (FileNotFoundException e) {
-                    Utils.getGlobalLogger().error(e);
-                } catch (IOException e) {
-                    Utils.getGlobalLogger().error(e);
-                }
-
-                if (modelData != null) {
-                    HashDatabase.addPathToDB(modelPath, "040000");
-                    Model model = new Model(modelPath, modelIndexFile, modelData, modelIndex.getEndian());
-                    renderer.setModel(model);
-                }
-
-                txtPath.setText(modelPath);
+            if (event.getValueIsAdjusting() || lstFurniture.getModel().getSize() == 0) {
+                return;
             }
+
+            int selected = lstFurniture.getSelectedIndex();
+
+            if (selected == -1) {
+                return;
+            }
+
+            String modelPath = null;
+            byte[] modelData = null;
+            try {
+
+                if (entries.get(selected).modelType == ModelFurnitureEntry.TYPE_FURNITURE) {
+                    modelPath = String.format("bgcommon/hou/indoor/general/%04d/bgparts/fun_b0_m%04d.mdl", entries.get(selected).model, entries.get(selected).model);
+                } else if (entries.get(selected).modelType == ModelFurnitureEntry.TYPE_YARDOBJECT) {
+                    modelPath = String.format("bgcommon/hou/outdoor/general/%04d/bgparts/gar_b0_m%04d.mdl", entries.get(selected).model, entries.get(selected).model);
+                }
+
+                modelData = modelIndexFile.extractFile(Objects.requireNonNull(modelPath));
+
+
+            } catch (IOException e) {
+                Utils.getGlobalLogger().error(e);
+            }
+
+            if (modelData != null) {
+                HashDatabase.addPathToDB(modelPath, "040000");
+                Model model = new Model(modelPath, modelIndexFile, modelData, modelIndex.getEndian());
+                renderer.setModel(model);
+            }
+
+            txtPath.setText(modelPath);
         });
 
         panel_3.add(glcanvas, BorderLayout.CENTER);
@@ -264,15 +254,21 @@ class ModelViewerFurniture extends JPanel {
 
     private boolean loadFurniture() throws IOException {
         SqPack_IndexFile indexFile = parent.getExdIndexFile();
-        EXHF_File exhfFileHousingFurniture = new EXHF_File(indexFile.extractFile("exd/housingfurniture.exh"));
-        EXHF_File exhfFileHousingYardObject = new EXHF_File(indexFile.extractFile("exd/housingyardobject.exh"));
-        EXHF_File exhfFileItem = new EXHF_File(indexFile.extractFile("exd/item.exh"));
-        EXHF_File exhfFileHousingCategory = new EXHF_File(indexFile.extractFile("exd/housingitemcategory.exh"));
+        EXHF_File exhfFileHousingFurniture = new EXHF_File(indexFile.extractFile("exd/HousingFurniture.exh"));
+        EXHF_File exhfFileHousingYardObject = new EXHF_File(indexFile.extractFile("exd/HousingYardObject.exh"));
+        EXHF_File exhfFileItem = new EXHF_File(indexFile.extractFile("exd/Item.exh"));
+        EXHF_File exhfFileYardCatalogItemList = new EXHF_File(indexFile.extractFile("exd/YardCatalogItemList.exh"));
+        //EXHF_File exhfFileHousingCategory = new EXHF_File(indexFile.extractFile("exd/HousingItemCategory.exh")); //廃止されてる？
+        //代替先候補 こっちかも
+        //EXHF_File exhfFileYardCatalogCategory = new EXHF_File(indexFile.extractFile("exd/YardCatalogCategory.exh"));
 
-        EXDF_View view1 = new EXDF_View(indexFile, "exd/housingfurniture.exh", exhfFileHousingFurniture);
-        EXDF_View view2 = new EXDF_View(indexFile, "exd/item.exh", exhfFileItem);
-        EXDF_View view3 = new EXDF_View(indexFile, "exd/housingitemcategory.exh", exhfFileHousingCategory);
-        EXDF_View view4 = new EXDF_View(indexFile, "exd/housingyardobject.exh", exhfFileHousingYardObject);
+        EXDF_View view1 = new EXDF_View(indexFile, "exd/HousingFurniture.exh", exhfFileHousingFurniture);
+        EXDF_View view2 = new EXDF_View(indexFile, "exd/Item.exh", exhfFileItem);
+        EXDF_View view3 = new EXDF_View(indexFile, "exd/YardCatalogItemList.exh", exhfFileYardCatalogItemList);
+        //EXDF_View view3 = new EXDF_View(indexFile, "exd/HousingItemCategory.exh", exhfFileHousingCategory); //廃止されてる？
+        //代替先候補 こっちかも
+        //EXDF_View view3 = new EXDF_View(indexFile, "exd/YardCatalogCategory.exh", exhfFileYardCatalogCategory);
+        EXDF_View view4 = new EXDF_View(indexFile, "exd/HousingYardObject.exh", exhfFileHousingYardObject);
 
         try {
             for (int i = 0; i < view1.getTable().getRowCount(); i++) {
@@ -283,14 +279,17 @@ class ModelViewerFurniture extends JPanel {
 
                 String name = (String) view2.getTable().getValueAt((int) itemId, INDEX_ITEM_NAME);
 
-                if (itemId == 0)
-                    name = "Unknown";
+                if (itemId == 0) {
+                    name = "不明";
+                }
 
-                if (name.isEmpty())
-                    name = "Placeholder?";
+                if (name.isEmpty()) {
+                    name = "空欄?";
+                }
 
-                if (modelNumber == 0)
+                if (modelNumber == 0) {
                     continue;
+                }
 
                 String furnitureTypeName = (String) view3.getTable().getValueAt(furnitureType, INDEX_FURNITURETYPE_NAME);
 
@@ -304,14 +303,17 @@ class ModelViewerFurniture extends JPanel {
 
                 String name = (String) view2.getTable().getValueAt((int) itemId, INDEX_ITEM_NAME);
 
-                if (itemId == 0)
-                    name = "Unknown";
+                if (itemId == 0) {
+                    name = "不明";
+                }
 
-                if (name.isEmpty())
-                    name = "Placeholder?";
+                if (name.isEmpty()) {
+                    name = "空欄?";
+                }
 
-                if (modelNumber == 0)
+                if (modelNumber == 0) {
                     continue;
+                }
 
                 String furnitureTypeName = (String) view3.getTable().getValueAt(furnitureType, INDEX_FURNITURETYPE_NAME);
 
@@ -322,13 +324,16 @@ class ModelViewerFurniture extends JPanel {
             return false;
         }
 
-        lstFurniture.setModel(new AbstractListModel() {
+        lstFurniture.setModel(new AbstractListModel<String>() {
             public int getSize() {
                 return entries.size();
             }
 
             public String getElementAt(int index) {
-                return entries.get(index).name + (entries.get(index).type.isEmpty() ? "" : "(" + entries.get(index).type + ")");
+                if (entries.get(index).type.isEmpty()) {
+                    return entries.get(index).name + "";
+                }
+                return entries.get(index).name + "(" + entries.get(index).type + ")";
             }
         });
 

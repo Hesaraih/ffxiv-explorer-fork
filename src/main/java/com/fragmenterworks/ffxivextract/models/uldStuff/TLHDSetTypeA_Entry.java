@@ -24,11 +24,11 @@ public class TLHDSetTypeA_Entry {
         putTLHDAType(5, TLHDSetTypeA_Entry_Item_Type_5.class);
     }
 
-    private int type;
-    private int w_0x6;
-    private int size;
-    private int count;
-    private TLHDSetTypeA_Entry_Item[] frames;
+    private final int type;
+    private final int w_0x6;
+    private final int size;
+    private final int count;
+    private final TLHDSetTypeA_Entry_Item[] frames;
 
     public TLHDSetTypeA_Entry(final ByteBuffer data) {
         int offset = data.position();
@@ -54,8 +54,8 @@ public class TLHDSetTypeA_Entry {
         Class<? extends TLHDSetTypeA_Entry_Item_Type> aClass = tlhdATypes.get(type);
         if (aClass != null) {
             try {
-                Constructor c = aClass.getDeclaredConstructor(ByteBuffer.class);
-                return (TLHDSetTypeA_Entry_Item_Type) c.newInstance(data);
+                Constructor<? extends TLHDSetTypeA_Entry_Item_Type> c = aClass.getDeclaredConstructor(ByteBuffer.class);
+                return c.newInstance(data);
             } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException | InstantiationException e) {
                 Utils.getGlobalLogger().error(e);
             }
@@ -87,6 +87,7 @@ public class TLHDSetTypeA_Entry {
     }
 
     public static abstract class TLHDSetTypeA_Entry_Item_Type {
+        @SuppressWarnings("unused")
         TLHDSetTypeA_Entry_Item_Type(ByteBuffer data) {
 
         }

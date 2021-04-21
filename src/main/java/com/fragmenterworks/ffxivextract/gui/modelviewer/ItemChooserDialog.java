@@ -11,6 +11,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 
+@SuppressWarnings("unused")
 public class ItemChooserDialog extends JDialog {
 
     private static final int INDEX_ITEM_NAME = 1;
@@ -18,12 +19,12 @@ public class ItemChooserDialog extends JDialog {
     public static final int INDEX_ITEM_MODEL2 = 46;
     private static final int INDEX_ITEM_SLOT = 18;
 
-    private JTextField edtSearch;
-    private JList lstItems;
+    private final JTextField edtSearch;
+    private final JList<ItemIdCombo> lstItems;
     private int chosenItem = -2;
 
-    private final ArrayList<ItemIdCombo> masterItemList = new ArrayList<ItemIdCombo>();
-    private final ArrayList<ItemIdCombo> filterItemList = new ArrayList<ItemIdCombo>();
+    private final ArrayList<ItemIdCombo> masterItemList = new ArrayList<>();
+    private final ArrayList<ItemIdCombo> filterItemList = new ArrayList<>();
 
     private ItemChooserDialog(JFrame parent, EXDF_View itemView, int slot) {
 
@@ -42,17 +43,17 @@ public class ItemChooserDialog extends JDialog {
 
                 filterItemList.clear();
 
-                for (int i = 0; i < masterItemList.size(); i++) {
-                    if (masterItemList.get(i).name.toLowerCase().contains(
+                for (ItemIdCombo itemIdCombo : masterItemList) {
+                    if (itemIdCombo.name.toLowerCase().contains(
                             filter.toLowerCase()))
-                        filterItemList.add(masterItemList.get(i));
+                        filterItemList.add(itemIdCombo);
                 }
 
                 ((ItemsListModel) lstItems.getModel()).refresh();
             }
         };
 
-        JLabel lblSearch = new JLabel("Search:");
+        JLabel lblSearch = new JLabel("検索:");
         panel.add(lblSearch, BorderLayout.WEST);
 
         edtSearch = new JTextField();
@@ -60,39 +61,31 @@ public class ItemChooserDialog extends JDialog {
         edtSearch.setColumns(10);
         edtSearch.addActionListener(searchListener);
 
-        JButton btnSearch = new JButton("Search");
+        JButton btnSearch = new JButton("検索");
         panel.add(btnSearch, BorderLayout.EAST);
         btnSearch.addActionListener(searchListener);
 
         JScrollPane scrollPane = new JScrollPane();
         getContentPane().add(scrollPane, BorderLayout.CENTER);
 
-        lstItems = new JList();
+        lstItems = new JList<>();
         scrollPane.setViewportView(lstItems);
 
         JPanel panel_1 = new JPanel();
         getContentPane().add(panel_1, BorderLayout.SOUTH);
 
-        JButton btnSet = new JButton("Set Slot");
+        JButton btnSet = new JButton("スロットにセット");
         panel_1.add(btnSet);
-        btnSet.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                chosenItem = ((ItemIdCombo) lstItems.getSelectedValue()).id;
-                setVisible(false);
-            }
+        btnSet.addActionListener(e -> {
+            chosenItem = lstItems.getSelectedValue().id;
+            setVisible(false);
         });
 
-        JButton btnClear = new JButton("Clear Slot");
+        JButton btnClear = new JButton("スロットをクリア");
         panel_1.add(btnClear);
-        btnClear.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                chosenItem = -1;
-                setVisible(false);
-            }
+        btnClear.addActionListener(e -> {
+            chosenItem = -1;
+            setVisible(false);
         });
 
         lstItems.addMouseListener(new MouseAdapter() {
@@ -104,7 +97,7 @@ public class ItemChooserDialog extends JDialog {
                     if (r != null && r.contains(evt.getPoint())) {
                         int index = list.locationToIndex(evt.getPoint());
                         list.setSelectedIndex(index);
-                        chosenItem = ((ItemIdCombo) lstItems.getSelectedValue()).id;
+                        chosenItem = lstItems.getSelectedValue().id;
                         setVisible(false);
                     }
                 }
@@ -141,10 +134,10 @@ public class ItemChooserDialog extends JDialog {
     }
 
     private static String getTitle(int slot) {
-        return "Choose body item";
+        return "胴装備を選んでください";
     }
 
-    private class ItemsListModel extends AbstractListModel {
+    private class ItemsListModel extends AbstractListModel<ItemIdCombo> {
         public int getSize() {
 
             return filterItemList.size();
@@ -160,7 +153,7 @@ public class ItemChooserDialog extends JDialog {
 
     }
 
-    private class ItemIdCombo {
+    private static class ItemIdCombo {
         final String name;
         final int id;
 

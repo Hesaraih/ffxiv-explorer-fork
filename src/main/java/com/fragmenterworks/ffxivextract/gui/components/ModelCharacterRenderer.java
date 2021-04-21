@@ -19,10 +19,11 @@ import java.io.IOException;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 
+@SuppressWarnings("unused")
 public class ModelCharacterRenderer implements GLEventListener {
 
     private final Model[] models = new Model[3 + 13]; //0: Body, 1: Head, 2: Hair, 3+:Equip
-    private final ArrayList<Model> modelsToUnload = new ArrayList<Model>();
+    private final ArrayList<Model> modelsToUnload = new ArrayList<>();
 
     private float zoom = -7;
     private float panX = 0;
@@ -89,6 +90,7 @@ public class ModelCharacterRenderer implements GLEventListener {
         zoom += notches * 0.25f;
     }
 
+    @SuppressWarnings("PointlessArithmeticExpression")
     public void rotate(float x, float y) {
         angleX += x * 1.0f;
         angleY += y * 1.0f;
@@ -193,7 +195,7 @@ public class ModelCharacterRenderer implements GLEventListener {
         gl.glDrawArrays(GL3.GL_TRIANGLES, 0, 6);
         gl.glDisableVertexAttribArray(blurShader.getAttribPosition());
 
-        //Combine blur/notblur
+        //Combine blur/not blur
         gl.glBindFramebuffer(GL3.GL_FRAMEBUFFER, fboId[3]);
         gl.glViewport(0, 0, canvasWidth, canvasHeight);
         gl.glClear(GL3.GL_COLOR_BUFFER_BIT | GL3.GL_DEPTH_BUFFER_BIT);

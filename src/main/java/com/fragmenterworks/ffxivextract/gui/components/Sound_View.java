@@ -9,8 +9,6 @@ import com.fragmenterworks.ffxivextract.models.SCD_File.SCD_Sound_Info;
 import javax.sound.sampled.*;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
 import java.awt.event.ComponentEvent;
@@ -19,7 +17,7 @@ import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 
 public class Sound_View extends JPanel {
-    private final JTable tblSoundEntyList;
+    private final JTable tblSoundEntryList;
     private final SCD_File file;
 
     private final JOrbisPlayer oggPlayer = new JOrbisPlayer();
@@ -39,46 +37,28 @@ public class Sound_View extends JPanel {
         JScrollPane scrollPane = new JScrollPane();
         pnlFileList.add(scrollPane);
 
-        tblSoundEntyList = new JTable();
-        tblSoundEntyList.setShowVerticalLines(false);
-        scrollPane.setViewportView(tblSoundEntyList);
-        tblSoundEntyList.setModel(new SCDTableModel(scdFile));
-        tblSoundEntyList.getColumnModel().getColumn(4).setPreferredWidth(79);
-        tblSoundEntyList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        tblSoundEntyList.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
+        tblSoundEntryList = new JTable();
+        tblSoundEntryList.setShowVerticalLines(false);
+        scrollPane.setViewportView(tblSoundEntryList);
+        tblSoundEntryList.setModel(new SCDTableModel(scdFile));
+        tblSoundEntryList.getColumnModel().getColumn(4).setPreferredWidth(79);
+        tblSoundEntryList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tblSoundEntryList.getSelectionModel().addListSelectionListener(e -> {
 
 
-                if (!e.getValueIsAdjusting()) {
+            if (!e.getValueIsAdjusting()) {
 
-                    SCD_Sound_Info info = file.getSoundInfo(tblSoundEntyList.getSelectedRow());
-                    if (info != null) {
-                        oggPlayer.stop();
+                SCD_Sound_Info info = file.getSoundInfo(tblSoundEntryList.getSelectedRow());
+                if (info != null) {
+                    oggPlayer.stop();
 
-                        if (info.dataType == 0x0C) {
-                            final byte[] header = file.getADPCMHeader(tblSoundEntyList.getSelectedRow());
-                            final byte[] body = file.getADPCMData(tblSoundEntyList.getSelectedRow());
-                            new Thread() {
-
-                                @Override
-                                public void run() {
-                                    playMsAdpcm(header, body);
-                                }
-                            }.start();
-                        } else if (info.dataType == 0x06) {
-                            final byte[] body = file.getConverted(tblSoundEntyList.getSelectedRow());
-                            new Thread() {
-
-                                @Override
-                                public void run() {
-                                    playOgg(body);
-                                }
-                            }.start();
-                        } else {
-
-                        }
+                    if (info.dataType == 0x0C) {
+                        final byte[] header = file.getADPCMHeader(tblSoundEntryList.getSelectedRow());
+                        final byte[] body = file.getADPCMData(tblSoundEntryList.getSelectedRow());
+                        new Thread(() -> playMsAdpcm(header, body)).start();
+                    } else if (info.dataType == 0x06) {
+                        final byte[] body = file.getConverted(tblSoundEntryList.getSelectedRow());
+                        new Thread(() -> playOgg(body)).start();
                     }
                 }
             }
@@ -105,7 +85,7 @@ public class Sound_View extends JPanel {
         });
     }
 
-    class SCDTableModel extends AbstractTableModel {
+    static class SCDTableModel extends AbstractTableModel {
 
         final SCD_File file;
         final String[] columns = {"Index", "File Size", "Data Type", "Frequency",
@@ -196,39 +176,38 @@ public class Sound_View extends JPanel {
         int blockAlign = bb.getShort();
         int bitsPerSample = bb.getShort();
 
-        // Creates an AudioFormat object and a DataLine.Info object.
+        // AudioFormatオブジェクトとDataLine.Infoオブジェクトを作成します。
         AudioFormat audioFormat = new AudioFormat((float) rate, 16, channels,
                 true, false);
-        DataLine.Info datalineInfo = new DataLine.Info(SourceDataLine.class,
+        DataLine.Info dataLineInfo = new DataLine.Info(SourceDataLine.class,
                 audioFormat, AudioSystem.NOT_SPECIFIED);
 
         SourceDataLine outputLine;
 
-        // Check if the line is supported.
-        if (!AudioSystem.isLineSupported(datalineInfo)) {
-            Utils.getGlobalLogger().error("Audio output line is not supported.");
+        // オーディオ出力ラインがサポートされているかどうかを確認
+        if (!AudioSystem.isLineSupported(dataLineInfo)) {
+            Utils.getGlobalLogger().error("オーディオ出力ラインはサポートされていません。");
             return;
         }
 
         /*
-         * Everything seems to be alright. Let's try to open a line with the
-         * specified format and start the source data line.
+         * すべてが大丈夫のようです。 指定された形式の行を開いて、ソースデータ行を開始してみましょう。
          */
         try {
-            outputLine = (SourceDataLine) AudioSystem.getLine(datalineInfo);
+            outputLine = (SourceDataLine) AudioSystem.getLine(dataLineInfo);
             outputLine.open(audioFormat);
         } catch (LineUnavailableException exception) {
-            Utils.getGlobalLogger().error("The audio output line could not be opened due to resource restrictions.", exception);
+            Utils.getGlobalLogger().error("リソースの制限により、オーディオ出力ラインを開くことができませんでした。", exception);
             return;
         } catch (IllegalStateException exception) {
-            Utils.getGlobalLogger().error("The audio output line is already open.", exception);
+            Utils.getGlobalLogger().error("オーディオ出力ラインはすでに開いています。", exception);
             return;
         } catch (SecurityException exception) {
-            Utils.getGlobalLogger().error("The audio output line could not be opened due to security restrictions.", exception);
+            Utils.getGlobalLogger().error("セキュリティ上の理由により、音声出力ラインを開くことができませんでした。", exception);
             return;
         }
 
-        // Start it.
+        // 始めよう
         outputLine.start();
 
         int bufferSize = MSADPCM_Decode.getBufferSize(body.length, channels, blockAlign, bitsPerSample);
