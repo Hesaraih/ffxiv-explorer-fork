@@ -60,7 +60,7 @@ public class ColorPickerPanel extends JPanel {
 	public static int MAX_SIZE = 325;
 	private int mode = ColorPicker.BRI;
 	private Point point = new Point(0,0);
-	private Vector changeListeners;
+	private Vector<ChangeListener> changeListeners;
 	
 	/* Floats from [0,1].  They must be kept distinct, because
 	 * when you convert them to RGB coordinates HSB(0,0,0) and HSB (.5,0,0)
@@ -205,7 +205,7 @@ public class ColorPickerPanel extends JPanel {
 	 */
 	public void addChangeListener(ChangeListener l) {
 		if(changeListeners==null)
-			changeListeners = new Vector();
+			changeListeners = new Vector<>();
 		if(changeListeners.contains(l))
 			return;
 		changeListeners.add(l);
@@ -214,6 +214,7 @@ public class ColorPickerPanel extends JPanel {
 	/** Remove a <code>ChangeListener</code> so it is no longer
 	 * notified when the selected color changes.
 	 */
+	@SuppressWarnings("unused")
 	public void removeChangeListener(ChangeListener l) {
 		if(changeListeners==null)
 			return;
@@ -223,11 +224,10 @@ public class ColorPickerPanel extends JPanel {
 	protected void fireChangeListeners() {
 		if(changeListeners==null)
 			return;
-		for(int a = 0; a<changeListeners.size(); a++) {
-			ChangeListener l = (ChangeListener)changeListeners.get(a);
+		for (ChangeListener changeListener : changeListeners) {
 			try {
-				l.stateChanged(new ChangeEvent(this));
-			} catch(RuntimeException e) {
+				changeListener.stateChanged(new ChangeEvent(this));
+			} catch (RuntimeException e) {
 				e.printStackTrace();
 			}
 		}
@@ -249,8 +249,7 @@ public class ColorPickerPanel extends JPanel {
 		if(mode==ColorPicker.SAT || mode==ColorPicker.BRI) {
 			shape = new Ellipse2D.Float(0,0,size,size);
 		} else {
-			Rectangle r = new Rectangle(0,0,size,size);
-			shape = r;
+			shape = new Rectangle(0,0,size,size);
 		}
 		
 		if(hasFocus()) {
@@ -341,7 +340,7 @@ public class ColorPickerPanel extends JPanel {
 					if(lastG!=g) {
 						regenerateImage();
 					}
-				} else if(mode==ColorPicker.BLUE) {
+				} else {
 					if(lastB!=b) {
 						regenerateImage();
 					}
@@ -412,7 +411,7 @@ public class ColorPickerPanel extends JPanel {
 					if(lastSat!=sat) {
 						regenerateImage();
 					}
-				} else if(mode==ColorPicker.BRI) {
+				} else {
 					if(lastBri!=bri) {
 						regenerateImage();
 					}
@@ -448,7 +447,7 @@ public class ColorPickerPanel extends JPanel {
 				
 				double r = bri*size/2;
 				point = new Point((int)(r*Math.cos(theta)+.5+size/2.0),(int)(r*Math.sin(theta)+.5+size/2.0));
-			} else if(mode==ColorPicker.BRI) {
+			} else {
 				double theta = hue*2*Math.PI-Math.PI/2;
 				if(theta<0) theta+=2*Math.PI;
 				double r = sat*size/2;
@@ -467,7 +466,7 @@ public class ColorPickerPanel extends JPanel {
 	}
 	
 	/** A row of pixel data we recycle every time we regenerate this image. */
-	private int[] row = new int[MAX_SIZE];
+	private final int[] row = new int[MAX_SIZE];
 	/** Regenerates the image. */
 	private synchronized void regenerateImage() {
 		int size = Math.min(MAX_SIZE, Math.min(getWidth()-imagePadding.left-imagePadding.right,getHeight()-imagePadding.top-imagePadding.bottom));
