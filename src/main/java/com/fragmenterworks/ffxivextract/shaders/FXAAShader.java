@@ -6,8 +6,8 @@ import java.io.IOException;
 
 public class FXAAShader extends Shader {
 
-    private int texLocation;
-    private int sizeLocation;
+    private final int texLocation;
+    private final int sizeLocation;
 
     public FXAAShader(GL3 gl) throws IOException {
         //super(gl, "/res/shaders/fbout_vert.glsl", "/res/shaders/fxaa_frag.glsl", true);

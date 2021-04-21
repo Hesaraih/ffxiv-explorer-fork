@@ -9,7 +9,9 @@ public class BinaryCondition implements Condition {
   public static enum Operator {
     EQ,
     LT,
-    LE
+    LE,
+    GT,
+    GE
   }
   
   private static String operator_to_string(Operator op, boolean inverted, boolean transposed) {
@@ -17,21 +19,23 @@ public class BinaryCondition implements Condition {
       case EQ: return inverted ? "~=" : "==";
       case LT: return transposed ? ">" : "<";
       case LE: return transposed ? ">=" : "<=";
+      case GT: return transposed ? "<" : ">";
+      case GE: return transposed ? "<=" : ">=";
     }
     throw new IllegalStateException();
   }
   
   private final Operator op;
   private final int line;
-  private final int left;
-  private final int right;
+  private final Operand left;
+  private final Operand right;
   private final boolean inverted;
   
-  public BinaryCondition(Operator op, int line, int left, int right) {
+  public BinaryCondition(Operator op, int line, Operand left, Operand right) {
     this(op, line, left, right, false);
   }
   
-  private BinaryCondition(Operator op, int line, int left, int right, boolean inverted) {
+  private BinaryCondition(Operator op, int line, Operand left, Operand right, boolean inverted) {
     this.op = op;
     this.line = line;
     this.left = left;
@@ -69,15 +73,33 @@ public class BinaryCondition implements Condition {
   }
   
   @Override
+  public boolean isSplitable() {
+    return false;
+  }
+  
+  @Override
+  public Condition[] split() {
+    throw new IllegalStateException();
+  }
+  
+  @Override
   public Expression asExpression(Registers r) {
     boolean transpose = false;
-    Expression leftExpression = r.getKExpression(left, line);
-    Expression rightExpression = r.getKExpression(right, line);
-    if(op != Operator.EQ) {
-      if(!r.isKConstant(left) && !r.isKConstant(right)) {
-        transpose = r.getUpdated(left, line) > r.getUpdated(right, line);
+    Expression leftExpression = left.asExpression(r, line);
+    Expression rightExpression = right.asExpression(r, line);
+    if(op != Operator.EQ || left.type == OperandType.K) {
+      if(left.isRegister(r) && right.isRegister(r)) {
+        transpose = left.getUpdated(r, line) > right.getUpdated(r, line);
       } else {
-        transpose = rightExpression.getConstantIndex() < leftExpression.getConstantIndex();
+        int rightIndex = rightExpression.getConstantIndex();
+        int leftIndex = leftExpression.getConstantIndex();
+        if(rightIndex != -1 && leftIndex != -1) {
+          if(left.type == OperandType.K && rightIndex == leftIndex) {
+            transpose = true;
+          } else {
+            transpose = rightIndex < leftIndex;
+          }
+        }
       }
     }
     String opstring = operator_to_string(op, inverted, transpose);

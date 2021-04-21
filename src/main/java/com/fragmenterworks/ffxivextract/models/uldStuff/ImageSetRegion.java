@@ -14,6 +14,7 @@ public class ImageSetRegion {
     public final int w;
     public final int h;
 
+    @SuppressWarnings("unused")
     public ImageSetRegion(final int imageIndex, final int x, final int y, final int w, final int h) {
         this.imageIndex = imageIndex;
         this.x = x;

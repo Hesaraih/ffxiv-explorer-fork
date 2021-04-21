@@ -7,9 +7,9 @@ import java.io.IOException;
 
 public class IrisShader extends Shader {
 
-    private int usesCatchLightTexLocation;
-    private int eyeCatchTexLocation;
-    private int eyeColorLocation;
+    private final int usesCatchLightTexLocation;
+    private final int eyeCatchTexLocation;
+    private final int eyeColorLocation;
 
     public IrisShader(GL3 gl) throws IOException {
         //super(gl, "/res/shaders/model_vert.glsl", "/res/shaders/iris_frag.glsl", true);
@@ -20,6 +20,7 @@ public class IrisShader extends Shader {
         eyeColorLocation = gl.glGetUniformLocation(shaderProgram, "uEyeColor");
     }
 
+    @SuppressWarnings("unused")
     public void setEyeCatchTexture(GL3 gl, Material mat) {
         gl.glUniform1i(usesCatchLightTexLocation, 1);
         gl.glUniform1i(eyeCatchTexLocation, getNextSamplerId());

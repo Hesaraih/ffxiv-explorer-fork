@@ -20,8 +20,8 @@ import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 
+@SuppressWarnings("unused")
 public class ULD_View extends JPanel {
-    private ULD_File file;
 
 
     private final static Map<Integer, Class<? extends ULD_File_Renderer.GraphicsElement>> graphicsTypes = new HashMap<>();
@@ -70,10 +70,15 @@ public class ULD_View extends JPanel {
 
         setLayout(new BorderLayout(0, 0));
 
-        file = uldFile;
-
         JPanel pnlFileList = new JPanel();
-        pnlFileList.setBorder(new TitledBorder(null, "Rendered Contents",
+        if (uldFile.uldHeader.atkhs[1].wdhd == null){
+            pnlFileList.setBorder(new TitledBorder(null, "レイアウトデータがありません",
+                    TitledBorder.LEADING, TitledBorder.TOP, null, null));
+            add(pnlFileList, BorderLayout.CENTER);
+            pnlFileList.setLayout(new BoxLayout(pnlFileList, BoxLayout.X_AXIS));
+            return;
+        }
+        pnlFileList.setBorder(new TitledBorder(null, "レンダリングされたコンテンツ",
                 TitledBorder.LEADING, TitledBorder.TOP, null, null));
         add(pnlFileList, BorderLayout.CENTER);
         pnlFileList.setLayout(new BoxLayout(pnlFileList, BoxLayout.X_AXIS));
@@ -84,6 +89,7 @@ public class ULD_View extends JPanel {
         try {
             ULD_File_Renderer renderer = new ULD_File_Renderer(Constants.datPath + "\\game\\sqpack\\ffxiv", uldFile);
 
+            //width = renderer.getWidth();
             JLabel lblPic = new JLabel();
             lblPic.setIcon(new ImageIcon(renderer.getImage(0, 0)));
             lblPic.addMouseListener(renderer);
@@ -106,14 +112,13 @@ public class ULD_View extends JPanel {
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw);
             e.printStackTrace(pw);
-            String formattedText = "Failed to render ULD:\n" + sw.toString();
+            String formattedText = "レンダリングに失敗 ULD:\n" + sw;
             JLabel lbl = new JLabel("<html>" + formattedText.replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\n", "<br/>") + "</html>");
 
             pnlFileList.add(lbl);
             pnlFileList.setVisible(true);
             lbl.setVisible(true);
         }
-
 
         this.addComponentListener(new ComponentListener() {
 

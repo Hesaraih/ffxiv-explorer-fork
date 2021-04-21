@@ -13,7 +13,7 @@ class MeshPart {
     private final short boneReferenceOffset;
     private final short boneReferenceCount;
 
-    public final ArrayList<Long> attributeMasks = new ArrayList<Long>();
+    public final ArrayList<Long> attributeMasks = new ArrayList<>();
 
     public MeshPart(ByteBuffer bb) {
         indexOffset = bb.getInt();
@@ -23,4 +23,13 @@ class MeshPart {
         boneReferenceCount = bb.getShort();
     }
 
+    @SuppressWarnings("unused")
+    public short getBoneReferenceOffset() {
+        return boneReferenceOffset;
+    }
+
+    @SuppressWarnings("unused")
+    public short getBoneReferenceCount() {
+        return boneReferenceCount;
+    }
 }

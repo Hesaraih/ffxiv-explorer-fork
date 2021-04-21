@@ -26,9 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Comparator;
 
-@SuppressWarnings("serial")
 public class EXDF_View extends JScrollPane implements ItemListener {
 
     //EXH Context
@@ -47,17 +45,17 @@ public class EXDF_View extends JScrollPane implements ItemListener {
     private final JLabel lblExhName;
     private final JLabel lblExhNumEntries;
     private final JLabel lblExhNumPages;
-    private final JLabel lblExhNumLangs;
-    private final JComboBox cmbLanguage;
+    private final JLabel lblExhNumLanguages;
+    private final JComboBox<String> cmbLanguage;
     private final JTable table;
 
     private int langOverride = -1;
     private boolean showAsHex = false;
     private boolean sortByOffset = false;
 
-    private final SparseArray<String> columnNames = new SparseArray<String>();
+    private final SparseArray<String> columnNames = new SparseArray<>();
 
-    //Given a EXD file, figure out EXH name, and look for it.
+    //exdファイルが与えられたら、exh名を見つけて、それを探します。
     public EXDF_View(SqPack_IndexFile currentIndex, String fullPath, boolean showAsHex, boolean sortByOffset) {
 
         this();
@@ -65,20 +63,20 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         this.currentIndex = currentIndex;
         this.showAsHex = showAsHex;
 
-        //TODO maybe implement swapping this on the fly. eventually
+        //TODO 多分これをその場で交換することを実装します
         this.sortByOffset = sortByOffset;
 
         fullPath = fullPath.toLowerCase();
 
         String exhName;
 
-        //If the name is unknown, don't bother
+        //名前がわからない場合は、除外
         if (!fullPath.contains(".exd")) {
             setupUI_noExhFile();
             return;
         }
 
-        //Create the path to EXH
+        //exdファイルからexhファイルのパスを生成
         exhName = fullPath;
         exhName = exhName.replace("_en.exd", "");
         exhName = exhName.replace("_ja.exd", "");
@@ -93,17 +91,18 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
         exhFolder = folderName;
 
-        //Find this thing
+        //検索
         try {
             byte[] data = currentIndex.extractFile(folderName, exhName);
 
-            if (data != null)
+            if (data != null) {
                 exhFile = new EXHF_File(data);
+            }
         } catch (IOException e) {
             Utils.getGlobalLogger().error(e);
         }
 
-        //No EXH file found...
+        //exhファイルが見つからない
         if (exhFile == null) {
             setupUI_noExhFile();
             return;
@@ -111,12 +110,12 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
         this.exhName = exhName;
 
-        //Init num language and num pages
+        //numLanguagesとnumPagesを初期化します
         numPages = exhFile.getNumPages();
         numLanguages = exhFile.getNumLanguages();
 
-        //Create the path to EXD
-        String parsedExdName = exhName;
+        //exhファイルからexdファイルのパスを生成
+        String parsedExdName;
         parsedExdName = exhName.replace(".exh", "");
         parsedExdName += "_%s%s.exd"; // name_0_en.exd
 
@@ -129,33 +128,33 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         this(currentIndex, fullPath, file, false, false);
     }
 
-    //Given a EXH file, figure out EXD name, and look for it.
+    //exhファイルが与えられたら、exdファイル名を見つけて、それを探します。
     public EXDF_View(SqPack_IndexFile currentIndex, String fullPath, EXHF_File file, boolean showAsHex, boolean sortByOffset) {
 
         this();
 
-        fullPath = fullPath.toLowerCase();
+        //fullPath = fullPath.toLowerCase();
 
         this.currentIndex = currentIndex;
         this.exhFile = file;
         this.showAsHex = showAsHex;
         this.sortByOffset = sortByOffset;
 
-        //If the name is unknown, don't bother
+        //名前がわからない場合無視
         if (!fullPath.contains(".exh")) {
             setupUI_noExhFile();
             return;
         }
 
-        //Init num language and num pages
+        //numLanguagesとnumPagesを初期化
         numPages = exhFile.getNumPages();
         numLanguages = exhFile.getNumLanguages();
 
         this.exhName = fullPath.substring(fullPath.lastIndexOf("/") + 1);
         exhFolder = fullPath.substring(0, fullPath.lastIndexOf("/"));
 
-        //Create the path to EXD
-        String exdName = fullPath;
+        //exhファイルからexdファイルのパスを生成
+        String exdName;
         exdName = fullPath.replace(".exh", "");
         exdName += "_%s%s.exd"; // name_0_en.exd
 
@@ -174,7 +173,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         panel.setLayout(new BorderLayout(0, 0));
 
         JPanel panel_1 = new JPanel();
-        panel_1.setBorder(new CompoundBorder(new TitledBorder(UIManager.getBorder("TitledBorder.border"), "EXH Header", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(0, 0, 0)), new EmptyBorder(5, 10, 5, 10)));
+        panel_1.setBorder(new CompoundBorder(new TitledBorder(UIManager.getBorder("TitledBorder.border"), "EXHヘッダー", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(0, 0, 0)), new EmptyBorder(5, 10, 5, 10)));
         panel.add(panel_1, BorderLayout.NORTH);
         panel_1.setLayout(new BorderLayout(0, 0));
 
@@ -187,7 +186,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         panel_3.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel_3.setLayout(new BoxLayout(panel_3, BoxLayout.X_AXIS));
 
-        JLabel lblNewLabel = new JLabel("EXH Name: ");
+        JLabel lblNewLabel = new JLabel("EXH名: ");
         panel_3.add(lblNewLabel);
 
         lblExhName = new JLabel("32");
@@ -199,7 +198,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         panel_4.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel_4.setLayout(new BoxLayout(panel_4, BoxLayout.X_AXIS));
 
-        JLabel lblNewLabel_1 = new JLabel("Num Entries: ");
+        JLabel lblNewLabel_1 = new JLabel("エントリー番号: ");
         panel_4.add(lblNewLabel_1);
 
         lblExhNumEntries = new JLabel("32");
@@ -210,7 +209,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         panel_5.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel_5.setLayout(new BoxLayout(panel_5, BoxLayout.X_AXIS));
 
-        JLabel lblNewLabel_2 = new JLabel("Num Pages: ");
+        JLabel lblNewLabel_2 = new JLabel("ページ番号: ");
         panel_5.add(lblNewLabel_2);
 
         lblExhNumPages = new JLabel("32");
@@ -221,11 +220,11 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         panel_6.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel_6.setLayout(new BoxLayout(panel_6, BoxLayout.X_AXIS));
 
-        JLabel lblNewLabel_3 = new JLabel("Num Languages: ");
+        JLabel lblNewLabel_3 = new JLabel("言語コード: ");
         panel_6.add(lblNewLabel_3);
 
-        lblExhNumLangs = new JLabel("32");
-        panel_6.add(lblExhNumLangs);
+        lblExhNumLanguages = new JLabel("32");
+        panel_6.add(lblExhNumLanguages);
 
         JPanel panel_8 = new JPanel();
         panel_8.setBorder(null);
@@ -238,17 +237,18 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         panel_8.add(panel_9);
         panel_9.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 0));
 
-        JLabel lblNewLabel_4 = new JLabel("Language: ");
+        JLabel lblNewLabel_4 = new JLabel("言語: ");
         lblNewLabel_4.setVerticalAlignment(SwingConstants.TOP);
         panel_9.add(lblNewLabel_4);
 
-        cmbLanguage = new JComboBox();
-        cmbLanguage.setModel(new DefaultComboBoxModel(new String[]{"N/A"}));
+        cmbLanguage = new JComboBox<>();
+        cmbLanguage.setPreferredSize(new Dimension(100, 20));
+        cmbLanguage.setModel(new DefaultComboBoxModel<>(new String[]{"N/A"}));
         cmbLanguage.setSelectedIndex(0);
         panel_9.add(cmbLanguage);
 
         JPanel panel_2 = new JPanel();
-        panel_2.setBorder(new TitledBorder(null, "EXD Contents", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+        panel_2.setBorder(new TitledBorder(null, "EXDコンテンツ", TitledBorder.LEADING, TitledBorder.TOP, null, null));
         panel.add(panel_2);
         panel_2.setLayout(new BorderLayout(0, 0));
 
@@ -265,8 +265,9 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                 Object value = tableColumn.getHeaderValue();
                 TableCellRenderer renderer2 = tableColumn.getHeaderRenderer();
 
-                if (renderer2 == null)
+                if (renderer2 == null) {
                     renderer = table.getTableHeader().getDefaultRenderer();
+                }
 
                 Component c = renderer.getTableCellRendererComponent(table, value, false, false, -1, column);
                 int headerWidth = c.getPreferredSize().width;
@@ -279,22 +280,29 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         scrollPane.setViewportView(table);
     }
 
-    //Given a exd name, find all related exds (by page/language)
+    /**
+     * exdファイル名を指定して、関連するすべてのexdファイルを(ページ/言語)検索します
+     * @param exhFile exhファイルクラス
+     * @param exdName exdファイル名
+     * @param numPages ページ
+     * @param numLanguages 言語
+     */
     private void getEXDFiles(EXHF_File exhFile, String exdName, int numPages, int numLanguages) {
         exdFile = new EXDF_File[exhFile.getNumPages() * exhFile.getNumLanguages()];
         for (int i = 0; i < numPages; i++) {
 
             for (int j = 0; j < numLanguages; j++) {
 
-                if (EXHF_File.languageCodes[exhFile.getLanguageTable()[j]].equals("Unknown"))
+                if (EXHF_File.languageCodes[exhFile.getLanguageTable()[j]].equals("Unknown")) {
                     continue;
+                }
 
-                String formattedExdName = exdName;
+                String formattedExdName;
                 formattedExdName = String.format(exdName, exhFile.getPageTable()[i].pageNum, EXHF_File.languageCodes[exhFile.getLanguageTable()[j]]);
                 formattedExdName = formattedExdName.substring(formattedExdName.lastIndexOf("/") + 1);
 
                 try {
-                    //Hey we accidently found something
+                    //誤って何かを見つけました
                     if (HashDatabase.getFileName(HashDatabase.computeCRC(formattedExdName.getBytes(), 0, formattedExdName.getBytes().length)) == null) {
                         if (!(numLanguages > 5 && (formattedExdName.contains("chs") || formattedExdName.contains("cht") || formattedExdName.contains("ko")))) {
                             HashDatabase.addPathToDB(exhFolder + "/" + formattedExdName, currentIndex.getName());
@@ -302,8 +310,9 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                     }
                     byte[] data = currentIndex.extractFile(exhFolder, formattedExdName);
 
-                    if (exdFile != null && data != null)
+                    if (exdFile != null && data != null) {
                         exdFile[(i * numLanguages) + j] = new EXDF_File(data);
+                    }
                 } catch (IOException e) {
                     Utils.getGlobalLogger().error(e);
                 }
@@ -312,7 +321,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
     }
 
-    //Setup UI with known data
+    //既知のデータを使用してUIをセットアップする
     private void setupUI() {
 
         loadColumnNames(exhName);
@@ -320,32 +329,43 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
         lblExhName.setText(exhName);
         lblExhNumEntries.setText("" + exhFile.getNumEntries() + ((exhFile.getNumEntries() == exhFile.getTrueNumEntries() ? "" : " (Page Sum: " + exhFile.getTrueNumEntries() + ")")));
-        lblExhNumLangs.setText("" + (exhFile.getLanguageTable()[0] == 0x0 ? 0 : exhFile.getNumLanguages()));
+        lblExhNumLanguages.setText("" + (exhFile.getLanguageTable()[0] == 0x0 ? 0 : exhFile.getNumLanguages()));
         lblExhNumPages.setText("" + exhFile.getNumPages());
 
         cmbLanguage.removeAllItems();
         if (exhFile.getNumLanguages() != 0 && exhFile.getLanguageTable()[0] != 0x0) {
-            for (int i = 0; i < numLanguages; i++)
+            for (int i = 0; i < numLanguages; i++) {
                 cmbLanguage.addItem(EXHF_File.languageNames[exhFile.getLanguageTable()[i]]);
+            }
             cmbLanguage.addItemListener(this);
+            if (Constants.defaultLanguage > exhFile.getNumLanguages() - 1) {
+                cmbLanguage.setSelectedIndex(0);
+            } else {
+                cmbLanguage.setSelectedIndex(Constants.defaultLanguage);
+            }
         } else {
-            cmbLanguage.setModel(new DefaultComboBoxModel(new String[]{"N/A"}));
+            cmbLanguage.setModel(new DefaultComboBoxModel<>(new String[]{"N/A"}));
             cmbLanguage.setEnabled(false);
+            if (Constants.defaultLanguage > exhFile.getNumLanguages() - 1) {
+                cmbLanguage.setSelectedIndex(0);
+            } else {
+                cmbLanguage.setSelectedIndex(Constants.defaultLanguage);
+            }
         }
-
-        cmbLanguage.setSelectedIndex(Constants.defaultLanguage > exhFile.getNumLanguages() - 1 ? 0 : Constants.defaultLanguage);
 
         if (this.sortByOffset)
         {
             java.util.List<TableColumn> tempColumns = new ArrayList<>();
 
             // keep index column, love that column
-            for (int i = 1; i < table.getColumnModel().getColumnCount(); i++)
+            for (int i = 1; i < table.getColumnModel().getColumnCount(); i++) {
                 tempColumns.add(table.getColumnModel().getColumn(i));
+            }
 
             int count = table.getColumnModel().getColumnCount();
-            for (int i = count - 1; i >= 1; i--)
+            for (int i = count - 1; i >= 1; i--) {
                 table.getColumnModel().removeColumn(table.getColumnModel().getColumn(i));
+            }
 
             tempColumns.sort((o1, o2) -> {
                 String headerOne = (String) o1.getHeaderValue();
@@ -360,19 +380,20 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                 return Integer.compare(offsetOne, offsetTwo);
             });
 
-            for (TableColumn c : tempColumns)
+            for (TableColumn c : tempColumns) {
                 table.getColumnModel().addColumn(c);
+            }
         }
     }
 
-    //Setup UI to complain that the EXH file was not found
+    //EXHファイルが見つからないときのUI
     private void setupUI_noExhFile() {
-        lblExhName.setText("EXH FILE NOT FOUND");
+        lblExhName.setText("EXHファイルが見つかりません");
         lblExhName.setForeground(Color.RED);
         lblExhNumEntries.setText("N/A");
-        lblExhNumLangs.setText("N/A");
+        lblExhNumLanguages.setText("N/A");
         lblExhNumPages.setText("N/A");
-        cmbLanguage.setModel(new DefaultComboBoxModel(new String[]{"N/A"}));
+        cmbLanguage.setModel(new DefaultComboBoxModel<>(new String[]{"N/A"}));
     }
 
     class EXDTableModel extends AbstractTableModel {
@@ -397,9 +418,9 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
         @Override
         public String getColumnName(int column) {
-            if (column == 0)
+            if (column == 0) {
                 return "Index";
-            else {
+            } else {
                 String columnType = "[" + resolveTypeToString(exhFile.getDatasetTable()[column - 1].type) + "]";
                 String offset = String.format("[0x%s]", String.format("%x", exhFile.getDatasetTable()[column - 1].offset).toUpperCase());
                 String mainTitle = columnNames.get(column - 1, columnType);
@@ -415,9 +436,15 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
 //				rowIndex += exhFile.getPageTable()[0].pageNum;
 
-                //Check if we got data for this langauge
-                if (exdFile[(langOverride != -1 ? langOverride : cmbLanguage.getSelectedIndex())] == null) {
-                    return "";
+                //この言語のデータを取得したかどうかを確認
+                if (langOverride != -1) {
+                    if (exdFile[langOverride] == null) {
+                        return "";
+                    }
+                } else {
+                    if (exdFile[cmbLanguage.getSelectedIndex()] == null) {
+                        return "";
+                    }
                 }
 
                 //Find Page
@@ -428,21 +455,15 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                             if (i <= exhFile.getPageTable()[i - 1].pageNum + exhFile.getPageTable()[i - 1].numEntries) {
                                 page = i - 1;
                                 break;
-                            } else
+                            } else {
                                 return "ERROR";
+                            }
                         }
 
-						/*
-						if (rowIndex+exhFile.getPageTable()[0].pageNum >= exhFile.getPageTable()[i].pageNum)
-							continue;
-						else
-						{
-							page = i-1;
-							break;
-						}*/
                         totalRealEntries += exhFile.getPageTable()[i].numEntries;
                         if (totalRealEntries > rowIndex) {
                             page = i;
+                            //noinspection UnusedAssignment
                             totalRealEntries -= exhFile.getPageTable()[i].numEntries;
                             break;
                         }
@@ -453,22 +474,31 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                 //Grab Data
                 totalRealEntries = 0;
                 for (int i = 0; i < page; i++) {
-                    totalRealEntries += exdFiles[(numLanguages * i) + (langOverride != -1 ? langOverride : cmbLanguage.getSelectedIndex())].getNumEntries();
+                    if (langOverride != -1) {
+                        totalRealEntries += exdFiles[(numLanguages * i) + langOverride].getNumEntries();
+                    } else {
+                        totalRealEntries += exdFiles[(numLanguages * i) + cmbLanguage.getSelectedIndex()].getNumEntries();
+                    }
                 }
 
-                EXDF_Entry entry = exdFiles[(numLanguages * page) + (langOverride != -1 ? langOverride : cmbLanguage.getSelectedIndex())].getEntry(rowIndex - totalRealEntries);
+                EXDF_Entry entry;
+                if (langOverride != -1) {
+                    entry = exdFiles[(numLanguages * page) + langOverride].getEntry(rowIndex - totalRealEntries);
+                } else {
+                    entry = exdFiles[(numLanguages * page) + cmbLanguage.getSelectedIndex()].getEntry(rowIndex - totalRealEntries);
+                }
 
                 //Index
-                if (columnIndex == 0)
+                if (columnIndex == 0) {
                     return entry.getIndex();
+                }
 
                 //Data
                 EXDF_Dataset dataset = exhFile.getDatasetTable()[columnIndex - 1];
 
                 //Special case for byte bools
                 if (dataset.type >= 0x19) {
-                    boolean bool = entry.getByteBool(dataset.type, dataset.offset);
-                    return bool;
+                    return entry.getByteBool(dataset.type, dataset.offset);
                 } else {
                     switch (dataset.type) {
                         case 0x0b: // QUAD
@@ -478,28 +508,34 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                             //case 0x08:
                             return entry.getFloat(dataset.offset);
                         case 0x07: // UINT
-                            if (showAsHex)
+                            if (showAsHex) {
                                 return String.format("%02X ", (long) entry.getInt(dataset.offset));
+                            }
                             return (long) entry.getInt(dataset.offset);
                         case 0x06: // INT
-                            if (showAsHex)
+                            if (showAsHex) {
                                 return String.format("%02X ", entry.getInt(dataset.offset));
+                            }
                             return entry.getInt(dataset.offset);
                         case 0x05: // USHORT
-                            if (showAsHex)
+                            if (showAsHex) {
                                 return String.format("%02X ", (int) entry.getShort(dataset.offset) & 0xFFFF);
+                            }
                             return ((int) entry.getShort(dataset.offset) & 0xFFFF);
                         case 0x04: // SHORT
-                            if (showAsHex)
+                            if (showAsHex) {
                                 return String.format("%02X ", entry.getShort(dataset.offset));
+                            }
                             return entry.getShort(dataset.offset);
                         case 0x03: // UBYTE
-                            if (showAsHex)
+                            if (showAsHex) {
                                 return String.format("%02X ", (((int) entry.getByte(dataset.offset)) & 0xFF));
+                            }
                             return (((int) entry.getByte(dataset.offset)) & 0xFF);
                         case 0x02: // BYTE
-                            if (showAsHex)
+                            if (showAsHex) {
                                 return String.format("%02X ", (entry.getByte(dataset.offset)));
+                            }
                             return entry.getByte(dataset.offset);
                         case 0x01: // BOOL
                             return entry.getBoolean(dataset.offset);
@@ -526,12 +562,15 @@ public class EXDF_View extends JScrollPane implements ItemListener {
     }
 
     public boolean isSame(String name) {
-        if (exhName == null || name == null)
+        if (exhName == null || name == null) {
             return false;
-        if (name.contains(".exh"))
+        }
+        if (name.contains(".exh")) {
             return exhName.equals(name);
-        if (!name.contains(".exd"))
+        }
+        if (!name.contains(".exd")) {
             return false;
+        }
         String checkString = name;
         checkString = checkString.replace("_en.exd", "");
         checkString = checkString.replace("_ja.exd", "");
@@ -544,7 +583,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
     }
 
     private String resolveTypeToString(int type) {
-        //Special case for byte bools
+        //バイトブールの特殊なケース
         if (type >= 0x19) {
             return "BBOOL";
         }
@@ -569,7 +608,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                 return "BYTE";
             case 0x01: // BOOL
                 return "BOOL";
-            case 0x00: // STRING; Points to offset from end of dataset part. Read until 0x0.
+            case 0x00: // STRING; データセット部の終わりからオフセットするポイント。 0x0まで読む
                 //return new String(entry.getString(exhFile.getDatasetChunkSize(), dataset.offset));
                 return "STRING";
             default:
@@ -577,161 +616,80 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         }
     }
 
+    @SuppressWarnings("unused")
     public void addAllWeaponModels() {
-        //Write data
+        //データ書き込み
         for (int row = 0; row < table.getRowCount(); row++) {
 
             byte slot = (Byte) table.getValueAt(row, 48);
             String[] model1String = ((String) table.getValueAt(row, 11)).split(",");
             int[] model1 = new int[model1String.length];
-            for (int i = 0; i < model1.length; i++)
+            for (int i = 0; i < model1.length; i++) {
                 model1[i] = Integer.parseInt(model1String[i].trim());
+            }
             String[] model2 = ((String) table.getValueAt(row, 12)).split(",");
 
             String path = null, path2 = null;
+            int[] chara_id = new int[] { 101, 103, 104, 201, 204, 301, 401, 501, 504, 601, 604, 701, 801, 804, 901, 1001, 1101, 1201, 1301, 1304, 1401, 1404, 1501, 1801, 9104, 9204 };
 
             switch (slot) {
-                case 13: //Weapon
-                case 2:
+                case 13: //Weapon：副
+                case 2: //Weapon：主
                     HashDatabase.addPathToDB(String.format("chara/weapon/w%04d/obj/body/b%04d/model/w%04db%04d.mdl", model1[0], model1[1], model1[0], model1[1]), "040000");
                     break;
-                case 3: //Equipment
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0101e%04d_%s.mdl", model1[0], model1[0], "met"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0201e%04d_%s.mdl", model1[0], model1[0], "met"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0301e%04d_%s.mdl", model1[0], model1[0], "met"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0401e%04d_%s.mdl", model1[0], model1[0], "met"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0501e%04d_%s.mdl", model1[0], model1[0], "met"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0601e%04d_%s.mdl", model1[0], model1[0], "met"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0701e%04d_%s.mdl", model1[0], model1[0], "met"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0801e%04d_%s.mdl", model1[0], model1[0], "met"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0901e%04d_%s.mdl", model1[0], model1[0], "met"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c1001e%04d_%s.mdl", model1[0], model1[0], "met"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c1101e%04d_%s.mdl", model1[0], model1[0], "met"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c1201e%04d_%s.mdl", model1[0], model1[0], "met"), "040000");
+                case 3: //Equipment:頭
+                    for (int humanID : chara_id){
+                        HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c%04de%04d_%s.mdl", model1[0], humanID, model1[0], "met"), "040000");
+                    }
                     break;
-                case 4:
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0101e%04d_%s.mdl", model1[0], model1[0], "top"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0201e%04d_%s.mdl", model1[0], model1[0], "top"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0301e%04d_%s.mdl", model1[0], model1[0], "top"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0401e%04d_%s.mdl", model1[0], model1[0], "top"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0501e%04d_%s.mdl", model1[0], model1[0], "top"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0601e%04d_%s.mdl", model1[0], model1[0], "top"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0701e%04d_%s.mdl", model1[0], model1[0], "top"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0801e%04d_%s.mdl", model1[0], model1[0], "top"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0901e%04d_%s.mdl", model1[0], model1[0], "top"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c1001e%04d_%s.mdl", model1[0], model1[0], "top"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c1101e%04d_%s.mdl", model1[0], model1[0], "top"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c1201e%04d_%s.mdl", model1[0], model1[0], "top"), "040000");
+                case 5: //Equipment:手
+                    for (int humanID : chara_id){
+                        HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c%04de%04d_%s.mdl", model1[0], humanID, model1[0], "glv"), "040000");
+                    }
                     break;
-                case 5:
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0101e%04d_%s.mdl", model1[0], model1[0], "glv"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0201e%04d_%s.mdl", model1[0], model1[0], "glv"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0301e%04d_%s.mdl", model1[0], model1[0], "glv"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0401e%04d_%s.mdl", model1[0], model1[0], "glv"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0501e%04d_%s.mdl", model1[0], model1[0], "glv"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0601e%04d_%s.mdl", model1[0], model1[0], "glv"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0701e%04d_%s.mdl", model1[0], model1[0], "glv"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0801e%04d_%s.mdl", model1[0], model1[0], "glv"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0901e%04d_%s.mdl", model1[0], model1[0], "glv"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c1001e%04d_%s.mdl", model1[0], model1[0], "glv"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c1101e%04d_%s.mdl", model1[0], model1[0], "glv"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c1201e%04d_%s.mdl", model1[0], model1[0], "glv"), "040000");
+                case 6: //Equipment:腰
                     break;
-                case 6:
+                case 7: //Equipment:脚
+                    for (int humanID : chara_id){
+                        HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c%04de%04d_%s.mdl", model1[0], humanID, model1[0], "dwn"), "040000");
+                    }
                     break;
-                case 7:
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0101e%04d_%s.mdl", model1[0], model1[0], "dwn"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0201e%04d_%s.mdl", model1[0], model1[0], "dwn"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0301e%04d_%s.mdl", model1[0], model1[0], "dwn"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0401e%04d_%s.mdl", model1[0], model1[0], "dwn"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0501e%04d_%s.mdl", model1[0], model1[0], "dwn"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0601e%04d_%s.mdl", model1[0], model1[0], "dwn"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0701e%04d_%s.mdl", model1[0], model1[0], "dwn"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0801e%04d_%s.mdl", model1[0], model1[0], "dwn"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0901e%04d_%s.mdl", model1[0], model1[0], "dwn"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c1001e%04d_%s.mdl", model1[0], model1[0], "dwn"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c1101e%04d_%s.mdl", model1[0], model1[0], "dwn"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c1201e%04d_%s.mdl", model1[0], model1[0], "dwn"), "040000");
+                case 8: //Equipment:足
+                    for (int humanID : chara_id){
+                        HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c%04de%04d_%s.mdl", model1[0], humanID, model1[0], "sho"), "040000");
+                    }
                     break;
-                case 8:
-                    HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c0101e%04d_%s.mdl", model1[0], model1[0], "met"), "040000");
+                case 9: //Accessory：耳
+                    for (int humanID : chara_id){
+                        HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "ear"), "040000");
+                    }
                     break;
-                case 9: //Accessory
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0101a%04d_%s.mdl", model1[0], model1[0], "ear"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0201a%04d_%s.mdl", model1[0], model1[0], "ear"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0301a%04d_%s.mdl", model1[0], model1[0], "ear"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0401a%04d_%s.mdl", model1[0], model1[0], "ear"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0501a%04d_%s.mdl", model1[0], model1[0], "ear"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0601a%04d_%s.mdl", model1[0], model1[0], "ear"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0701a%04d_%s.mdl", model1[0], model1[0], "ear"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0801a%04d_%s.mdl", model1[0], model1[0], "ear"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0901a%04d_%s.mdl", model1[0], model1[0], "ear"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c1001a%04d_%s.mdl", model1[0], model1[0], "ear"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c1101a%04d_%s.mdl", model1[0], model1[0], "ear"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c1201a%04d_%s.mdl", model1[0], model1[0], "ear"), "040000");
+                case 10: //Accessory：首
+                    for (int humanID : chara_id){
+                        HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "nek"), "040000");
+                    }
                     break;
-                case 10:
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0101a%04d_%s.mdl", model1[0], model1[0], "nek"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0201a%04d_%s.mdl", model1[0], model1[0], "nek"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0301a%04d_%s.mdl", model1[0], model1[0], "nek"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0401a%04d_%s.mdl", model1[0], model1[0], "nek"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0501a%04d_%s.mdl", model1[0], model1[0], "nek"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0601a%04d_%s.mdl", model1[0], model1[0], "nek"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0701a%04d_%s.mdl", model1[0], model1[0], "nek"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0801a%04d_%s.mdl", model1[0], model1[0], "nek"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0901a%04d_%s.mdl", model1[0], model1[0], "nek"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c1001a%04d_%s.mdl", model1[0], model1[0], "nek"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c1101a%04d_%s.mdl", model1[0], model1[0], "nek"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c1201a%04d_%s.mdl", model1[0], model1[0], "nek"), "040000");
+                case 11: //Accessory：腕
+                    for (int humanID : chara_id) {
+                        HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "wrs"), "040000");
+                    }
                     break;
-                case 11:
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0101a%04d_%s.mdl", model1[0], model1[0], "wrs"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0201a%04d_%s.mdl", model1[0], model1[0], "wrs"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0301a%04d_%s.mdl", model1[0], model1[0], "wrs"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0401a%04d_%s.mdl", model1[0], model1[0], "wrs"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0501a%04d_%s.mdl", model1[0], model1[0], "wrs"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0601a%04d_%s.mdl", model1[0], model1[0], "wrs"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0701a%04d_%s.mdl", model1[0], model1[0], "wrs"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0801a%04d_%s.mdl", model1[0], model1[0], "wrs"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c0901a%04d_%s.mdl", model1[0], model1[0], "wrs"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c1001a%04d_%s.mdl", model1[0], model1[0], "wrs"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c1101a%04d_%s.mdl", model1[0], model1[0], "wrs"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c1201a%04d_%s.mdl", model1[0], model1[0], "wrs"), "040000");
-                    break;
-                case 12:
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0101a%04d_%s.mdl", model1[0], model1[0], "rir"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0201a%04d_%s.mdl", model1[0], model1[0], "rir"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0301a%04d_%s.mdl", model1[0], model1[0], "rir"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0401a%04d_%s.mdl", model1[0], model1[0], "rir"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0501a%04d_%s.mdl", model1[0], model1[0], "rir"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0601a%04d_%s.mdl", model1[0], model1[0], "rir"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0701a%04d_%s.mdl", model1[0], model1[0], "rir"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0801a%04d_%s.mdl", model1[0], model1[0], "rir"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0901a%04d_%s.mdl", model1[0], model1[0], "rir"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c1001a%04d_%s.mdl", model1[0], model1[0], "rir"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c1101a%04d_%s.mdl", model1[0], model1[0], "rir"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c1201a%04d_%s.mdl", model1[0], model1[0], "rir"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0101a%04d_%s.mdl", model1[0], model1[0], "ril"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0201a%04d_%s.mdl", model1[0], model1[0], "ril"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0301a%04d_%s.mdl", model1[0], model1[0], "ril"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0401a%04d_%s.mdl", model1[0], model1[0], "ril"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0501a%04d_%s.mdl", model1[0], model1[0], "ril"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0601a%04d_%s.mdl", model1[0], model1[0], "ril"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0701a%04d_%s.mdl", model1[0], model1[0], "ril"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0801a%04d_%s.mdl", model1[0], model1[0], "ril"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c0901a%04d_%s.mdl", model1[0], model1[0], "ril"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c1001a%04d_%s.mdl", model1[0], model1[0], "ril"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c1101a%04d_%s.mdl", model1[0], model1[0], "ril"), "040000");
-                    HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c1201a%04d_%s.mdl", model1[0], model1[0], "ril"), "040000");
+                case 12: //Accessory：指輪
+                    for (int humanID : chara_id) {
+                        HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "rir"), "040000"); //右
+                        HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "ril"), "040000"); //左
+                    }
                     break;
                 default:
                     continue;
             }
 
+            //noinspection ConstantConditions
             if (path != null) {
                 HashDatabase.addPathToDB(path, "040000");
-                if (path2 != null)
+                if (path2 != null) {
                     HashDatabase.addPathToDB(path2, "040000");
+                }
             }
         }
     }
@@ -739,17 +697,25 @@ public class EXDF_View extends JScrollPane implements ItemListener {
     public void saveCSV(String path, int lang) throws IOException {
         langOverride = lang;
 
-        //Skip this if langauge doesn't exist
-        if (exdFile[(langOverride != -1 ? langOverride : cmbLanguage.getSelectedIndex())] == null)
-            return;
+        //言語が存在しない場合はスキップ
+        if (langOverride != -1) {
+            if (exdFile[langOverride] == null) {
+                return;
+            }
+        } else {
+            if (exdFile[cmbLanguage.getSelectedIndex()] == null) {
+                return;
+            }
+        }
 
         OutputStreamWriter out = new OutputStreamWriter(new FileOutputStream(path), StandardCharsets.UTF_8);
 
         //Write columns
         for (int col = 0; col < table.getColumnCount(); col++) {
             out.write(table.getColumnName(col));
-            if (col != table.getColumnCount() - 1)
+            if (col != table.getColumnCount() - 1) {
                 out.write(",");
+            }
         }
 
         out.write("\r\n");
@@ -762,10 +728,12 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                     String string = (String) value;
                     string = string.replace("\"", "\"\"");
                     out.write("\"" + string + "\"");
-                } else
+                } else {
                     out.write("" + value);
-                if (col != table.getColumnCount() - 1)
+                }
+                if (col != table.getColumnCount() - 1) {
                     out.write(",");
+                }
             }
             out.write("\r\n");
         }
@@ -777,7 +745,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         langOverride = override;
     }
 
-    public int getNumLangs() {
+    public int getNumLanguages() {
         return exhFile.getNumLanguages();
     }
 
@@ -785,26 +753,30 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         return table;
     }
 
-    private void loadColumnNames(String exhname) {
+    private void loadColumnNames(String exhName) {
 
-        String path = Constants.EXH_NAMES_PATH + exhname.replace("exh", "lst");
-        if (!Files.exists(Paths.get(path)))
+        String path = Constants.EXH_NAMES_PATH + exhName.replace("exh", "lst");
+        if (!Files.exists(Paths.get(path))) {
             return;
+        }
         Utils.getGlobalLogger().info("Loading column names from {}", path);
 
         try {
             BufferedReader br = new BufferedReader(new FileReader(path));
             for (String line; (line = br.readLine()) != null; ) {
                 //Skip comments and whitespace
-                if (line.startsWith("#") || line.isEmpty())
+                if (line.startsWith("#") || line.isEmpty()) {
                     continue;
+                }
                 if (line.contains(":")) {
                     String[] split = line.split(":", 2);
-                    if (split.length != 2)
+                    if (split.length != 2) {
                         continue;
+                    }
 
-                    if (split[1].isEmpty())
+                    if (split[1].isEmpty()) {
                         continue;
+                    }
                     columnNames.put(Integer.parseInt(split[0]), split[1]);
                 }
             }

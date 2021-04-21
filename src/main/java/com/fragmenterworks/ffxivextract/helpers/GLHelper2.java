@@ -2,6 +2,7 @@ package com.fragmenterworks.ffxivextract.helpers;
 
 import com.jogamp.opengl.GL3;
 
+@SuppressWarnings("unused")
 class GLHelper2 {
 
     private static final int D3DDECLTYPE_FLOAT1 = 0;

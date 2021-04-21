@@ -9,46 +9,54 @@ import unluac.parse.LString;
 
 public class Constant {
 
-  private final int type;
+  private static enum Type {
+    NIL,
+    BOOLEAN,
+    NUMBER,
+    STRING,
+  }
+  
+  private final Type type;
   
   private final boolean bool;
   private final LNumber number;
   private final String string;
-  private final boolean reserved;
   
   public Constant(int constant) {
-    type = 2;
+    type = Type.NUMBER;
     bool = false;
     number = LNumber.makeInteger(constant);
     string = null;
-    reserved = false;
+  }
+  
+  public Constant(double x) {
+    type = Type.NUMBER;
+    bool = false;
+    number = LNumber.makeDouble(x);
+    string = null;
   }
   
   public Constant(LObject constant) {
     if(constant instanceof LNil) {
-      type = 0;
+      type = Type.NIL;
       bool = false;
       number = null;
       string = null;
-      reserved = false;
     } else if(constant instanceof LBoolean) {
-      type = 1;
+      type = Type.BOOLEAN;
       bool = constant == LBoolean.LTRUE;
       number = null;
       string = null;
-      reserved = false;
     } else if(constant instanceof LNumber) {
-      type = 2;
+      type = Type.NUMBER;
       bool = false;
       number = (LNumber) constant;
       string = null;
-      reserved = false;
     } else if(constant instanceof LString) {
-      type = 3;
+      type = Type.STRING;
       bool = false;
       number = null;
       string = ((LString) constant).deref();
-      reserved = ((LString) constant).reserved();
     } else {
       throw new IllegalArgumentException("Illegal constant type: " + constant.toString());
     }
@@ -56,16 +64,16 @@ public class Constant {
   
   public void print(Decompiler d, Output out, boolean braced) {
     switch(type) {
-      case 0:
+      case NIL:
         out.print("nil");
         break;
-      case 1:
+      case BOOLEAN:
         out.print(bool ? "true" : "false");
         break;
-      case 2:
-        out.print(number.toString());
+      case NUMBER:
+        out.print(number.toPrintString());
         break;
-      case 3:
+      case STRING:
         int newlines = 0;
         int unprintable = 0;
         boolean rawstring = d.getConfiguration().rawstring;
@@ -80,7 +88,7 @@ public class Constant {
         boolean longString = (newlines > 1 || (newlines == 1 && string.indexOf('\n') != string.length() - 1)); // heuristic
         longString = longString && unprintable == 0; // can't escape and for robustness, don't want to allow non-ASCII output
         longString = longString && !string.contains("[["); // triggers compatibility error in 5.1 TODO: avoidable?
-        if(d.function.header.version == Version.LUA50) {
+        if(d.function.header.version.usenestinglongstrings.get()) {
           longString = longString && !string.contains("]]") && !string.endsWith("]"); // no piping TODO: allow proper nesting
         }
         if(longString) {
@@ -153,15 +161,15 @@ public class Constant {
   }
   
   public boolean isNil() {
-    return type == 0;
+    return type == Type.NIL;
   }
   
   public boolean isBoolean() {
-    return type == 1;
+    return type == Type.BOOLEAN;
   }
   
   public boolean isNumber() {
-    return type == 2;
+    return type == Type.NUMBER;
   }
   
   public boolean isInteger() {
@@ -181,11 +189,11 @@ public class Constant {
   }
   
   public boolean isString() {
-    return type == 3;
+    return type == Type.STRING;
   }
   
-  public boolean isIdentifier() {
-    if(!isString() || reserved) {
+  public boolean isIdentifier(Version version) {
+    if(!isString() || version.isReserved(string)) {
       return false;
     }
     if(string.length() == 0) {
@@ -212,7 +220,7 @@ public class Constant {
   }
   
   public String asName() {
-    if(type != 3) {
+    if(type != Type.STRING) {
       throw new IllegalStateException();
     }
     return string;

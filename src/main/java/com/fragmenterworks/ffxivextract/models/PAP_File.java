@@ -19,13 +19,17 @@ public class PAP_File extends Game_File {
     private byte baseId;
     private byte variantId;
 
+    @SuppressWarnings("unused")
     public PAP_File(String path, ByteOrder endian) throws IOException {
         super(endian);
         File file = new File(path);
-        FileInputStream fis = new FileInputStream(file);
-        byte[] data = new byte[(int) file.length()];
-        fis.read(data);
-        fis.close();
+        byte[] data;
+        try (FileInputStream fis = new FileInputStream(file)) {
+            data = new byte[(int) file.length()];
+            while (fis.read(data) != -1) {
+                Utils.getGlobalLogger().debug("PAP読み取り");
+            }
+        }
         loadPAP(data);
     }
 
@@ -93,6 +97,7 @@ public class PAP_File extends Game_File {
         return animationNames[index];
     }
 
+    @SuppressWarnings("unused")
     public int getAnimationIndex(int index) {
         if (index >= numAnimations)
             return -1;
@@ -103,14 +108,17 @@ public class PAP_File extends Game_File {
         return havokData;
     }
 
+    @SuppressWarnings("unused")
     public short getModelId() {
         return modelId;
     }
 
+    @SuppressWarnings("unused")
     public byte getBaseId() {
         return baseId;
     }
 
+    @SuppressWarnings("unused")
     public byte getVariantId() {
         return variantId;
     }

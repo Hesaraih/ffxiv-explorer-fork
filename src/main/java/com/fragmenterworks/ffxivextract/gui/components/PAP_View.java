@@ -9,10 +9,9 @@ import java.awt.*;
 public class PAP_View extends JPanel {
 
     private final PAP_File currentPAP;
-    private final JList lstAnimationNames;
 
     public PAP_View(PAP_File file) {
-        setBorder(new TitledBorder(null, "Animations", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+        setBorder(new TitledBorder(null, "アニメーション", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 
         currentPAP = file;
 
@@ -21,15 +20,15 @@ public class PAP_View extends JPanel {
         JScrollPane scrollPane = new JScrollPane();
         add(scrollPane, BorderLayout.CENTER);
 
-        lstAnimationNames = new JList();
+        JList<String> lstAnimationNames = new JList<>();
         scrollPane.setViewportView(lstAnimationNames);
-        lstAnimationNames.setModel(new AbstractListModel() {
+        lstAnimationNames.setModel(new AbstractListModel<String>() {
 
             public int getSize() {
                 return currentPAP.getAnimationNames().length;
             }
 
-            public Object getElementAt(int index) {
+            public String getElementAt(int index) {
                 return currentPAP.getAnimationNames()[index];
             }
         });

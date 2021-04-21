@@ -1,31 +1,24 @@
 package com.fragmenterworks.ffxivextract.gui.components;
 
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.net.URL;
+import com.fragmenterworks.ffxivextract.Strings;
+import com.fragmenterworks.ffxivextract.helpers.Utils;
+import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile;
+import com.fragmenterworks.ffxivextract.storage.HashDatabase;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-
-import com.fragmenterworks.ffxivextract.Strings;
-import com.fragmenterworks.ffxivextract.helpers.Utils;
-import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile;
-import com.fragmenterworks.ffxivextract.storage.HashDatabase;
+import java.awt.*;
+import java.net.URL;
+import java.sql.SQLException;
+import java.util.Objects;
 
 public class Path_to_Hash_Window extends JFrame {
 
-    private JPanel contentPane;
-    private JTextField edtFullPath;
-    private JTextArea txtOutput;
-    private JPanel panel_2;
-    private JPanel panel_3;
-    private JButton btnCalculate;
-    private JButton btnClose;
-    private JScrollPane scrollPane;
+    private final JTextField edtFullPath;
+    private final JTextArea txtOutput;
 
     SqPack_IndexFile currentIndex;
 
@@ -33,12 +26,12 @@ public class Path_to_Hash_Window extends JFrame {
 
         this.currentIndex = currentIndex;
 
-        setTitle(Strings.PATHTOHASH_TITLE);
+        setTitle(Strings.PATHTOHASH_TITLE + " (" + currentIndex.getName() + ")");
         URL imageURL = getClass().getResource("/frameicon.png");
-        ImageIcon image = new ImageIcon(imageURL);
+        ImageIcon image = new ImageIcon(Objects.requireNonNull(imageURL));
         this.setIconImage(image.getImage());
         setBounds(100, 100, 510, 220);
-        contentPane = new JPanel();
+        JPanel contentPane = new JPanel();
         contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
         contentPane.setLayout(new BorderLayout(0, 0));
         setContentPane(contentPane);
@@ -48,15 +41,16 @@ public class Path_to_Hash_Window extends JFrame {
         panel_1.setBorder(new EmptyBorder(5, 0, 0, 0));
         panel_1.setLayout(new BoxLayout(panel_1, BoxLayout.X_AXIS));
 
-        scrollPane = new JScrollPane();
+        JScrollPane scrollPane = new JScrollPane();
         panel_1.add(scrollPane);
 
         txtOutput = new JTextArea(Strings.PATHTOHASH_INTRO);
+        txtOutput.setFont(new Font("ＭＳ ゴシック", Font.PLAIN, 12));
         scrollPane.setViewportView(txtOutput);
         txtOutput.setRows(2);
         txtOutput.setEditable(false);
 
-        panel_2 = new JPanel();
+        JPanel panel_2 = new JPanel();
         panel_2.setBorder(new EmptyBorder(5, 5, 5, 5));
         contentPane.add(panel_2, BorderLayout.NORTH);
         panel_2.setLayout(new BoxLayout(panel_2, BoxLayout.Y_AXIS));
@@ -72,10 +66,10 @@ public class Path_to_Hash_Window extends JFrame {
         panel.add(edtFullPath);
         edtFullPath.setColumns(10);
 
-        panel_3 = new JPanel();
+        JPanel panel_3 = new JPanel();
         contentPane.add(panel_3, BorderLayout.SOUTH);
 
-        btnCalculate = new JButton(Strings.PATHTOHASH_BUTTON_HASHTHIS);
+        JButton btnCalculate = new JButton(Strings.PATHTOHASH_BUTTON_HASHTHIS);
         panel_3.add(btnCalculate);
 
         edtFullPath.getDocument().addDocumentListener(new DocumentListener() {
@@ -95,33 +89,49 @@ public class Path_to_Hash_Window extends JFrame {
             }
         });
 
-        btnCalculate.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                commit();
-            }
-        });
+        btnCalculate.addActionListener(e -> commit());
 
-        btnClose = new JButton(Strings.PATHTOHASH_BUTTON_CLOSE);
+        JButton btnClose = new JButton(Strings.PATHTOHASH_BUTTON_CLOSE);
         panel_3.add(btnClose);
-        btnClose.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                Path_to_Hash_Window.this.dispose();
-            }
-        });
+        btnClose.addActionListener(arg0 -> Path_to_Hash_Window.this.dispose());
     }
 
     private void commit() {
-        boolean result = HashDatabase.addPathToDB(edtFullPath.getText(), currentIndex.getName());
-        JOptionPane.showMessageDialog(this,
-                "The path was " + (result ? "successfully" : "unsuccessfully") + "added to the database.",
-                "File Open Error",
-                result ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE);
+        //計算ボタンを押したときの動作
+        HashDatabase.beginConnection();
+        try {
+            HashDatabase.setAutoCommit(false);
+        } catch (SQLException e1) {
+            Utils.getGlobalLogger().error(e1);
+        }
+
+        boolean result = HashDatabase.addPathToDB(edtFullPath.getText(), currentIndex.getName(), HashDatabase.globalConnection,true);
+        if (result) {
+            JOptionPane.showMessageDialog(this,
+                    "データベースにパスを追加しました。",
+                    "HashListデータベース",
+                    JOptionPane.INFORMATION_MESSAGE);
+        }
+        else {
+            JOptionPane.showMessageDialog(this,
+                    "データベースにパスを追加できませんでした。",
+                    "HashListデータベース",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+
+        try {
+            HashDatabase.commit();
+        } catch (SQLException e) {
+            Utils.getGlobalLogger().error(e);
+        }
+        HashDatabase.closeConnection();
     }
 
+    /**
+     * ハッシュ値計算とHashListDB登録
+     */
     private void calcHash() {
+        //パスのテキストボックスの文字列を変更したときの動作
         String path = edtFullPath.getText();
 
         if (!path.contains("/"))
@@ -132,11 +142,13 @@ public class Path_to_Hash_Window extends JFrame {
 
         path = path.trim();
 
-        String folder = path.substring(0, path.lastIndexOf('/')).toLowerCase();
+        String folder = path.substring(0, path.lastIndexOf('/'));
+        String folder_L = folder.toLowerCase();
         String filename = path.substring(path.lastIndexOf('/') + 1);
+        String filename_L = filename.toLowerCase();
 
-        int folderHash = HashDatabase.computeCRC(folder.getBytes(), 0, folder.getBytes().length);
-        int fileHash = HashDatabase.computeCRC(filename.getBytes(), 0, filename.getBytes().length);
+        int folderHash = HashDatabase.computeCRC(folder_L.getBytes(), 0, folder_L.getBytes().length);
+        int fileHash = HashDatabase.computeCRC(filename_L.getBytes(), 0, filename_L.getBytes().length);
         int fullHash = HashDatabase.computeCRC(path.getBytes(), 0, path.getBytes().length);
 
         String base = "";
@@ -154,9 +166,12 @@ public class Path_to_Hash_Window extends JFrame {
         txtOutput.setBorder(border);
 
         txtOutput.setText(base +
-                Strings.PATHTOHASH_FOLDER_HASH + String.format("0x%08X (%s)", folderHash, Long.toString(folderHash & 0xFFFFFFFFL)) + "\n"+
-                Strings.PATHTOHASH_FILE_HASH + String.format("0x%08X (%s)", fileHash, Long.toString(fileHash & 0xFFFFFFFFL)) + "\n" +
-                "Full hash: " + String.format("0x%08X (%s)", fullHash, Long.toString(fullHash & 0xFFFFFFFFL)));
+                Strings.PATHTOHASH_FOLDER_HASH + String.format("0x%08X (%11d)", folderHash, folderHash) + "\n"+
+                Strings.PATHTOHASH_FILE_HASH + String.format("0x%08X (%11d)", fileHash, fileHash) + "\n" +
+                Strings.PATHTOHASH_FULL_HASH + String.format("0x%08X (%11d)", fullHash, fullHash));
+//                Strings.PATHTOHASH_FOLDER_HASH + String.format("0x%08X (%s)", folderHash, Long.toString(folderHash & 0xFFFFFFFFL)) + "\n"+
+//                Strings.PATHTOHASH_FILE_HASH + String.format("0x%08X (%s)", fileHash, Long.toString(fileHash & 0xFFFFFFFFL)) + "\n" +
+//                Strings.PATHTOHASH_FULL_HASH + String.format("0x%08X (%s)", fullHash, Long.toString(fullHash & 0xFFFFFFFFL)));
     }
 
 }

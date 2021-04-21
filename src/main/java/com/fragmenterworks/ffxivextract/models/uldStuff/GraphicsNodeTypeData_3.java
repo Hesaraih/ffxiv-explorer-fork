@@ -15,8 +15,8 @@ public class GraphicsNodeTypeData_3 extends GraphicsNodeTypeData {
     public final int foreground_b;
     public final int foreground_a;
     public final int fontSize;
-    //public final int   u5;
-    //public final int   u4;
+//    public final int   u5;
+//    public final int   u4;
     private final int u3;
     //public final int   u2;
     private final int background_r;
@@ -24,7 +24,6 @@ public class GraphicsNodeTypeData_3 extends GraphicsNodeTypeData {
     private final int background_b;
     private final int background_a;
     public final int fontNumber;
-    private final int stringIndex;
 
     public GraphicsNodeTypeData_3(final ByteBuffer data) {
         super(data);
@@ -34,7 +33,8 @@ public class GraphicsNodeTypeData_3 extends GraphicsNodeTypeData {
         foreground_g = (int) data.get() & 0xff; //structEntry("color1", STRUCT_PACK, 0x5c - $offs, 0, 1, COLOR_STRUCT(0x5c), null, null, true),
         foreground_b = (int) data.get() & 0xff; //structEntry("color1", STRUCT_PACK, 0x5c - $offs, 0, 1, COLOR_STRUCT(0x5c), null, null, true),
         foreground_a = (int) data.get() & 0xff; //structEntry("color1", STRUCT_PACK, 0x5c - $offs, 0, 1, COLOR_STRUCT(0x5c), null, null, true),
-        stringIndex = data.get(); //structEntry("u2", UNSIGNED_CHAR_PACK, 0x60 - $offs),
+        @SuppressWarnings("unused")
+        int stringIndex = data.get(); //structEntry("u2", UNSIGNED_CHAR_PACK, 0x60 - $offs),
         u3 = data.get(); //structEntry("u3", UNSIGNED_CHAR_PACK, 0x61 - $offs),
         fontNumber = (int) data.get() & 0xff; //structEntry("u4", UNSIGNED_CHAR_PACK, 0x62 - $offs),
         fontSize = data.get(); //structEntry("u5", UNSIGNED_CHAR_PACK, 0x63 - $offs),

@@ -14,6 +14,7 @@ public class ImageSet {
     private int unknown;
     public ImageSetRegion[] regions;
 
+    @SuppressWarnings("unused")
     public ImageSet(final int index) {
         this.index = index;
     }

@@ -12,6 +12,7 @@ import java.nio.ByteOrder;
 public class SHCD_File extends Game_File {
 
     private final static int SHADERTYPE_VERTEX = 0;
+    @SuppressWarnings("unused")
     public final static int SHADERTYPE_PIXEL = 1;
 
     private int shaderType;
@@ -21,13 +22,17 @@ public class SHCD_File extends Game_File {
 
     private D3DXShader_ConstantTable constantTable;
 
+    @SuppressWarnings("unused")
     public SHCD_File(String path, ByteOrder endian) throws IOException {
         super(endian);
         File file = new File(path);
-        FileInputStream fis = new FileInputStream(file);
-        byte[] data = new byte[(int) file.length()];
-        fis.read(data);
-        fis.close();
+        byte[] data;
+        try (FileInputStream fis = new FileInputStream(file)) {
+            data = new byte[(int) file.length()];
+            while (fis.read(data) != -1) {
+                Utils.getGlobalLogger().debug("SHCD読み取り");
+            }
+        }
         loadSHPK(data);
     }
 
@@ -59,16 +64,17 @@ public class SHCD_File extends Game_File {
         bb.get(dxStringBuffer);
         String directXVersion = new String(dxStringBuffer);
 
+        @SuppressWarnings("unused")
         int fileLength = bb.getInt();
         int shaderStartBytecodeOffset = bb.getInt();
-        int shaderStringBlockoffset = bb.getInt();
+        int shaderStringBlockOffset = bb.getInt();
 
         //Read in shader header
         shaderHeader = new ShaderHeader(shaderType, bb);
 
         //Set the param strings
         for (int i = 0; i < shaderHeader.paramInfo.length; i++) {
-            bb.position(shaderStringBlockoffset + shaderHeader.paramInfo[i].stringOffset);
+            bb.position(shaderStringBlockOffset + shaderHeader.paramInfo[i].stringOffset);
             byte[] buffer = new byte[shaderHeader.paramInfo[i].stringSize];
             bb.get(buffer);
             shaderHeader.paramInfo[i].parameterName = new String(buffer);

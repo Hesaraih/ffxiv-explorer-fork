@@ -1,5 +1,6 @@
 package com.fragmenterworks.ffxivextract.models.uldStuff.renderer;
 
+import com.fragmenterworks.ffxivextract.Constants;
 import com.fragmenterworks.ffxivextract.helpers.FileTools;
 import com.fragmenterworks.ffxivextract.helpers.SparseArray;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
@@ -15,7 +16,6 @@ import java.awt.event.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
@@ -30,8 +30,8 @@ import java.util.*;
  */
 public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
 
-    private final static Map<Integer, Class<? extends GraphicsElement>> graphicsTypes = new HashMap<>();
-    private final static Map<Integer, Class<? extends UIComponent>> uiComponentTypes = new HashMap<>();
+    private final static Map<Integer, Class<? extends GraphicsElement<? extends GraphicsNode>>> graphicsTypes = new HashMap<>();
+    private final static Map<Integer, Class<? extends UIComponent<? extends COHDEntryType>>> uiComponentTypes = new HashMap<>();
 
     static {
         graphicsTypes.put(1, GraphicsContainer.class);
@@ -65,7 +65,8 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
 
     final private Map<Integer, BufferedImage> images = new HashMap<>();
     final private Map<Integer, TextureSet> textureSets = new HashMap<>();
-    final private Map<Integer, GraphicsElement> graphics = new HashMap<>();
+    final private Map<Integer, GraphicsElement<? extends GraphicsNode>> graphics = new HashMap<>();
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     final private Map<Integer, IGraphicsElement> nodesByAccessor = new HashMap<>();
 
     private int width;
@@ -73,15 +74,20 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
     private static final boolean PAINT_DEBUG = false;
 
     /**
-     * Initializes this renderer from the given ULD file
+     * 指定されたULDファイルからこのレンダラーを初期化します
      *
-     * @param sqDatPath Source path for dat files
-     * @param uld_file  The previously parsed ULD file
+     * @param sqDatPath datファイルのソースパス
+     * @param uld_file  以前に解析されたULDファイル
      */
     public ULD_File_Renderer(String sqDatPath, ULD_File uld_file) {
 
-        this.width = uld_file.uldHeader.atkhs[1].wdhd.getEntries().get(1).width;
-        this.height = uld_file.uldHeader.atkhs[1].wdhd.getEntries().get(1).height;
+        if (uld_file.uldHeader.atkhs[1].wdhd != null){
+            this.width = uld_file.uldHeader.atkhs[1].wdhd.getEntries().get(1).width;
+            this.height = uld_file.uldHeader.atkhs[1].wdhd.getEntries().get(1).height;
+        }else{
+            this.width = 0;
+            this.height = 0;
+        }
 
         initTextures(sqDatPath, uld_file.uldHeader.atkhs[0]);
         initTextureRegions(uld_file.uldHeader.atkhs[0]);
@@ -89,26 +95,26 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         //for()
     }
 
-    private static GraphicsElement createElementByType(ULD_File_Renderer renderer, final GraphicsElement parent, int type, final SparseArray<COHDEntry> components) {
+    private static GraphicsElement<? extends GraphicsNode> createElementByType(ULD_File_Renderer renderer, final GraphicsElement<? extends GraphicsNode> parent, int type, final SparseArray<COHDEntry> components) {
         if (type > 1000) {
             COHDEntry cohd = components.get(type);
-            UIComponent uiComponent = createUIComponentType(renderer, cohd.index, cohd.type);
+            UIComponent<? extends COHDEntryType> uiComponent = createUIComponentType(renderer, cohd.index, cohd.type);
             GraphicsComponent element = new GraphicsComponent();
             element.setParent(parent);
             element.setComponent(uiComponent);
             return element;
         }
         if (graphicsTypes.containsKey(type)) {
-            Class<? extends GraphicsElement> aClass = graphicsTypes.get(type);
+            Class<? extends GraphicsElement<? extends GraphicsNode>> aClass = graphicsTypes.get(type);
             try {
-                Constructor<? extends GraphicsElement> constructor = aClass.getDeclaredConstructor();
+                Constructor<? extends GraphicsElement<? extends GraphicsNode>> constructor = aClass.getDeclaredConstructor();
                 return constructor.newInstance();
             } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
 //				Utils.getGlobalLogger().error(e);
                 return null;
             }
         }
-        Constructor<? extends GraphicsElement> constructor = null;
+        Constructor<? extends GraphicsElement<? extends GraphicsNode>> constructor;
         try {
             constructor = GraphicsContainer.class.getDeclaredConstructor();
             return constructor.newInstance();
@@ -119,16 +125,13 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
     }
 
     /**
-     * Main routine for testing parsing
+     * 構文解析をテストするためのメインルーチン
      *
-     * @param args Program arguments.
+     * @param args プログラム引数
      */
     public static void main(String[] args) {
-        String sqPakPath = "C:\\SquareEnix\\FINAL FANTASY XIV - A Realm Reborn\\game\\sqpack\\ffxiv";
+        String sqPakPath = Constants.datPath + "\\game\\sqpack\\ffxiv";
         byte[] data = FileTools.getRaw(sqPakPath, "ui/uld/creditstaff.uld");
-        //byte[] data      = FileTools.getRaw(sqPakPath, "ui/uld/charamake_feature_listicon_hair.uld");
-        //byte[] data      = FileTools.getRaw(sqPakPath, "ui/uld/charamake_feature_slider.uld");
-        //byte[] data      = FileTools.getRaw(sqPakPath, "ui/uld/botanistgame.uld");
 
         ULD_File uld = new ULD_File(data, ByteOrder.LITTLE_ENDIAN);
 
@@ -154,56 +157,38 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         jf.pack();
         //FrameUtilities.centerFrame(jf);
         jf.setVisible(true);
-			/*
-			Timer t = new Timer();
-			final GraphicsElement geCactuar = (GraphicsElement)renderer.nodesByAccessor.get(6);
-			t.schedule(new TimerTask() {
-				@Override
-				public void run() {
-					float rotation = geCactuar.rotation;
-					rotation += 360f / 100f;
-					if(rotation > 360f){
-						rotation-= 360f;
-					}
-					geCactuar.rotation = rotation;
-					renderer.getImage(0, 0);
-					lblPic.repaint();
-				}
-			}, 1000/2, 100/2);*/
-
     }
 
-    private static UIComponent createUIComponentType(ULD_File_Renderer renderer, int index, int type) {
+    @SuppressWarnings("unused")
+    private static UIComponent<? extends COHDEntryType> createUIComponentType(ULD_File_Renderer renderer, int index, int type) {
         if (uiComponentTypes.containsKey(type)) {
-            Class<? extends UIComponent> aClass = uiComponentTypes.get(type);
+            Class<? extends UIComponent<? extends COHDEntryType>> aClass = uiComponentTypes.get(type);
             try {
-                Constructor<? extends UIComponent> constructor = aClass.getDeclaredConstructor(int.class);
+                Constructor<? extends UIComponent<? extends COHDEntryType>> constructor = aClass.getDeclaredConstructor(int.class);
                 return constructor.newInstance(index);
-            } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException ignored) {}
+            } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException ignored) {
+
+            }
         }
         return null;
     }
 
-    private static GraphicsElement<?> createElementByIndex(final ULD_File_Renderer renderer, final GraphicsElement parent, int index, SparseArray<? extends GraphicsNode> nodes, Map<Integer, GraphicsElement<?>> elements, SparseArray<COHDEntry> components) {
+    private static GraphicsElement<? extends GraphicsNode> createElementByIndex(final ULD_File_Renderer renderer, final GraphicsElement<? extends GraphicsNode> parent, int index, SparseArray<? extends GraphicsNode> nodes, Map<Integer, GraphicsElement<?>> elements, SparseArray<COHDEntry> components) {
         if (index == 0) {
             return null;
         }
         if (!elements.containsKey(index)) {
             GraphicsNode node = nodes.get(index);
             if (node != null) {
-                GraphicsElement element = createElementByType(renderer, parent, node.type, components);
+                GraphicsElement<? extends GraphicsNode> element = createElementByType(renderer, parent, node.type, components);
                 if (element != null) {
                     elements.put(node.index, element);
-                    //noinspection unchecked
                     element.load(renderer, node, nodes, elements, components);
                     if (element instanceof GraphicsComponent) {
                         if (((GraphicsComponent) element).component != null) {
                             COHDEntry cohd = components.get(node.type);
                             //noinspection unchecked
                             ((GraphicsComponent) element).component.load(renderer, element, cohd, components, cohd.typeData);
-                            //if(uiComponent.graphics != null){
-                            //uiComponent.graphics.parent = parent;
-                            //}
                         }
                     }
                     return element;
@@ -218,11 +203,12 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
     private void initGraphics(final ULD_File uld_file) {
         SparseArray<WDHDEntry> entries = uld_file.uldHeader.atkhs[1].wdhd.getEntries();
 
+        @SuppressWarnings("unused")
         final SparseArray<WDHDEntry> wdhd = uld_file.uldHeader.atkhs[1].wdhd.getEntries();
         for (int i = 0; i < entries.size(); i++) {
             int key = entries.keyAt(i);
             WDHDEntry cohd = entries.get(key);
-            GraphicsElement node = createElementByIndex(this, null, 1, cohd.nodes, new HashMap<>(), uld_file.uldHeader.atkhs[0].cohd.getEntries());
+            GraphicsElement<? extends GraphicsNode> node = createElementByIndex(this, null, 1, cohd.nodes, new HashMap<>(), uld_file.uldHeader.atkhs[0].cohd.getEntries());
             if (node != null) {
                 graphics.put(cohd.index, node);
             }
@@ -230,13 +216,14 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
     }
 
     /**
-     * Initializes all texture sets in the TPHD Chunk and binds these to images previously loaded by initTextures
+     * TPHDチャンクのすべてのテクスチャセットを初期化し、initTexturesによって以前にロードされた画像にこれらをバインドします
      *
-     * @param atkh The ATKH Chunk which holds the TPHD Chunk of interest
+     * @param atkh 対象のTPHDチャンクを保持するATKHチャンク
      */
     private void initTextureRegions(final ULD_File.ATKH atkh) {
         SparseArray<ImageSet> imageSets = atkh.tphd.imageSets;
         for (int i = 0; i < imageSets.size(); i++) {
+            @SuppressWarnings("unused")
             int key = imageSets.keyAt(i);
             ImageSet set = imageSets.valueAt(i);
             int index = set.index;
@@ -249,10 +236,10 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
     }
 
     /**
-     * Initializes and loads all textures described in the ASHD Chunk
+     * ASHDチャンクに記述されているすべてのテクスチャを初期化してロードします
      *
-     * @param sqDatPath Source path for dat files
-     * @param atkh      The ATKH Chunk which holds the ASHD Chunk of interest
+     * @param sqDatPath datファイルのソースパス
+     * @param atkh      対象のASHDチャンクを保持するATKHチャンク
      */
     private void initTextures(final String sqDatPath, final ULD_File.ATKH atkh) {
         SparseArray<String> paths = atkh.ashd.paths;
@@ -261,6 +248,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             String path = paths.valueAt(i);
             if (path.length() == 2) {
                 ByteBuffer bb = ByteBuffer.wrap(path.getBytes());
+                //noinspection ResultOfMethodCallIgnored
                 bb.order();
                 BufferedImage img = FileTools.getIcon(sqDatPath, (int) bb.getShort() & 0xFFFF);
                 if (img != null) {
@@ -276,24 +264,25 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
     private BufferedImage bi = null;
     private Graphics2D biGraphics;
 
-    @SuppressWarnings("unused")
     public BufferedImage getImage(int width, int height) {
-        if (width == 0) {
-            width = this.width;
+        if (width != 0) {
+            this.width = width;
         }
-        if (height == 0) {
-            height = this.height;
+        if (height != 0) {
+            this.height = height;
         }
-        List<GraphicsElement> values = new ArrayList<>(graphics.values());
+        List<GraphicsElement<? extends GraphicsNode>> values = new ArrayList<>(graphics.values());
         Collections.reverse(values);
         Rectangle bounds = new Rectangle();
-        for (GraphicsElement g : values) {
+        for (GraphicsElement<? extends GraphicsNode> g : values) {
             g.getMaxBounds(bounds, 0, 0, g.width, g.height);
         }
 
         int imgWidth = Math.abs(bounds.x) + Math.abs(bounds.width);
         int imgHeight = Math.abs(bounds.y) + Math.abs(bounds.height);
+        @SuppressWarnings("unused")
         int containerWidth = bounds.width - bounds.x;
+        @SuppressWarnings("unused")
         int containerHeight = bounds.height - bounds.y;
         int containerTop = Math.abs(bounds.y);
         int containerLeft = Math.abs(bounds.x);
@@ -311,7 +300,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         //biGraphics.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR));
         biGraphics.fillRect(-containerLeft, -containerTop, bi.getWidth(), bi.getHeight());
         biGraphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
-        for (GraphicsElement g : values) {
+        for (GraphicsElement<? extends GraphicsNode> g : values) {
             g.paint(biGraphics, imgWidth, imgHeight);
         }
         return bi;
@@ -320,10 +309,10 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
     @Override
     public void mouseClicked(final MouseEvent e) {
         Utils.getGlobalLogger().trace("uld::mouseClicked(" + e.getPoint() + ")");
-        LinkedList<GraphicsElement> list = new LinkedList<>(graphics.values());
+        LinkedList<GraphicsElement<? extends GraphicsNode>> list = new LinkedList<>(graphics.values());
         while (list.size() > 0) {
-            GraphicsElement container = list.pollFirst();
-            GraphicsElement node = container.lastChild;
+            GraphicsElement<? extends GraphicsNode> container = list.pollFirst();
+            GraphicsElement<? extends GraphicsNode> node = container.lastChild;
             while (node != null) {
                 if (node.drawn.contains(e.getPoint())) { //node.drawX <= e.getX() && node.drawX + node.drawWidth >= e.getX() && node.drawY <= e.getY() && node.drawY + node.drawHeight >= e.getY()
                     if (node instanceof MouseListener) {
@@ -369,10 +358,10 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
     @Override
     public void mouseDragged(final MouseEvent e) {
         Utils.getGlobalLogger().trace("uld::mouseDragged(" + e.getPoint() + ")");
-        LinkedList<GraphicsElement> list = new LinkedList<>(graphics.values());
+        LinkedList<GraphicsElement<? extends GraphicsNode>> list = new LinkedList<>(graphics.values());
         while (list.size() > 0) {
-            GraphicsElement container = list.pollFirst();
-            GraphicsElement node = container.lastChild;
+            GraphicsElement<? extends GraphicsNode> container = list.pollFirst();
+            GraphicsElement<? extends GraphicsNode> node = container.lastChild;
             while (node != null) {
                 if (node.drawn.contains(e.getPoint())) { //node.drawX <= e.getX() && node.drawX + node.drawWidth >= e.getX() && node.drawY <= e.getY() && node.drawY + node.drawHeight >= e.getY()
                     if (node instanceof MouseMotionListener) {
@@ -397,10 +386,18 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
 
     }
 
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
     public static abstract class UIComponent<T extends COHDEntryType> implements IGraphicsElement, MouseListener, MouseMotionListener {
         int index;
-        GraphicsElement graphics;
-        GraphicsElement parent;
+        GraphicsElement<? extends GraphicsNode> graphics;
+        GraphicsElement<? extends GraphicsNode> parent;
         final Set<MouseListener> mouseListeners = new HashSet<>();
         final Set<MouseMotionListener> mouseMotionListeners = new HashSet<>();
         final Set<KeyListener> keyListeners = new HashSet<>();
@@ -413,6 +410,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             mouseMotionListeners.add(listener);
         }
 
+        @SuppressWarnings("unused")
         public void addKeyListener(KeyListener listener) {
             keyListeners.add(listener);
         }
@@ -437,11 +435,11 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             }
         }
 
-        final SparseArray<GraphicsElement> elementList = new SparseArray<>();
+        final SparseArray<GraphicsElement<? extends GraphicsNode>> elementList = new SparseArray<>();
         int type;
 
         @SuppressWarnings("UnusedParameters")
-        UIComponent(int index) {
+        public UIComponent(int index) {
 
         }
 
@@ -453,18 +451,18 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             this.index = index;
         }
 
-        void load(final ULD_File_Renderer renderer, final GraphicsElement parent, COHDEntry entry, final SparseArray<COHDEntry> components, final T typeData) {
+        void load(final ULD_File_Renderer renderer, final GraphicsElement<? extends GraphicsNode> parent, COHDEntry entry, final SparseArray<COHDEntry> components, final T typeData) {
             graphics = createElementByIndex(renderer, null, 1, entry.nodes, new HashMap<>(), components);
             type = entry.type;
             this.index = entry.index;
             this.parent = parent;
             if (graphics != null) {
                 graphics.parent = parent;
-                LinkedList<GraphicsElement> containers = new LinkedList<>();
+                LinkedList<GraphicsElement<?>> containers = new LinkedList<>();
                 containers.add(graphics);
                 while (containers.size() > 0) {
-                    GraphicsElement container = containers.pollFirst();
-                    GraphicsElement ge = container.lastChild;
+                    GraphicsElement<?> container = containers.pollFirst();
+                    GraphicsElement<?> ge = container.lastChild;
                     while (ge != null) {
                         if (ge.lastChild != null) {
                             containers.add(ge);
@@ -476,7 +474,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             }
         }
 
-        GraphicsElement getElement(int nodeIndex) {
+        public GraphicsElement<?> getElement(int nodeIndex) {
             return (nodeIndex == 0 ? null : elementList.get(nodeIndex));
         }
 
@@ -486,15 +484,15 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         }
 
         interface EventCallback {
-            void callback(GraphicsElement node, MouseEvent event);
+            void callback(GraphicsElement<? extends GraphicsNode> node, MouseEvent event);
         }
 
         private void fireOnAllHits(MouseEvent event, EventCallback callback) {
-            LinkedList<GraphicsElement> list = new LinkedList<>();
+            LinkedList<GraphicsElement<? extends GraphicsNode>> list = new LinkedList<>();
             list.add(graphics);
             while (list.size() > 0) {
-                GraphicsElement container = list.pollFirst();
-                GraphicsElement node = container.lastChild;
+                GraphicsElement<? extends GraphicsNode> container = list.pollFirst();
+                GraphicsElement<? extends GraphicsNode> node = container.lastChild;
                 while (node != null) {
                     Utils.getGlobalLogger().trace("\t" + node.nodeIndex + "[" + node.type + "]" + " :: " + node.drawn.getBounds());
                     if (node.drawn.contains(event.getPoint())) { //node.drawX <= e.getX() && node.drawX + node.drawWidth >= e.getX() && node.drawY <= e.getY() && node.drawY + node.drawHeight >= e.getY()
@@ -567,18 +565,19 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         }
     }
 
-    @SuppressWarnings("unused")
     public static abstract class GraphicsElement<T extends GraphicsNode> implements IGraphicsElement {
 
-        protected GraphicsElement<?> parent;
-        protected GraphicsElement<?> nextItem;
-        protected GraphicsElement<?> previousItem;
-        protected GraphicsElement<?> lastChild;
+        protected GraphicsElement<? extends GraphicsNode> parent;
+        protected GraphicsElement<? extends GraphicsNode> nextItem;
+        protected GraphicsElement<? extends GraphicsNode> previousItem;
+        protected GraphicsElement<? extends GraphicsNode> lastChild;
         protected GraphicsNodeTypeData sourceTypeData;
 
+        @SuppressWarnings("unused")
         protected boolean enabled = true;
         protected boolean visible = true;
 
+        @SuppressWarnings("unused")
         public void removeSelf() {
             if (previousItem != null && previousItem.nextItem == this) {
                 previousItem.nextItem = nextItem;
@@ -590,7 +589,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             nextItem = null;
         }
 
-        public void insertItemAfter(GraphicsElement element) {
+        public void insertItemAfter(GraphicsElement<? extends GraphicsNode> element) {
             if (nextItem != null && nextItem.previousItem == this) {
                 element.nextItem = nextItem;
                 nextItem.previousItem = element;
@@ -599,7 +598,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             nextItem = element;
         }
 
-        public void insertItemBefore(GraphicsElement element) {
+        public void insertItemBefore(GraphicsElement<? extends GraphicsNode> element) {
             if (previousItem != null && previousItem.nextItem == this) {
                 element.previousItem = element;
                 previousItem.nextItem = element;
@@ -608,9 +607,10 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             previousItem = element;
         }
 
-        public void insertChildNodeFirst(GraphicsElement element) {
-            GraphicsElement e = lastChild;
-            GraphicsElement node = null;
+        @SuppressWarnings("unused")
+        public void insertChildNodeFirst(GraphicsElement<? extends GraphicsNode> element) {
+            GraphicsElement<? extends GraphicsNode> e = lastChild;
+            GraphicsElement<? extends GraphicsNode> node = null;
             while (e != null) {
                 node = e;
                 e = e.previousItem;
@@ -622,7 +622,8 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             }
         }
 
-        public void insertChildNodeLast(GraphicsElement element) {
+        @SuppressWarnings("unused")
+        public void insertChildNodeLast(GraphicsElement<? extends GraphicsNode> element) {
             if (lastChild != null) {
                 lastChild.insertItemAfter(element);
             } else {
@@ -685,10 +686,6 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             at.rotate(Math.toRadians(this.rotation), this.transformOriginX, this.transformOriginY);
             drawbounds.setRect(0, 0, this.width, this.height); //Rectangle2D box = new Rectangle(this.width, this.height);
             drawn = at.createTransformedShape(drawbounds);
-            //this.drawWidth = (int)((float)at.getScaleX() * (float)this.width);
-            //this.drawHeight = (int)((float)at.getScaleY() * (float)this.height);
-            //this.drawX = (int)(at.getTranslateX());
-            //this.drawY = (int)(at.getTranslateY());
             g.setTransform(at);
         }
 
@@ -696,18 +693,22 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             return (parent != null ? parent._getPathString() + "." : "") + this.nodeIndex + "[" + type + "]";
         }
 
+        @SuppressWarnings("unused")
         protected String _strpadleft(int text) {
             return strpadleft(Integer.toString(text), ' ', 8);
         }
 
+        @SuppressWarnings("unused")
         protected String _strpadleft(float text) {
             return strpadleft(String.format("%.2f", text), ' ', 8);
         }
 
+        @SuppressWarnings("unused")
         protected String _strpadleft(String text) {
             return strpadleft(text, ' ', 8);
         }
 
+        @SuppressWarnings("SameParameterValue")
         protected String strpadleft(String text, char pad, int padLength) {
             char[] str = new char[padLength];
             char[] src = text.toCharArray();
@@ -718,6 +719,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             return new String(str);
         }
 
+        @SuppressWarnings("unused")
         public void getMaxBounds(Rectangle bounds, int offsetX, int offsetY, int width, int height) {
             if (bounds.x > offsetX + left) {
                 bounds.x = offsetX + left;
@@ -731,7 +733,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             if (bounds.height < offsetY + top + this.height) {
                 bounds.height = offsetY + top + this.height;
             }
-            GraphicsElement child = lastChild;
+            GraphicsElement<? extends GraphicsNode> child = lastChild;
             while (child != null) {
                 child.getMaxBounds(bounds, offsetX + left, offsetY + top, this.width, this.height);
                 if (child.lastChild != null) {
@@ -753,12 +755,15 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                 g.drawRect(0, 0, this.width, this.height);
                 g.drawString(_getPathString(), 3, 14);
             }
-            GraphicsElement child = lastChild;
+            GraphicsElement<? extends GraphicsNode> child = lastChild;
             while (child != null) {
                 //GraphicsElement child = (GraphicsElement)_child;
                 Graphics2D g1 = (Graphics2D) g.create();
                 try {
                     child.paint(g1, this.width, this.height);
+                } catch (Exception e) {
+                    //このあたりでエラーが多発
+                    Utils.getGlobalLogger().error(e);
                 } finally {
                     g1.dispose();
                 }
@@ -771,39 +776,39 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         nodesByAccessor.put(layer, tGraphicsElement);
     }
 
-    public static class GraphicsContainer extends GraphicsElement {
+    public static class GraphicsContainer extends GraphicsElement<GraphicsNode> {
         public GraphicsContainer() {
         }
     }
 
-    public static class GraphicsTextBox extends GraphicsElement {
+    public static class GraphicsTextBox extends GraphicsElement<GraphicsNode> {
 
         Font font = null;
 
-        private String text = null;
+        @SuppressWarnings("unused")
+        private final String text = null;
         private Color foreground = null;
 
         public GraphicsTextBox() {
         }
 
         @Override
-        public void load(final ULD_File_Renderer renderer, final GraphicsNode entry, final SparseArray nodes, final Map elements, final SparseArray components) {
-            //noinspection unchecked
+        public void load(final ULD_File_Renderer renderer, final GraphicsNode entry, final SparseArray<? extends GraphicsNode> nodes, final Map<Integer, GraphicsElement<?>> elements, final SparseArray<COHDEntry> components) {
             super.load(renderer, entry, nodes, elements, components);
             GraphicsNodeTypeData_3 td = (GraphicsNodeTypeData_3) entry.typeData;
-            int fontSize = td.fontSize;
+            int fontSize = Objects.requireNonNull(td).fontSize;
             int fontIndex = td.fontNumber;
-            switch (td.fontNumber) {
+            switch (fontIndex) {
                 case 5:
                 case 4:
                 case 3: {
-                    font = new Font("Jupiter Alts", Font.PLAIN, fontSize);
+                    font = new Font("ＭＳ Ｐ明朝", Font.PLAIN, fontSize);
                     //font = FontTable.getFont(FontTable.JUPITER_FONT);
                     break;
                 }
                 case 0:
                 case 1: {
-                    font = new Font("AxisLatinPro", Font.PLAIN, fontSize);
+                    font = new Font("ＭＳ Ｐゴシック", Font.PLAIN, fontSize);
                     //font = FontTable.getFont(FontTable.AXIS_FONT);
                     break;
                 }
@@ -813,7 +818,6 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
 
         @Override
         public void save(final GraphicsNode entry) {
-            //noinspection unchecked
             super.save(entry);
         }
 
@@ -833,9 +837,10 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         }
     }
 
-    public static class GraphicsMultiImage extends GraphicsElement {
+    public static class GraphicsMultiImage extends GraphicsElement<GraphicsNode> {
 
         TextureSet image;
+        @SuppressWarnings("unused")
         private BufferedImage localImage;
         boolean stretchCenter;
         int borderIndex;
@@ -850,11 +855,10 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         }
 
         @Override
-        public void load(final ULD_File_Renderer renderer, final GraphicsNode entry, final SparseArray nodes, final Map elements, final SparseArray components) {
-            //noinspection unchecked
+        public void load(final ULD_File_Renderer renderer, final GraphicsNode entry, final SparseArray<? extends GraphicsNode> nodes, final Map<Integer, GraphicsElement<?>> elements, final SparseArray<COHDEntry> components) {
             super.load(renderer, entry, nodes, elements, components);
             GraphicsNodeTypeData_4 td = (GraphicsNodeTypeData_4) entry.typeData;
-            image = renderer.textureSets.get(td.tphdIndex);
+            image = renderer.textureSets.get(Objects.requireNonNull(td).tphdIndex);
             stretchCenter = td.stretchCenter > 0;
             borderIndex = td.borderIndex;
             paddingTop = td.u3;
@@ -867,16 +871,11 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
 
         void tileImage(Graphics2D dst, BufferedImage src, int dx, int dy, int sx, int sy, int dw, int dh, int sw, int sh) {
 
-            //dst.setColor(Color.cyan);
-            //dst.drawRect(dx, dy, dw, dh);
-            //dst.setColor(Color.magenta);
             for (int _y = 0; _y < dh; _y += sh) {
                 for (int _x = 0; _x < dw; _x += sw) {
                     int _sw = Math.min(dw - _x, sw);
                     int _sh = Math.min(dh - _y, sh);
                     dst.drawImage(src, dx + _x, dy + _y, dx + _x + _sw, dy + _y + _sh, sx, sy, sx + _sw, sy + _sh, null);
-                    //dst.drawRect(dx + _x, dy + _y, _sw, _sh);
-                    //imagecopyresampled($dst, $src, $dx + $_x, $dy + $_y, $sx, $sy, $_sw, $_sh, $_sw, $_sh);
                 }
             }
         }
@@ -901,10 +900,6 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                 tileImage(g, uc.getImage(), ul.w, 0, uc.x, uc.y, _row_width - ul.w - ur.w, uc.h, uc.w, uc.h);
                 g.drawImage(ur.getImage(), _row_width - ur.w, 0, _row_width - ur.w + ur.w, ur.h, ur.x, ur.y, ur.x + ur.w, ur.y + ur.h, null);
 
-                //imagecopyresampled($img, $ul['img']['image'], $_row_x, $_row_y, $ul['x'], $ul['y'], ul.w, ul.h, ul.w, ul.h);
-                //tileImage($img, $uc['img']['image'], $_row_x + ul.w, $_row_y, $uc['x'], $uc['y'], $_row_width - ul.w - ur.w, $uc['h'], $uc['w'], $uc['h']);
-                //imagecopyresampled($img, $ur['img']['image'], $_row_x + $_row_width - ur.w, $_row_y, $ur['x'], $ur['y'], ur.w, ur.h, ur.w, ur.h);
-
                 tileImage(g, cl.getImage(), 0, ur.h, cl.x, cl.y, cl.w, _row_height - ul.h - dl.h, cl.w, cl.h);
                 tileImage(g, cc.getImage(), cr.w, ur.h, cl.x, cl.y, _row_width - cl.w - cr.w, _row_height - ur.h - dr.h, cc.w, cc.h);
                 tileImage(g, cr.getImage(), _row_width - cr.w, ur.h, cr.x, cr.y, cr.w, _row_height - ur.h - dr.h, cr.w, cl.h);
@@ -915,16 +910,16 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             } else {
                 TextureRegion region = image.getRegion(tphdRegion);
                 if (paddingTop > region.h) {
-                    paddingTop /= paddingTop / region.h;
+                    paddingTop = paddingTop / (paddingTop / region.h);
                 }
                 if (paddingLeft > region.w) {
-                    paddingLeft /= paddingLeft / region.w;
+                    paddingLeft = paddingLeft / (paddingLeft / region.w);
                 }
                 if (paddingRight > region.w) {
-                    paddingRight /= paddingRight / region.w;
+                    paddingRight = paddingRight / (paddingRight / region.w);
                 }
                 if (paddingBottom > region.h) {
-                    paddingBottom /= paddingBottom / region.h;
+                    paddingBottom = paddingBottom / (paddingBottom / region.h);
                 }
                 int x1 = region.x;
                 int x2 = region.x + paddingLeft;
@@ -940,8 +935,6 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                 int dy2 = paddingTop;
                 int dx3 = _row_width - paddingRight;
                 int dy3 = _row_height - paddingBottom;
-                int dx4 = _row_width;
-                int dy4 = _row_height;
                 Image image = region.getImage();
                 //ImageDebug.addImage(new ImageIcon(image));
                 if (dy2 != dy1) {
@@ -951,8 +944,8 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                     if (dx2 != dx3) {
                         g.drawImage(image, dx2, dy1, dx3, dy2, x2, y1, x3, y2, null);
                     }
-                    if (dx3 != dx4) {
-                        g.drawImage(image, dx3, dy1, dx4, dy2, x3, y1, x4, y2, null);
+                    if (dx3 != _row_width) {
+                        g.drawImage(image, dx3, dy1, _row_width, dy2, x3, y1, x4, y2, null);
                     }
                 }
                 if (dy3 != dy2) {
@@ -962,52 +955,44 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                     if (dx2 != dx3) {
                         g.drawImage(image, dx2, dy2, dx3, dy3, x2, y2, x3, y3, null);
                     }
-                    if (dx3 != dx4) {
-                        g.drawImage(image, dx3, dy2, dx4, dy3, x3, y2, x4, y3, null);
+                    if (dx3 != _row_width) {
+                        g.drawImage(image, dx3, dy2, _row_width, dy3, x3, y2, x4, y3, null);
                     }
                 }
-                if (dy4 != dy3) {
+                if (_row_height != dy3) {
                     if (dx1 != dx2) {
-                        g.drawImage(image, dx1, dy3, dx2, dy4, x1, y3, x2, y4, null);
+                        g.drawImage(image, dx1, dy3, dx2, _row_height, x1, y3, x2, y4, null);
                     }
                     if (dx2 != dx3) {
-                        g.drawImage(image, dx2, dy3, dx3, dy4, x2, y3, x3, y4, null);
+                        g.drawImage(image, dx2, dy3, dx3, _row_height, x2, y3, x3, y4, null);
                     }
-                    if (dx3 != dx4) {
-                        g.drawImage(image, dx3, dy3, dx4, dy4, x3, y3, x4, y4, null);
+                    if (dx3 != _row_width) {
+                        g.drawImage(image, dx3, dy3, _row_width, _row_height, x3, y3, x4, y4, null);
                     }
                 }
             }
 
-
-			/*if ( _row_width != width || _row_height != height ) {
-				generateLocalImage(_row_width, _row_height);
-			}
-			ImageDebug.addImage(localImage);
-			g.drawImage(localImage, 0, 0, null);*/
-            //g.getTransform().translate(offsetX + this.left, offsetY + this.top);
-            //g.drawImage(img, 0, 0, null);
         }
     }
 
-    public static class GraphicsImage extends GraphicsElement {
+    public static class GraphicsImage extends GraphicsElement<GraphicsNode> {
 
         int fillMode = 0;
         boolean flipX = false;
         boolean flipY = false;
         TextureRegion image;
         String id;
+        @SuppressWarnings("unused")
         protected BufferedImage localImage;
 
         public GraphicsImage() {
         }
 
         @Override
-        public void load(final ULD_File_Renderer renderer, final GraphicsNode entry, final SparseArray nodes, final Map elements, final SparseArray components) {
-            //noinspection unchecked
+        public void load(final ULD_File_Renderer renderer, final GraphicsNode entry, final SparseArray<? extends GraphicsNode> nodes, final Map<Integer, GraphicsElement<?>> elements, final SparseArray<COHDEntry> components) {
             super.load(renderer, entry, nodes, elements, components);
             GraphicsNodeTypeData_2 td = (GraphicsNodeTypeData_2) entry.typeData;
-            fillMode = td.fillMode;
+            fillMode = Objects.requireNonNull(td).fillMode;
             flipX = td.flipX;
             flipY = td.flipY;
 
@@ -1020,17 +1005,12 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
 
         @Override
         public void save(final GraphicsNode entry) {
-            //noinspection unchecked
             super.save(entry);
         }
 
         @Override
         public void paint(final Graphics2D g, int width, int height) {
             super.paint(g, width, height);
-            //Utils.getGlobalLogger().trace("GraphicsImage:" + nodeIndex + ":paint(id=" + id + ")");
-            //if(width != this.width || height != this.height) {
-            //generateLocalImage(width, height);
-            //}
             if (image == null) {
                 return;
             }
@@ -1073,8 +1053,6 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                         dstX2 = width;
                         g.drawImage(image.getImage(), dstX1, dstY1, dstX2, dstY2, refX1, refY1, refX2, refY2, null);
                         g.drawImage(image.getImage(), dstX2, dstY1, dstX2 * 2, dstY2, refX2, refY1, refX1, refY2, null);
-                        //imagecopyresampled($img, $refImg, $_row_x, $_row_y, $src_x, $src_y, $dst_w, $dst_h, $src_w - 1, $src_h);
-                        //imagecopyresampled($img, $refImg, $_row_x, $_row_y + $dst_h, $src_x, $src_y + $src_h - 1, $dst_w, $dst_h - 1, $src_w, -$src_h);
                     } else if (refH == height / 2) {
                         height /= 2;
                         dstY2 = height;
@@ -1083,26 +1061,21 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                     }
                 }
             }
-
-            //ImageDebug.addImage(localImage);
-            //g.drawImage(localImage, 0, 0, null);
-            //g.getTransform().translate(offsetX + this.left, offsetY + this.top);
-            //g.drawImage(img, 0, 0, null);
         }
     }
 
     public static class GraphicsComponent extends GraphicsElement<GraphicsNode> implements MouseListener {
         UIComponent component;
-        GraphicsElement parent;
+        GraphicsElement<? extends GraphicsNode> parent;
 
-        void setParent(final GraphicsElement parent) {
+        void setParent(final GraphicsElement<? extends GraphicsNode> parent) {
             this.parent = parent;
             if (component != null) {
                 component.parent = parent;
             }
         }
 
-        void setComponent(final UIComponent component) {
+        void setComponent(final UIComponent<? extends COHDEntryType> component) {
             this.component = component;
             if (parent != null && component != null) {
                 component.parent = parent;
@@ -1170,7 +1143,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         }
 
         @Override
-        public void load(final ULD_File_Renderer renderer, final GraphicsElement parent, final COHDEntry entry, final SparseArray<COHDEntry> components, final COHDEntryType typeData) {
+        public void load(final ULD_File_Renderer renderer, final GraphicsElement<? extends GraphicsNode> parent, final COHDEntry entry, final SparseArray<COHDEntry> components, final COHDEntryType typeData) {
             super.load(renderer, parent, entry, components, typeData);
         }
 
@@ -1182,20 +1155,20 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
 
     public static class CoFrame extends UIComponent<COHDEntryType_Frame> {
 
-        GraphicsElement btnClose;
-        GraphicsElement btnSettings;
-        GraphicsElement btnMagnify;
-        GraphicsElement btnHelp;
-        GraphicsElement txtTitle;
-        GraphicsElement txtSubtitle;
-        GraphicsElement elemTitlebar;
+        GraphicsElement<? extends GraphicsNode> btnClose;
+        GraphicsElement<? extends GraphicsNode> btnSettings;
+        GraphicsElement<? extends GraphicsNode> btnMagnify;
+        GraphicsElement<? extends GraphicsNode> btnHelp;
+        GraphicsElement<? extends GraphicsNode> txtTitle;
+        GraphicsElement<? extends GraphicsNode> txtSubtitle;
+        GraphicsElement<? extends GraphicsNode> elemTitlebar;
 
         public CoFrame(final int index) {
             super(index);
         }
 
         @Override
-        public void load(final ULD_File_Renderer renderer, final GraphicsElement parent, final COHDEntry entry, final SparseArray<COHDEntry> components, final COHDEntryType_Frame typeData) {
+        public void load(final ULD_File_Renderer renderer, final GraphicsElement<? extends GraphicsNode> parent, final COHDEntry entry, final SparseArray<COHDEntry> components, final COHDEntryType_Frame typeData) {
             super.load(renderer, parent, entry, components, typeData);
             this.btnClose = getElement(typeData.refCloseButton);
             this.btnHelp = getElement(typeData.refHelpButton);
@@ -1204,8 +1177,8 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             this.txtTitle = getElement(typeData.refTitleTextBox);
             this.txtSubtitle = getElement(typeData.refSubtitleTextBox);
             this.elemTitlebar = getElement(typeData.refTitleBar);
-            GraphicsElement node9 = getElement(9);
-            GraphicsElement node10 = getElement(10);
+            GraphicsElement<? extends GraphicsNode> node9 = getElement(9);
+            GraphicsElement<? extends GraphicsNode> node10 = getElement(10);
 
             int originalWidth = graphics.width;
             int originalHeight = graphics.height;
@@ -1283,9 +1256,10 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
 
     public static class CoList extends UIComponent<COHDEntryType_List> {
 
-        GraphicsElement elemScrollbar;
-        GraphicsElement elemItemTemplate;
+        GraphicsElement<? extends GraphicsNode> elemScrollbar;
+        GraphicsElement<? extends GraphicsNode> elemItemTemplate;
 
+        @SuppressWarnings("unused")
         protected final List<Object> items = new ArrayList<>();
 
         public CoList(final int index) {
@@ -1293,9 +1267,9 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         }
 
         @Override
-        public void load(final ULD_File_Renderer renderer, final GraphicsElement parent, final COHDEntry entry, final SparseArray<COHDEntry> components, final COHDEntryType_List typeData) {
+        public void load(final ULD_File_Renderer renderer, final GraphicsElement<? extends GraphicsNode> parent, final COHDEntry entry, final SparseArray<COHDEntry> components, final COHDEntryType_List typeData) {
             super.load(renderer, parent, entry, components, typeData);
-            GraphicsElement all = parent;
+            GraphicsElement<?> all = parent;
             if (all instanceof GraphicsComponent) {
                 all = ((GraphicsComponent) all).parent;
             }
@@ -1313,30 +1287,22 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                 elemScrollbar.height = all.height - (originalHeight - elemScrollbar.height);
                 CoScrollbar component = (CoScrollbar) ((GraphicsComponent) elemScrollbar).component;
                 component.updateSize(graphics);
-				/*((CoScrollbar)((GraphicsComponent)elemScrollbar).component).addChangeListener(new CoScrollbar_ChangeListener(){
-
-				});*/
             }
-
-
-            //$item = &ffxiv_uldcohd_getChildByIndex($cohdNode['elements'], $cohdNode['itemTemplateRef']);
-            //$scrollbar = &ffxiv_uldcohd_getChildByIndex($cohdNode['elements'], $cohdNode['scrollbarObject']);
-
-
         }
     }
 
     public static class CoScrollbar extends UIComponent<COHDEntryType_Scrollbar> {
 
-        GraphicsElement elemValueTextbox;
-        GraphicsElement elemKnob;
-        GraphicsElement btnUp;
-        GraphicsElement btnDown;
+        GraphicsElement<? extends GraphicsNode> elemValueTextbox;
+        GraphicsElement<? extends GraphicsNode> elemKnob;
+        GraphicsElement<? extends GraphicsNode> btnUp;
+        GraphicsElement<? extends GraphicsNode> btnDown;
 
         int minimum = 0;
         int maximum = 100;
         int value = 0;
 
+        @SuppressWarnings("unused")
         public void setSize(int width, int height) {
             int originalWidth = graphics.width;
             int originalHeight = graphics.height;
@@ -1348,9 +1314,9 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         }
 
         @Override
-        public void load(final ULD_File_Renderer renderer, final GraphicsElement parent, final COHDEntry entry, final SparseArray<COHDEntry> components, final COHDEntryType_Scrollbar typeData) {
+        public void load(final ULD_File_Renderer renderer, final GraphicsElement<? extends GraphicsNode> parent, final COHDEntry entry, final SparseArray<COHDEntry> components, final COHDEntryType_Scrollbar typeData) {
             super.load(renderer, parent, entry, components, typeData);
-            GraphicsElement all = parent;
+            GraphicsElement<? extends GraphicsNode> all = parent;
             if (all instanceof GraphicsComponent) {
                 all = ((GraphicsComponent) all).parent;
             }
@@ -1363,10 +1329,11 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             }
         }
 
-        void updateSize(GraphicsElement all) {
+        void updateSize(GraphicsElement<? extends GraphicsNode> all) {
             if (all instanceof GraphicsComponent) {
                 all = ((GraphicsComponent) all).parent;
             }
+            @SuppressWarnings("unused")
             int originalWidth = graphics.width;
             int originalHeight = graphics.height;
 
@@ -1376,6 +1343,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             elemKnob.height = all.height - (originalHeight - elemKnob.top);
         }
 
+        @SuppressWarnings("unused")
         public void setLimits(int min, int max) {
             if (min > max) {
                 throw new RuntimeException("Invalid min(" + min + ")/max(" + max + ") values");
@@ -1409,47 +1377,30 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
     public static class CoSlider extends UIComponent<COHDEntryType_Slider> {
 
 
-        private GraphicsElement refTrackNode;
+        private GraphicsElement<? extends GraphicsNode> refTrackNode;
 
         int minimum = 0;
         int maximum = 100;
         int value = 0;
-        private GraphicsElement geKnob;
-        private GraphicsElement geFill;
-        private GraphicsElement geTrack;
+        private GraphicsElement<? extends GraphicsNode> geKnob;
+        private GraphicsElement<? extends GraphicsNode> geFill;
+        private GraphicsElement<? extends GraphicsNode> geTrack;
 
         public CoSlider(final int index) {
             super(index);
         }
 
         @Override
-        public void load(final ULD_File_Renderer renderer, final GraphicsElement parent, final COHDEntry entry, final SparseArray<COHDEntry> components, final COHDEntryType_Slider typeData) {
+        public void load(final ULD_File_Renderer renderer, final GraphicsElement<? extends GraphicsNode> parent, final COHDEntry entry, final SparseArray<COHDEntry> components, final COHDEntryType_Slider typeData) {
             super.load(renderer, parent, entry, components, typeData);
-            GraphicsElement all = parent;
-            //if ( all instanceof GraphicsComponent ) {
-            //	all = ( (GraphicsComponent)all ).parent;
-            //}
-            GraphicsElement refFillNode = getElement(typeData.refFill);
-            geFill = refFillNode;
-            //if ( refFillNode instanceof GraphicsComponent ) {
-            //	geFill = ( (GraphicsComponent)refFillNode ).component.graphics;
-            //}
-            GraphicsElement refValueBox = getElement(typeData.refValueBox);
-            GraphicsElement geValueBox = refValueBox;
-            //if ( refValueBox instanceof GraphicsComponent ) {
-            //	geValueBox = ( (GraphicsComponent)refValueBox ).component.graphics;
-            //}
+            geFill = getElement(typeData.refFill);
+            @SuppressWarnings("unused")
+            GraphicsElement<? extends GraphicsNode> geValueBox = getElement(typeData.refValueBox);
             refTrackNode = getElement(typeData.refTrack);
             geTrack = refTrackNode;
             geTrack.visible = false;
-            //if ( refTrackNode instanceof GraphicsComponent ) {
-            //	geTrack = ( (GraphicsComponent)refTrackNode ).component.graphics;
-            //}
-            GraphicsElement refKnobNode = getElement(typeData.refKnob);
+            GraphicsElement<? extends GraphicsNode> refKnobNode = getElement(typeData.refKnob);
             geKnob = refKnobNode;
-            //if ( refKnobNode instanceof GraphicsComponent ) {
-            //	geKnob = ( (GraphicsComponent)refKnobNode ).component.graphics;
-            //}
 
             refTrackNode.height = parent.height;
 
@@ -1465,16 +1416,17 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                 }
             });
 
-            if (all.height > 0) {
-                updateSize(all);
+            if (parent.height > 0) {
+                updateSize(parent);
             }
             setValue(value);
         }
 
-        void updateSize(GraphicsElement all) {
+        void updateSize(GraphicsElement<? extends GraphicsNode> all) {
             geTrack.height = all.height;
         }
 
+        @SuppressWarnings("unused")
         public void setLimits(int min, int max) {
             if (min > max) {
                 throw new RuntimeException("Invalid min(" + min + ")/max(" + max + ") values");
@@ -1501,7 +1453,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
 
         private void setValue(int value) {
             this.value = Math.min(Math.max(value, minimum), maximum);
-            float percent = value / (maximum - minimum + 1);
+            float percent = (float)value / (maximum - minimum + 1);
             int f = (int) ((float) parent.height * (1 - percent));
             geFill.top = f;
             geFill.height = parent.height - f;

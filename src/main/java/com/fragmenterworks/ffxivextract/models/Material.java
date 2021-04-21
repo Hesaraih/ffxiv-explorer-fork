@@ -6,24 +6,18 @@ import com.fragmenterworks.ffxivextract.shaders.*;
 import com.fragmenterworks.ffxivextract.storage.HashDatabase;
 import com.jogamp.opengl.GL3;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class Material extends Game_File {
 
+    @SuppressWarnings("unused")
     String materialPath;
 
     //Data
     private int fileSize;
-    private int colorTableSize;
-    private int stringSectionSize;
     private int shaderStringOffset;
-    private short numPaths;
-    private short numMaps;
-    private short numColorSets;
-    private short numUnknown;
 
     private String[] stringArray;
 
@@ -33,14 +27,7 @@ public class Material extends Game_File {
     private Texture_File specular;
     private Texture_File colorSet;
 
-    private Unknown1[] unknownList1;
-    private Unknown2[] unknownList2;
-    private Parameter[] parameterList;
-
     private byte[] colorSetData;
-
-    private int unknownDataSize;
-    private byte[] unknownData;
 
     //Rendering
     private boolean shaderReady = false;
@@ -50,29 +37,40 @@ public class Material extends Game_File {
     //Rendering
     final int[] textureIds = new int[5];
 
-    //Constructor grabs info about material
+    /**
+     * コンストラクターがマテリアルに関する情報を取得します
+     * @param data materialのバイトデータ
+     * @param endian エンディアン指定
+     */
     public Material(byte[] data, ByteOrder endian) {
         this(null, null, data, endian);
     }
 
-    //Constructor grabs info and texture files
+    /**
+     * コンストラクターが情報ファイルとテクスチャファイルを取得します
+     * @param folderPath materialのフォルダパス(null可)
+     * @param currentIndex 現在のインデックスファイル名(null可)
+     * @param data materialのバイトデータ
+     * @param endian エンディアン指定
+     */
     public Material(String folderPath, SqPack_IndexFile currentIndex, byte[] data, ByteOrder endian) {
         super(endian);
 
-        if (data == null)
+        if (data == null) {
             return;
+        }
 
         ByteBuffer bb = ByteBuffer.wrap(data);
         bb.order(endian);
         bb.getInt();
         fileSize = bb.getShort();
-        colorTableSize = bb.getShort();
-        stringSectionSize = bb.getShort();
+        int colorTableSize = bb.getShort();
+        int stringSectionSize = bb.getShort();
         shaderStringOffset = bb.getShort();
-        numPaths = bb.get();
-        numMaps = bb.get();
-        numColorSets = bb.get();
-        numUnknown = bb.get();
+        short numPaths = bb.get(); //texファイルの数
+        short numMaps = bb.get();
+        short numColorSets = bb.get();
+        short numUnknown = bb.get();
 
         //Load Strings
         stringArray = new String[numPaths + numMaps + numColorSets + 1];
@@ -82,10 +80,11 @@ public class Material extends Game_File {
 
         int stringCounter = 0;
         int start = 0, end = 0;
-        for (int i = 0; i < stringBuffer.length; i++) {
-            if (stringBuffer[i] == 0) {
-                if (stringCounter >= stringArray.length)
+        for (byte b : stringBuffer) {
+            if (b == 0) {
+                if (stringCounter >= stringArray.length) {
                     break;
+                }
                 stringArray[stringCounter] = new String(stringBuffer, start, end - start);
                 start = end + 1;
                 stringCounter++;
@@ -93,39 +92,43 @@ public class Material extends Game_File {
             end++;
         }
 
-        //Load Textures
+        //テクスチャを読み込む
         if (folderPath != null && currentIndex != null) {
             for (int i = 0; i < numPaths; i++) {
                 String s = stringArray[i];
 
                 if (!s.contains("/")) {
-                    Utils.getGlobalLogger().debug("Couldn't load {}", s);
+                    Utils.getGlobalLogger().debug("{}を読み込めませんでした", s);
                     continue;
                 }
 
                 String folderName = s.substring(0, s.lastIndexOf("/"));
                 String fileString = s.substring(s.lastIndexOf("/") + 1);
-
+                //texファイルの登録
                 HashDatabase.addPathToDB(s, currentIndex.getName());
 
                 try {
                     byte[] extracted = currentIndex.extractFile(folderName, fileString);
-                    if (extracted == null)
+                    if (extracted == null) {
                         continue;
+                    }
 
-                    if ((fileString.endsWith("_d.tex") || fileString.contains("catchlight")) && diffuse == null)
+                    if ((fileString.endsWith("_d.tex") || fileString.contains("catchlight")) && diffuse == null) {
+                        //拡散光
                         diffuse = new Texture_File(extracted, endian);
-                    else if (fileString.endsWith("_n.tex") && normal == null)
+                    } else if (fileString.endsWith("_n.tex") && normal == null) {
+                        //法線マップ
                         normal = new Texture_File(extracted, endian);
-                    else if (fileString.endsWith("_s.tex") && specular == null)
+                    } else if (fileString.endsWith("_s.tex") && specular == null) {
+                        //鏡面光
                         specular = new Texture_File(extracted, endian);
-                    else if (fileString.endsWith("_m.tex"))
+                    } else if (fileString.endsWith("_m.tex")) {
+                        //アルファマスク
                         mask = new Texture_File(extracted, endian);
-                    else
+                    } else {
                         colorSet = new Texture_File(extracted, endian);
+                    }
 
-                } catch (FileNotFoundException e) {
-                    Utils.getGlobalLogger().error(e);
                 } catch (IOException e) {
                     Utils.getGlobalLogger().error(e);
                 }
@@ -133,36 +136,43 @@ public class Material extends Game_File {
             }
         }
 
-        //This is for the new material file setup. ALso bgcolorchange doesn't have a table color but can't find where it says that.
+        //これは、新しいマテリアルファイルのセットアップ用です。 また、bgColorChangeにはテーブルの色がありませんが、それがどこにあるかを見つけることができません。
         if (colorSet == null && colorTableSize >= 512) {
             bb.position(16 + (4 * (numPaths + numMaps + numColorSets)) + stringBuffer.length);
-            if (bb.getInt() == 0x0)
+            if (bb.getInt() == 0x0) {
                 return;
+            }
             colorSetData = new byte[512];
             bb.get(colorSetData);
         }
 
-        //Shader links and unknowns start here
+        //シェーダーリンクと未知数はここから始まります
         bb.position(16 + (4 * (numPaths + numMaps + numColorSets)) + stringBuffer.length + colorTableSize + numUnknown);
 
-        unknownDataSize = bb.getShort();
+        int unknownDataSize = bb.getShort();
         int count1 = bb.getShort();
         int count2 = bb.getShort();
         int count3 = bb.getShort();
         bb.getShort();
         bb.getShort();
 
-        unknownData = new byte[unknownDataSize];
-        unknownList1 = new Unknown1[count1];
-        unknownList2 = new Unknown2[count2];
-        parameterList = new Parameter[count3];
+        byte[] unknownData = new byte[unknownDataSize];
+        @SuppressWarnings("MismatchedReadAndWriteOfArray")
+        Unknown1[] unknownList1 = new Unknown1[count1];
+        @SuppressWarnings("MismatchedReadAndWriteOfArray")
+        Unknown2[] unknownList2 = new Unknown2[count2];
+        @SuppressWarnings("MismatchedReadAndWriteOfArray")
+        Parameter[] parameterList = new Parameter[count3];
 
-        for (int i = 0; i < unknownList1.length; i++)
+        for (int i = 0; i < unknownList1.length; i++) {
             unknownList1[i] = new Unknown1(bb.getInt(), bb.getInt());
-        for (int i = 0; i < unknownList2.length; i++)
+        }
+        for (int i = 0; i < unknownList2.length; i++) {
             unknownList2[i] = new Unknown2(bb.getInt(), bb.getShort(), bb.getShort());
-        for (int i = 0; i < parameterList.length; i++)
+        }
+        for (int i = 0; i < parameterList.length; i++) {
             parameterList[i] = new Parameter(bb.getInt(), bb.getShort(), bb.getShort(), bb.getInt());
+        }
 
         bb.get(unknownData);
     }
@@ -174,31 +184,40 @@ public class Material extends Game_File {
             do {
                 x--;
                 stringArray[stringArray.length - 1] = stringArray[x];
-            } while (stringArray[x] == null && x >= 0);
+            } while (stringArray[x] == null);
         }
 
         //Load Shader
         String shaderName = "";
-        for (int i = 0; i < stringArray.length; i++) {
-            if (stringArray[i].contains(".shpk")) {
-                shaderName = stringArray[i];
+        for (String s : stringArray) {
+            if (s.contains(".shpk")) {
+                shaderName = s;
                 break;
             }
         }
 
         try {
-            if (shaderName.equals("character.shpk"))
-                shader = new CharacterShader(gl);
-            else if (shaderName.equals("hair.shpk"))
-                shader = new HairShader(gl);
-            else if (shaderName.equals("iris.shpk"))
-                shader = new IrisShader(gl);
-            else if (shaderName.equals("skin.shpk"))
-                shader = new SkinShader(gl);
-            else if (shaderName.equals("bg.shpk") || shaderName.equals("bgcolorchange.shpk"))
-                shader = new BGShader(gl);
-            else
-                shader = new DefaultShader(gl);
+            switch (shaderName) {
+                case "character.shpk":
+                    shader = new CharacterShader(gl);
+                    break;
+                case "hair.shpk":
+                    shader = new HairShader(gl);
+                    break;
+                case "iris.shpk":
+                    shader = new IrisShader(gl);
+                    break;
+                case "skin.shpk":
+                    shader = new SkinShader(gl);
+                    break;
+                case "bg.shpk":
+                case "bgcolorchange.shpk":
+                    shader = new BGShader(gl);
+                    break;
+                default:
+                    shader = new DefaultShader(gl);
+                    break;
+            }
         } catch (IOException e) {
             Utils.getGlobalLogger().error(e);
         }
@@ -242,7 +261,16 @@ public class Material extends Game_File {
         return textureIds;
     }
 
-    class Unknown1 {
+    public int getFileSize() {
+        return fileSize;
+    }
+
+    @SuppressWarnings("unused")
+    public int getShaderStringOffset() {
+        return shaderStringOffset;
+    }
+
+    static class Unknown1 {
         final int unknown1;
         final int unknown2;
 
@@ -252,7 +280,7 @@ public class Material extends Game_File {
         }
     }
 
-    class Unknown2 {
+    static class Unknown2 {
         final int unknown1;
         final short offset;
         final short size;
@@ -264,7 +292,7 @@ public class Material extends Game_File {
         }
     }
 
-    class Parameter {
+    static class Parameter {
         final int id;
         final short unknown1;
         final short unknown2;

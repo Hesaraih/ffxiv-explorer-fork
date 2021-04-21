@@ -14,6 +14,7 @@ import org.apache.logging.log4j.core.config.Configurator;
 import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.prefs.Preferences;
 
 public class Main {
@@ -31,13 +32,18 @@ public class Main {
 
         // Init the hash database
         try {
+            @SuppressWarnings("unused")
+            String jarPath = System.getProperty("java.class.path");
+            //String dirPath = jarPath.substring(0, jarPath.lastIndexOf(File.separator)+1);
             File dbFile = new File("./" + Constants.DBFILE_NAME);
-            if (dbFile.exists())
+            //File dbFile = new File(dirPath + Constants.DBFILE_NAME);
+            if (dbFile.exists()) {
                 HashDatabase.init();
-            else
+            } else {
                 JOptionPane.showMessageDialog(null,
-                        Constants.DBFILE_NAME + " is missing. No file or folder names will be shown... instead the file's hashes will be displayed.",
-                        "Hash DB Load Error", JOptionPane.ERROR_MESSAGE);
+                        Paths.get(dbFile.getAbsolutePath()).normalize().toString()+ "が見つかりませんでした。\nファイル名またはフォルダ名は表示されません...代わりに、ファイルのハッシュが表示されます。",
+                        "Hash DB 読み込みエラー", JOptionPane.ERROR_MESSAGE);
+            }
         } catch (ClassNotFoundException e1) {
             Utils.getGlobalLogger().error(e1);
         }
@@ -49,28 +55,32 @@ public class Main {
 
             // Info
             if (args.length == 1) {
-                if (args[0].equals("-help"))
+                if (args[0].equals("-help")) {
                     System.out.println("Commands: -help, -debug, -pathsearch");
-                else if (args[0].equals("-pathsearch"))
-                    System.out.println("Searches an archive for strings that start with <str>\n-pathsearch <path to index> <str>");
+                } else if (args[0].equals("-pathsearch")) {
+                    System.out.println("<str>で始まる文字列をアーカイブで検索します。" +
+                            "\n-pathsearch <path to index> <str>");
+                }
             }
 
-            if (args[0].equals("-debug") && currentLevel.intLevel() < Level.DEBUG.intLevel())
+            if (args[0].equals("-debug") && currentLevel.intLevel() < Level.DEBUG.intLevel()) {
                 Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.DEBUG);
+                Constants.DEBUG = true;
+            }
 
             // PATHSEARCH
             if (args[0].equals("-pathsearch")) {
                 if (args.length < 3) {
-                    Utils.getGlobalLogger().info("Too few args for pathsearch!");
+                    Utils.getGlobalLogger().info("パス検索の引数が少なすぎます!");
                     return;
                 }
 
-                Utils.getGlobalLogger().info("Starting Path Searcher (this will take a while)");
+                Utils.getGlobalLogger().info("パス検索開始(しばらく時間がかかります)");
 
                 try {
                     PathSearcher.doPathSearch(args[1], args[2]);
                 } catch (IOException e) {
-                    Utils.getGlobalLogger().error("Encountered an error while path searching.", e);
+                    Utils.getGlobalLogger().error("パス検索中にエラーが発生しました。", e);
                 }
                 return;
             }
@@ -95,12 +105,9 @@ public class Main {
             int n = JOptionPane
                     .showConfirmDialog(
                             fileMan,
-                            "Would you like FFXIV Extractor to check for a new hash database?",
+                            "FFXIV Extractorで新しいハッシュデータベースをチェックしますか？",
                             "Hash DB Version Check", JOptionPane.YES_NO_OPTION);
-            if (n == JOptionPane.YES_OPTION) {
-                prefs.putBoolean(Constants.PREF_DO_DB_UPDATE, true);
-            } else
-                prefs.putBoolean(Constants.PREF_DO_DB_UPDATE, false);
+            prefs.putBoolean(Constants.PREF_DO_DB_UPDATE, n == JOptionPane.YES_OPTION);
         }
 
         // Version Check

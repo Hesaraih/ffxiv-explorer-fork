@@ -1,11 +1,11 @@
 package com.fragmenterworks.ffxivextract.helpers;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+@SuppressWarnings("unused")
 public class FFXIV_String {
 
     private final static int START_BYTE = 0x02;
@@ -97,8 +97,9 @@ public class FFXIV_String {
                 if (b == START_BYTE) {
                     processPacket(buffIn, buffOut);
                 }
-                else
+                else {
                     buffOut.put(b);
+                }
             }
 
             return new String(newStringBytes, 0, buffOut.position(), StandardCharsets.UTF_8);
@@ -126,19 +127,20 @@ public class FFXIV_String {
 
         switch (type) {
             case (byte) 223:
-                for (int i = 0; i < payload.length; i++)
-                    System.out.print(String.format("0x%x ", payload[i]));
+                for (byte b : payload) {
+                    System.out.printf("0x%x ", b);
+                }
                 System.out.print("\n");
 
                 break;
             case TYPE_INFO:
-                if ((((int) payload[0]) & 0xFF) == 0xEB && (((int) payload[1]) & 0xFF) == 0x02)
+                if ((((int) payload[0]) & 0xFF) == 0xEB && (((int) payload[1]) & 0xFF) == 0x02) {
                     buffOut.put("<forename surname>".getBytes(StandardCharsets.UTF_8));
-                else
+                } else {
                     buffOut.put("<value>".getBytes(StandardCharsets.UTF_8));
+                }
                 break;
             case TYPE_SPLIT:
-
                 if (Arrays.equals(payload, forenamePayload)) {
                     buffOut.put("<forename>".getBytes(StandardCharsets.UTF_8));
                     break;
@@ -176,32 +178,37 @@ public class FFXIV_String {
                     ByteBuffer optionPayload = ByteBuffer.wrap(opt1);
                     optionPayload.get(); //Skip start flag
                     processPacket(optionPayload, buffOut);
-                } else
+                } else {
                     buffOut.put(opt1);
+                }
                 buffOut.put("/".getBytes(StandardCharsets.UTF_8));
                 if (opt2[0] == 0x02) {
                     ByteBuffer optionPayload = ByteBuffer.wrap(opt1);
                     optionPayload.get(); //Skip start flag
                     processPacket(optionPayload, buffOut);
-                } else
+                } else {
                     buffOut.put(opt2);
+                }
                 buffOut.put(">".getBytes(StandardCharsets.UTF_8));
                 break;
             case TYPE_ITALICS:
-                if (payload[0] == 2)
+                if (payload[0] == 2) {
                     buffOut.put("<i>".getBytes(StandardCharsets.UTF_8));
-                else
+                } else {
                     buffOut.put("</i>".getBytes(StandardCharsets.UTF_8));
+                }
                 break;
             case TYPE_TIME:
             case TYPE_PLAYERLINK:
                 break;
             case TYPE_COLOR_CHANGE:
-                if (payload[0] == -20)
+                if (payload[0] == -20) {
                     buffOut.put("</color>".getBytes(StandardCharsets.UTF_8));
-                else if (payload[0] == -2)
+                } else if (payload[0] == -2) {
                     buffOut.put(String.format("<color #%02X%02X%02X>", payload[2], payload[3], payload[4]).getBytes(StandardCharsets.UTF_8));
-                else buffOut.put("<color?>".getBytes(StandardCharsets.UTF_8));
+                } else {
+                    buffOut.put("<color?>".getBytes(StandardCharsets.UTF_8));
+                }
                 break;
             case TYPE_LINK:
 
@@ -251,8 +258,9 @@ public class FFXIV_String {
                 StringBuilder switchString2 = new StringBuilder("<switch:");
 
                 if (payload[0] == -35 || payload[0] == -24) {
-                    if (payload[0] == -24)
+                    if (payload[0] == -24) {
                         pos2++;
+                    }
                     while (true) {
                         pos2++;
                         int stringSize = payload[pos2];
@@ -267,12 +275,14 @@ public class FFXIV_String {
                                 ByteBuffer outProcessBB = ByteBuffer.wrap(outProcessBuffer);
                                 processPacket(switchBB, outProcessBB);
                                 switchString2.append(new String(outProcessBuffer, 0, outProcessBB.position(), StandardCharsets.UTF_8));
-                            } else
+                            } else {
                                 switchString2.append(new String(switchBuffer, StandardCharsets.UTF_8));
+                            }
                         }
                         pos2 += stringSize - 1;
-                        if (payload[pos2] == 0x03)
+                        if (payload[pos2] == 0x03) {
                             break;
+                        }
                         switchString2.append("/");
                     }
                 } else if (payload[0] == -37) {
@@ -377,13 +387,13 @@ public class FFXIV_String {
 
 	private static int getPayloadSize(int payloadSize, ByteBuffer buffIn) {
 
-        if (payloadSize < 0xF0)
+        if (payloadSize < 0xF0) {
             return payloadSize;
+        }
 
         switch (payloadSize) {
             case SIZE_DATATYPE_BYTE: {
-                int valByte = buffIn.get() & 0xFF;
-                return valByte;
+                return buffIn.get() & 0xFF;
             }
             case SIZE_DATATYPE_BYTE256:
             case SIZE_DATATYPE_INT16:

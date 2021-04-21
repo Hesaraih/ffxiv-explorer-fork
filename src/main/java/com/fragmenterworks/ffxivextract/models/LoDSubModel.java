@@ -49,10 +49,27 @@ public class LoDSubModel {
     }
 
     public void loadMeshes(ByteBuffer bb) throws BufferOverflowException, BufferUnderflowException {
-        if (meshList == null)
+        if (meshList == null) {
             return;
+        }
 
-        for (Mesh m : meshList)
+        for (Mesh m : meshList) {
             m.loadMeshes(bb, vertTableOffset, indexTableOffset);
+        }
+    }
+
+    @SuppressWarnings("unused")
+    public short getMeshOffset() {
+        return meshOffset;
+    }
+
+    @SuppressWarnings("unused")
+    public int getVertTableSize() {
+        return vertTableSize;
+    }
+
+    @SuppressWarnings("unused")
+    public int getIndexTableSize() {
+        return indexTableSize;
     }
 }

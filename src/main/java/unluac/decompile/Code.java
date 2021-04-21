@@ -1,65 +1,9 @@
 package unluac.decompile;
 
+import unluac.Version;
 import unluac.parse.LFunction;
 
 public class Code {
-  
-  public static CodeExtract Code51 = new CodeExtract() {
-
-    /**
-     * Returns the A field of the given codepoint.
-     */
-    @Override
-    public int extract_A(int codepoint) {
-      return (codepoint >> 6) & 0x0000000FF;
-    }
-
-    /**
-     * Returns the C field of the given codepoint.
-     */
-    @Override
-    public int extract_C(int codepoint) {
-      return (codepoint >> 14) & 0x000001FF;
-    }
-
-    /**
-     * Returns the B field of the given codepoint.
-     */
-    @Override
-    public int extract_B(int codepoint) {
-      return codepoint >>> 23;
-    }
-
-    /**
-     * Returns the Ax (A extended) field of the given codepoint.
-     */
-    @Override
-    public int extract_Ax(int codepoint) {
-      return codepoint >>> 6;
-    }
-    
-    /**
-     * Returns the Bx (B extended) field of the given codepoint.
-     */
-    @Override
-    public int extract_Bx(int codepoint) {
-      return codepoint >>> 14;
-    }
-
-    /**
-     * Returns the sBx (signed B extended) field of the given codepoint.
-     */
-    @Override
-    public int extract_sBx(int codepoint) {
-      return (codepoint >>> 14) - 131071;
-    }
-
-    @Override
-    public int extract_op(int codepoint) {
-      return codepoint & 0x0000003F;
-    }
-
-  };
   
   private final CodeExtract extractor;
   private final OpcodeMap map;
@@ -79,13 +23,18 @@ public class Code {
       extraByte[i] = op(line).hasExtraByte(codepoint(line), extractor);
     }
     upvalue = new boolean[length];
-    if(function.header.version.usesInlineUpvalueDeclarations()) {
+    if(function.header.version.upvaluedeclarationtype.get() == Version.UpvalueDeclarationType.INLINE) {
       for(int i = 0; i < length; i++) {
         int line = i + 1;
         if(op(line) == Op.CLOSURE) {
-          int nups = function.functions[Bx(line)].numUpvalues;
-          for(int j = 1; j <= nups; j++) {
-            upvalue[i + j] = true;
+          int f = Bx(line);
+          if(f < function.functions.length) {
+            int nups = function.functions[f].numUpvalues;
+            for(int j = 1; j <= nups; j++) {
+              if(i + j < length) {
+                upvalue[i + j] = true;
+              }
+            }
           }
         }
       }
@@ -115,56 +64,81 @@ public class Code {
   }
   
   public int opcode(int line) {
-    return code[line - 1] & 0x0000003F;
+    return extractor.op.extract(code[line - 1]);
   }
   
   /**
    * Returns the A field of the instruction at the given line.
    */
   public int A(int line) {
-    return extractor.extract_A(code[line - 1]);
+    return extractor.A.extract(code[line - 1]);
   }
   
   /**
    * Returns the C field of the instruction at the given line.
    */
   public int C(int line) {
-    return extractor.extract_C(code[line - 1]);
+    return extractor.C.extract(code[line - 1]);
+  }
+  
+  /**
+   * Returns the sC (signed C) field of the instruction at the given line.
+   */
+  public int sC(int line) {
+    int C = C(line);
+    return C - extractor.C.max() / 2;
+  }
+  
+  
+  /**
+   * Returns the k field of the instruction at the given line (1 is true, 0 is false).
+   */
+  public boolean k(int line) {
+    return extractor.k.extract(code[line - 1]) != 0;
   }
   
   /**
    * Returns the B field of the instruction at the given line.
    */
   public int B(int line) {
-    return extractor.extract_B(code[line - 1]);
+    return extractor.B.extract(code[line - 1]);
+  }
+  
+  /**
+   * Returns the sB (signed B) field of the instruction at the given line.
+   */
+  public int sB(int line) {
+    int B = B(line);
+    return B - extractor.B.max() / 2;
   }
   
   /**
    * Returns the Ax field (A extended) of the instruction at the given line.
    */
   public int Ax(int line) {
-    return extractor.extract_Ax(code[line - 1]);
+    return extractor.Ax.extract(code[line - 1]);
   }
   
   /**
    * Returns the Bx field (B extended) of the instruction at the given line.
    */
   public int Bx(int line) {
-    return extractor.extract_Bx(code[line - 1]);
+    return extractor.Bx.extract(code[line - 1]);
   }
   
   /**
    * Returns the sBx field (signed B extended) of the instruction at the given line.
    */
   public int sBx(int line) {
-    return extractor.extract_sBx(code[line - 1]);
+    return extractor.sBx.extract(code[line - 1]);
   }
   
   /**
-   * Returns the absolute target address of a jump instruction (using sBx) and the given line.
+   * Returns the absolute target address of a jump instruction and the given line.
+   * This field will be chosen automatically based on the opcode.
    */
   public int target(int line) {
-    return line + 1 + extractor.extract_sBx(code[line - 1]);
+    return line + 1 + op(line).jumpField(codepoint(line), extractor);
   }
   
   /**
@@ -183,7 +157,7 @@ public class Code {
   }
   
   public String toString(int line) {
-    return op(line).codePointToString(codepoint(line), extractor);
+    return op(line).codePointToString(codepoint(line), extractor, null);
   }
   
 }

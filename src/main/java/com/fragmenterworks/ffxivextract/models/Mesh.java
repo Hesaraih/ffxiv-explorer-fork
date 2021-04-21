@@ -6,7 +6,6 @@ import com.jogamp.common.nio.Buffers;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 public class Mesh {
 
@@ -23,7 +22,7 @@ public class Mesh {
     private final int vertElementIndex;
 
     public Mesh(ByteBuffer bb, int elementIndex) {
-        numVerts = bb.getShort();
+        numVerts = bb.getShort(); //SaintCoinachではbb.getInt()で処理し次行なし
         bb.getShort();
         numIndex = bb.getInt();
 
@@ -34,8 +33,8 @@ public class Mesh {
 
         indexBufferOffset = bb.getInt();
 
-        //Seems FFXIV already stores the offset of the aux buffer (and others). DOH! Learned from Saint Coinach...
-        vertexBufferOffsets = new int[3];
+        //FFXIVはすでにAuxバッファ（およびその他）のオフセットを保存しているようです。Saint Coinach参考...
+        vertexBufferOffsets = new int[3]; //C#では[MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
         for (int x = 0; x < vertexBufferOffsets.length; x++)
             vertexBufferOffsets[x] = bb.getInt();
 
@@ -60,30 +59,24 @@ public class Mesh {
     public void loadMeshes(ByteBuffer bb, int lodVertexOffset, int lodIndexOffset) throws BufferOverflowException, BufferUnderflowException {
 
         ByteBuffer bbTemp;
-        boolean swapBuffers = false;
 
         //Vert Table
         for (int i = 0; i < numBuffers; i++) {
-            bb.position(lodVertexOffset + vertexBufferOffsets[i]);
-            bbTemp = bb.duplicate();
-            bbTemp.limit(bbTemp.position() + ((vertexSizes[i] * numVerts)));
+            //lodVertexOffset + vertexBufferOffsets[i]の値がbb.limit()を超え例外が発生している
+            if (bb.limit()>lodVertexOffset + vertexBufferOffsets[i]){
+                bb.position(lodVertexOffset + vertexBufferOffsets[i]);
+                bbTemp = bb.duplicate();
+                bbTemp.limit(bbTemp.position() + ((vertexSizes[i] * numVerts)));
 
-            if (bb.order() == ByteOrder.BIG_ENDIAN && swapBuffers) {
-                byte[] newTmp = reverseElements(bbTemp.array(), bbTemp.position(), bbTemp.limit() - bbTemp.position(), 2, (bbTemp.limit() - bbTemp.position()) / 2);
-                vertBuffers[i].put(newTmp);
-            } else {
                 vertBuffers[i].put(bbTemp);
             }
         }
         //Index Table
-        bb.position(lodIndexOffset + (indexBufferOffset * 2));
-        bbTemp = bb.duplicate();
-        bbTemp.limit(bbTemp.position() + (2 * numIndex));
+        if (bb.limit()>lodIndexOffset + (indexBufferOffset * 2)){
+            bb.position(lodIndexOffset + (indexBufferOffset * 2));
+            bbTemp = bb.duplicate();
+            bbTemp.limit(bbTemp.position() + (2 * numIndex));
 
-        if (bb.order() == ByteOrder.BIG_ENDIAN && swapBuffers) {
-            byte[] newTmp = reverseElements(bbTemp.array(), bbTemp.position(), bbTemp.limit() - bbTemp.position(), 2, numIndex);
-            indexBuffer.put(newTmp);
-        } else {
             indexBuffer.put(bbTemp);
         }
     }
@@ -92,8 +85,10 @@ public class Mesh {
         return vertElementIndex;
     }
 
+    @SuppressWarnings("unused")
     private byte[] reverseElements(byte[] src, int start, int length, int elemSize, int elemAmt) {
         byte[] dest = new byte[length];
+        @SuppressWarnings("MismatchedReadAndWriteOfArray")
         byte[] tmp = new byte[length];
         System.arraycopy(src, start, tmp, 0, length);
 

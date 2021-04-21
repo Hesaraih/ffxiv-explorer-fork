@@ -20,13 +20,17 @@ public class EXDF_File extends Game_File {
         loadEXDF(data);
     }
 
+    @SuppressWarnings("unused")
     public EXDF_File(String path) throws IOException {
         super(ByteOrder.BIG_ENDIAN);
         File file = new File(path);
-        FileInputStream fis = new FileInputStream(file);
-        byte[] data = new byte[(int) file.length()];
-        fis.read(data);
-        fis.close();
+        byte[] data;
+        try (FileInputStream fis = new FileInputStream(file)) {
+            data = new byte[(int) file.length()];
+            while (fis.read(data) != -1){
+                Utils.getGlobalLogger().debug("EXDF読み取り");
+            }
+        }
 
         loadEXDF(data);
     }
@@ -65,6 +69,7 @@ public class EXDF_File extends Game_File {
         return new EXDF_Entry(data, entryOffsets[index].index, entryOffsets[index].offset);
     }
 
+    @SuppressWarnings("unused")
     static class EXDF_DataBlock {
         private final byte[] data;
 
@@ -88,6 +93,7 @@ public class EXDF_File extends Game_File {
         }
     }
 
+    @SuppressWarnings("unused")
     public byte[] getRawData() {
         return data;
     }
@@ -109,6 +115,7 @@ public class EXDF_File extends Game_File {
             buffer.get(dataChunk);
         }
 
+        @SuppressWarnings("unused")
         public byte[] getRawData() {
             return dataChunk;
         }
@@ -167,7 +174,7 @@ public class EXDF_File extends Game_File {
             buffer.position(datasetChunkSize + stringOffset);
 
             //Find the null terminator
-            int nullTermPos = -1;
+            int nullTermPos;
             while (true) {
                 byte in = buffer.get();
                 if (in == 0x00) {
@@ -193,12 +200,14 @@ public class EXDF_File extends Game_File {
             return index;
         }
 
+        @SuppressWarnings("unused")
         public boolean getByteBool(short offset2) {
             return false;
         }
 
     }
 
+    @SuppressWarnings("unused")
     public EXDF_Offset[] getIndexOffsetTable() {
         return entryOffsets;
     }

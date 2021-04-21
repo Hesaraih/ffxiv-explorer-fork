@@ -20,25 +20,25 @@ public class SHPK_File extends Game_File {
     private int fileLength;
     private String directXVersion;
     private int shaderDataOffset;
-    private int parameterOffset;
     private int numVertexShaders;
     private int numPixelShaders;
-    private int numConstants;
-    private int numSamplers;
+    @SuppressWarnings("unused")
     int numX;
+    @SuppressWarnings("unused")
     int numY;
 
-    private ParameterInfo[] paramInfo;
+    private final ArrayList<ShaderHeader> shaderHeaders = new ArrayList<>();
 
-    private final ArrayList<ShaderHeader> shaderHeaders = new ArrayList<ShaderHeader>();
-
+    @SuppressWarnings("unused")
     public SHPK_File(String path, ByteOrder endian) throws IOException {
         super(endian);
         File file = new File(path);
-        FileInputStream fis = new FileInputStream(file);
-        byte[] data = new byte[(int) file.length()];
-        fis.read(data);
-        fis.close();
+        try (FileInputStream fis = new FileInputStream(file)) {
+            data = new byte[(int) file.length()];
+            while (fis.read(data) != -1) {
+                Utils.getGlobalLogger().debug("SHPK読み取り");
+            }
+        }
         loadSHPK(data);
     }
 
@@ -69,15 +69,15 @@ public class SHPK_File extends Game_File {
 
         fileLength = bb.getInt();
         shaderDataOffset = bb.getInt();
-        parameterOffset = bb.getInt();
+        int parameterOffset = bb.getInt();
         numVertexShaders = bb.getInt();
         numPixelShaders = bb.getInt();
 
         bb.getInt();
         int someNum = bb.getInt();
 
-        numConstants = bb.getInt();
-        numSamplers = bb.getInt();
+        int numConstants = bb.getInt();
+        int numSamplers = bb.getInt();
 
         bb.getInt(); //Count?
         bb.getInt(); //Count?
@@ -99,13 +99,12 @@ public class SHPK_File extends Game_File {
         bb.position(bb.position() + (someNum * 8));
 
         //Read in parameter info for the pack
-        paramInfo = new ParameterInfo[numConstants + numSamplers];
+        ParameterInfo[] paramInfo = new ParameterInfo[numConstants + numSamplers];
         for (int i = 0; i < paramInfo.length; i++)
             paramInfo[i] = new ParameterInfo(bb);
 
         //Read in strings for headers
-        for (int i = 0; i < shaderHeaders.size(); i++) {
-            ShaderHeader header = shaderHeaders.get(i);
+        for (ShaderHeader header : shaderHeaders) {
             for (int j = 0; j < header.paramInfo.length; j++) {
                 byte[] buff = new byte[header.paramInfo[j].stringSize];
                 bb.position(parameterOffset + header.paramInfo[j].stringOffset);
@@ -114,12 +113,12 @@ public class SHPK_File extends Game_File {
             }
         }
 
-        //Read in strings for shaderpack
-        for (int j = 0; j < paramInfo.length; j++) {
-            byte[] buff = new byte[paramInfo[j].stringSize];
-            bb.position(parameterOffset + paramInfo[j].stringOffset);
+        //Read in strings for shaderPack
+        for (ParameterInfo parameterInfo : paramInfo) {
+            byte[] buff = new byte[parameterInfo.stringSize];
+            bb.position(parameterOffset + parameterInfo.stringOffset);
             bb.get(buff);
-            paramInfo[j].parameterName = new String(buff);
+            parameterInfo.parameterName = new String(buff);
         }
     }
 
@@ -156,5 +155,10 @@ public class SHPK_File extends Game_File {
 
     public ShaderHeader getShaderHeader(int i) {
         return shaderHeaders.get(i);
+    }
+
+    @SuppressWarnings("unused")
+    public int getFileLength() {
+        return fileLength;
     }
 }

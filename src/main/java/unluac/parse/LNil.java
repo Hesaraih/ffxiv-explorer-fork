@@ -9,6 +9,11 @@ public class LNil extends LObject{
   }
  
   @Override
+  public String toPrintString() {
+    return "nil";
+  }
+  
+  @Override
   public boolean equals(Object o) {
     return this == o;
   }

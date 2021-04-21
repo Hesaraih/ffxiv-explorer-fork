@@ -97,8 +97,19 @@ public class Assignment extends Statement {
     }
     targets.add(target);
     values.add(value);
-    lines.add(0, line);
+    lines.add(line);
     allnil = allnil && value.isNil();
+  }
+  
+  public Expression getValue(int target) {
+    int index = 0;
+    for(Target t : targets) {
+      if(t.isLocal() && t.getIndex() == target) {
+        return values.get(index);
+      }
+      index++;
+    }
+    throw new IllegalStateException();
   }
   
   public void replaceValue(int target, Expression value) {
@@ -182,10 +193,10 @@ public class Assignment extends Statement {
         //if(closure.isUpvalueOf(targets.get(0).))
       }
       if(!functionSugar) {
-        targets.get(0).print(d, out);
+        targets.get(0).print(d, out, declare);
         for(int i = 1; i < targets.size(); i++) {
           out.print(", ");
-          targets.get(i).print(d, out);
+          targets.get(i).print(d, out, declare);
         }
         if(!declare || !allnil) {
           out.print(" = ");
@@ -215,7 +226,7 @@ public class Assignment extends Statement {
             }
           }
           
-          Expression.printSequence(d, out, expressions, false, false);
+          Expression.printSequence(d, out, expressions, false, true);
         }
       } else {
         values.get(0).printClosure(d, out, targets.get(0));

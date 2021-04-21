@@ -64,14 +64,14 @@ class SCDConverterWindow extends JFrame {
         panel.add(panel_4, BorderLayout.SOUTH);
         panel_4.setLayout(new BoxLayout(panel_4, BoxLayout.X_AXIS));
 
-        JLabel lblNewLabel = new JLabel("Converted file will be inputfile.ogg.scd");
+        JLabel lblNewLabel = new JLabel("変換されたファイルは「inputfile.ogg.scd」になります。");
         panel_4.add(lblNewLabel);
 
         txtPath = new JTextField();
         txtPath.setEditable(false);
         panel.add(txtPath, BorderLayout.CENTER);
 
-        JButton btnBrowse = new JButton("Browse");
+        JButton btnBrowse = new JButton(Strings.BUTTONNAMES_BROWSE);
         panel.add(btnBrowse, BorderLayout.EAST);
 
         pnlOpt = new JPanel();
@@ -88,7 +88,7 @@ class SCDConverterWindow extends JFrame {
         panel_1.add(panel_5);
         panel_5.setLayout(new BorderLayout(0, 0));
 
-        lblVolume = new JLabel("Volume: ");
+        lblVolume = new JLabel("音量: ");
         panel_5.add(lblVolume, BorderLayout.WEST);
 
         edtVolume = new JTextField();
@@ -112,7 +112,7 @@ class SCDConverterWindow extends JFrame {
         panel_1.add(panel_7);
         panel_7.setLayout(new BorderLayout(0, 0));
 
-        lblSample = new JLabel("Sample Rate (hz): ");
+        lblSample = new JLabel("サンプリングレート(hz): ");
         panel_7.add(lblSample, BorderLayout.WEST);
 
         edtSampleRate = new JTextField();
@@ -143,7 +143,7 @@ class SCDConverterWindow extends JFrame {
         panel_1.add(panel_8);
         panel_8.setLayout(new BorderLayout(0, 0));
 
-        lblLoopStart = new JLabel("Loop Start (Samples): ");
+        lblLoopStart = new JLabel("ループ開始(サンプル): ");
         panel_8.add(lblLoopStart, BorderLayout.WEST);
 
         edtLoopStart = new JTextField();
@@ -155,7 +155,7 @@ class SCDConverterWindow extends JFrame {
         panel_1.add(panel_9);
         panel_9.setLayout(new BorderLayout(0, 0));
 
-        lblLoopEnd = new JLabel("Loop End (Samples):   ");
+        lblLoopEnd = new JLabel("ループ終了(サンプル):   ");
         panel_9.add(lblLoopEnd, BorderLayout.WEST);
 
         edtLoopEnd = new JTextField();
@@ -188,41 +188,27 @@ class SCDConverterWindow extends JFrame {
         setLocationRelativeTo(null);
 
 
-        btnBrowse.addActionListener(new ActionListener() {
+        btnBrowse.addActionListener(arg0 -> setPath());
 
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                setPath();
-            }
+        rdbtnLoop.addActionListener(e -> {
+
         });
 
-        rdbtnLoop.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-
-            }
-        });
-
-        ActionListener radioListener = new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (e.getActionCommand().equals("loopNorm")) {
-                    edtLoopStart.setText("");
-                    edtLoopEnd.setText("");
-                    edtNumSamples.setText("");
-                    edtLoopStart.setEnabled(false);
-                    edtLoopEnd.setEnabled(false);
-                    edtNumSamples.setEnabled(false);
-                } else if (e.getActionCommand().equals("loopCustom")) {
-                    edtLoopStart.setText("0");
-                    edtLoopEnd.setText("0");
-                    edtNumSamples.setText("0");
-                    edtLoopStart.setEnabled(true);
-                    edtLoopEnd.setEnabled(true);
-                    edtNumSamples.setEnabled(true);
-                }
+        ActionListener radioListener = e -> {
+            if (e.getActionCommand().equals("loopNorm")) {
+                edtLoopStart.setText("");
+                edtLoopEnd.setText("");
+                edtNumSamples.setText("");
+                edtLoopStart.setEnabled(false);
+                edtLoopEnd.setEnabled(false);
+                edtNumSamples.setEnabled(false);
+            } else if (e.getActionCommand().equals("loopCustom")) {
+                edtLoopStart.setText("0");
+                edtLoopEnd.setText("0");
+                edtNumSamples.setText("0");
+                edtLoopStart.setEnabled(true);
+                edtLoopEnd.setEnabled(true);
+                edtNumSamples.setEnabled(true);
             }
         };
 
@@ -240,14 +226,14 @@ class SCDConverterWindow extends JFrame {
                     JOptionPane
                             .showMessageDialog(
                                     null,
-                                    "Converted",
+                                    "変換完了",
                                     "Ogg to SCD Converter", JOptionPane.INFORMATION_MESSAGE);
                 } catch (IOException e1) {
                     Utils.getGlobalLogger().error(e1);
                     JOptionPane
                             .showMessageDialog(
                                     null,
-                                    "There was an error converting.",
+                                    "変換できませんでした",
                                     "Ogg to SCD Converter", JOptionPane.ERROR_MESSAGE);
                 }
             }
@@ -264,7 +250,7 @@ class SCDConverterWindow extends JFrame {
         int loopEnd = ogg.length;
 
 
-        //Handle custom loops
+        //カスタムループを処理
         if (rdbtnCustom.isSelected()) {
 
             int positionStart;
@@ -294,10 +280,10 @@ class SCDConverterWindow extends JFrame {
             loopEnd = getBytePosition(positionEnd, numSamples, ogg.length - 0x10);
 
         }
-        //Create Header
+        //ヘッダ作成
         byte[] header = createSCDHeader(ogg.length, volume, numChannels, sampleRate, loopStart, loopEnd);
 
-        //Write out scd
+        //scd書き込み
         BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(oggPath + ".scd"));
         out.write(header);
         out.write(ogg);
@@ -305,7 +291,7 @@ class SCDConverterWindow extends JFrame {
     }
 
     private byte[] createSCDHeader(int oggLength, float volume, int numChannels, int sampleRate, int loopStart, int loopEnd) {
-        //Load scd template scd header
+        //scdテンプレートとscdヘッダーをロード
         InputStream inStream = getClass().getResourceAsStream("/scd_header.bin");
         byte[] scdHeader = new byte[SCD_HEADER_SIZE];
         try {
@@ -315,7 +301,7 @@ class SCDConverterWindow extends JFrame {
             e.printStackTrace();
         }
 
-        //Edit the parts needed
+        //必要な部分を編集する
         ByteBuffer bb = ByteBuffer.wrap(scdHeader);
         bb.order(ByteOrder.LITTLE_ENDIAN);
         bb.position(0x10);

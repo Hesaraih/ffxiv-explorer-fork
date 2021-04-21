@@ -14,6 +14,7 @@ public abstract class Game_File {
         return endian;
     }
 
+    @SuppressWarnings("unused")
     public boolean isBigEndian() {
         return endian == ByteOrder.BIG_ENDIAN;
     }

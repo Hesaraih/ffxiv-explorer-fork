@@ -1,5 +1,6 @@
 package com.fragmenterworks.ffxivextract.shaders;
 
+@SuppressWarnings("SpellCheckingInspection")
 class MinifiedShaders {
 
     static final String model_vert_glsl = "#version 150\n" + "precision highp float;\n"

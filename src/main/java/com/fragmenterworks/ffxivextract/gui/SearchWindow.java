@@ -63,26 +63,48 @@ class SearchWindow extends JDialog {
         this.currentIndexFile = currentIndexFile;
 
         // String search
-        pnlSearchString = new JPanel(new GridBagLayout());
+        GridBagLayout layout = new GridBagLayout();
+        //pnlSearchString = new JPanel(new GridBagLayout());
+        pnlSearchString = new JPanel(layout);
+
         txtSearchLabel = new JLabel(Strings.SEARCH_FRAMETITLE_BYSTRING);
         txtStringToSearch = new JTextField(lastString == null ? "" : lastString);
         txtStringToSearch.setPreferredSize(new Dimension(200, txtSearchLabel
-                .getPreferredSize().height));
+                .getPreferredSize().height+6));
         rbtnSearchString = new JRadioButton(Strings.SEARCH_FRAMETITLE_BYSTRING);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0, 0, 5, 5); //グリッドバッグ内の余白
+        gbc.anchor = GridBagConstraints.WEST; //グリッドバッグ内での位置：左寄せ中央
 
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        layout.setConstraints(rbtnSearchString, gbc);
         pnlSearchString.add(rbtnSearchString);
+
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        layout.setConstraints(txtStringToSearch, gbc);
         pnlSearchString.add(txtStringToSearch);
 
         // Byte search
         pnlSearchBytes = new JPanel(new GridBagLayout());
         txtSearchLabel2 = new JLabel(Strings.SEARCH_FRAMETITLE_BYBYTES);
         txtBytesToSearch = new JTextField();
-        txtBytesToSearch.setPreferredSize(new Dimension(200, txtSearchLabel
-                .getPreferredSize().height));
+        txtBytesToSearch.setPreferredSize(new Dimension(200, txtSearchLabel2
+                .getPreferredSize().height+6));
         rbtnSearchBytes = new JRadioButton(Strings.SEARCH_FRAMETITLE_BYBYTES);
 
-        pnlSearchBytes.add(rbtnSearchBytes);
-        pnlSearchBytes.add(txtBytesToSearch);
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        layout.setConstraints(rbtnSearchBytes, gbc);
+        pnlSearchString.add(rbtnSearchBytes);
+
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        layout.setConstraints(txtBytesToSearch, gbc);
+        pnlSearchString.add(txtBytesToSearch);
+        //pnlSearchBytes.add(rbtnSearchBytes);
+        //pnlSearchBytes.add(txtBytesToSearch);
 
         // Buttons
         pnlButtons = new JPanel();
@@ -205,7 +227,7 @@ class SearchWindow extends JDialog {
                 SqPack_File fi = f.getFiles()[j];
                 byte[] data;
                 try {
-                    data = currentIndexFile.extractFile(fi.dataoffset, null);
+                    data = currentIndexFile.extractFile(fi.dataOffset, null);
                     if (data == null)
                         continue;
 
@@ -290,7 +312,7 @@ class SearchWindow extends JDialog {
                 SqPack_File fi = f.getFiles()[j];
                 byte[] data;
                 try {
-                    data = currentIndexFile.extractFile(fi.dataoffset, null);
+                    data = currentIndexFile.extractFile(fi.dataOffset, null);
 
                     if (data == null)
                         continue;

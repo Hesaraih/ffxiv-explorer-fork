@@ -25,17 +25,17 @@ public class Macro_File {
         ref.seek(0x10);
 
         //Read the data in
-        byte[] macrobookData = new byte[macroBookSize];
-        ref.readFully(macrobookData);
+        byte[] macroBookData = new byte[macroBookSize];
+        ref.readFully(macroBookData);
 
         ref.close();
 
         //XOR it
-        for (int i = 0; i < macrobookData.length; i++)
-            macrobookData[i] ^= XOR_BYTE;
+        for (int i = 0; i < macroBookData.length; i++)
+            macroBookData[i] ^= XOR_BYTE;
 
         //Read in macro entries
-        ByteBuffer bb = ByteBuffer.wrap(macrobookData);
+        ByteBuffer bb = ByteBuffer.wrap(macroBookData);
         bb.order(ByteOrder.LITTLE_ENDIAN);
         bb.position(1);
         for (int i = 0; i < MAX_MACROS; i++) {

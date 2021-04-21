@@ -6,11 +6,19 @@ public abstract class LNumber extends LObject {
     return new LIntNumber(number);
   }
   
+  public static LNumber makeDouble(double x) {
+    return new LDoubleNumber(x, LNumberType.NumberMode.MODE_FLOAT);
+  }
+  
   @Override
-  public abstract String toString();
+  public abstract String toPrintString();
     
   //TODO: problem solution for this issue
   public abstract double value();
+  
+  public abstract boolean integralType();
+  
+  public abstract long bits();
 }
 
 class LFloatNumber extends LNumber {
@@ -24,7 +32,7 @@ class LFloatNumber extends LNumber {
   }
   
   @Override
-  public String toString() {
+  public String toPrintString() {
     if(mode == LNumberType.NumberMode.MODE_NUMBER && number == (float) Math.round(number)) {
       if(Float.floatToRawIntBits(number) == Float.floatToRawIntBits(-0.0f)) {
         return "-0";
@@ -51,6 +59,16 @@ class LFloatNumber extends LNumber {
     return number;
   }
   
+  @Override
+  public boolean integralType() {
+    return false;
+  }
+  
+  @Override
+  public long bits() {
+    return Float.floatToRawIntBits(number);
+  }
+  
 }
 
 class LDoubleNumber extends LNumber {
@@ -64,7 +82,7 @@ class LDoubleNumber extends LNumber {
   }
   
   @Override
-  public String toString() {
+  public String toPrintString() {
     if(mode == LNumberType.NumberMode.MODE_NUMBER && number == (double) Math.round(number)) {
       if(Double.doubleToRawLongBits(number) == Double.doubleToRawLongBits(-0.0)) {
         return "-0";
@@ -91,6 +109,16 @@ class LDoubleNumber extends LNumber {
     return number;
   }
   
+  @Override
+  public boolean integralType() {
+    return false;
+  }
+  
+  @Override
+  public long bits() {
+    return Double.doubleToRawLongBits(number);
+  }
+  
 }
 
 class LIntNumber extends LNumber {
@@ -102,7 +130,7 @@ class LIntNumber extends LNumber {
   }
   
   @Override
-  public String toString() {    
+  public String toPrintString() {    
     return Integer.toString(number);
   }
   
@@ -121,6 +149,16 @@ class LIntNumber extends LNumber {
     return number;
   }
   
+  @Override
+  public boolean integralType() {
+    return true;
+  }
+  
+  @Override
+  public long bits() {
+    return number;
+  }
+  
 }
 
 class LLongNumber extends LNumber {
@@ -132,7 +170,7 @@ class LLongNumber extends LNumber {
   }
   
   @Override
-  public String toString() {    
+  public String toPrintString() {    
     return Long.toString(number);
   }
   
@@ -148,6 +186,16 @@ class LLongNumber extends LNumber {
   
   @Override
   public double value() {
+    return number;
+  }
+  
+  @Override
+  public boolean integralType() {
+    return true;
+  }
+  
+  @Override
+  public long bits() {
     return number;
   }
   

@@ -3,9 +3,7 @@ package com.fragmenterworks.ffxivextract.gui.components;
 import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile;
 import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile.SqPack_File;
 import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile.SqPack_Folder;
-import sun.awt.datatransfer.TransferableProxy;
 
-import javax.sound.sampled.Clip;
 import javax.swing.*;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -15,9 +13,6 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.awt.datatransfer.Transferable;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
@@ -25,12 +20,10 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Enumeration;
 
-@SuppressWarnings("serial")
 public class ExplorerPanel_View extends JScrollPane implements MouseListener {
 
     private final JTree fileTree;
-    private final DefaultMutableTreeNode root = new DefaultMutableTreeNode("No File Loaded");
-    JScrollPane scroller;
+    private final DefaultMutableTreeNode root = new DefaultMutableTreeNode("ファイルが読み込まれていません");
 
     PopupMenu contextMenu;
 
@@ -45,34 +38,31 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
         fileTree.addMouseListener(this);
 
         contextMenu = new PopupMenu();
-        MenuItem copyPath = new MenuItem("Copy full path");
-        copyPath.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String path = "";
-                TreePath[] selectedPaths = fileTree.getSelectionPaths();
+        MenuItem copyPath = new MenuItem("フルパスをコピー");
+        copyPath.addActionListener(e -> {
+            String path = "";
+            TreePath[] selectedPaths = fileTree.getSelectionPaths();
 
-                if (selectedPaths == null)
-                    return;
+            if (selectedPaths == null)
+                return;
 
-                TreePath tp = selectedPaths[0];
-                Object obj = ((DefaultMutableTreeNode) tp.getLastPathComponent()).getUserObject();
+            TreePath tp = selectedPaths[0];
+            Object obj = ((DefaultMutableTreeNode) tp.getLastPathComponent()).getUserObject();
 
-                if (obj == null)
-                    return;
-                else if (obj instanceof SqPack_Folder)
-                    path = ((SqPack_Folder) obj).getName();
-                else if (obj instanceof SqPack_File) {
-                    // It's messy but...
-                    SqPack_Folder folder = (SqPack_Folder) ((DefaultMutableTreeNode) tp.getParentPath().getLastPathComponent()).getUserObject();
-                    SqPack_File file = (SqPack_File) obj;
+            if (obj == null)
+                return;
+            else if (obj instanceof SqPack_Folder)
+                path = ((SqPack_Folder) obj).getName();
+            else if (obj instanceof SqPack_File) {
+                // It's messy but...
+                SqPack_Folder folder = (SqPack_Folder) ((DefaultMutableTreeNode) tp.getParentPath().getLastPathComponent()).getUserObject();
+                SqPack_File file = (SqPack_File) obj;
 
-                    path = folder.getName() + "/" + file.getName();
-                }
-                StringSelection selection = new StringSelection(path);
-                Clipboard clip = Toolkit.getDefaultToolkit().getSystemClipboard();
-                clip.setContents(selection, selection);
+                path = folder.getName() + "/" + file.getName();
             }
+            StringSelection selection = new StringSelection(path);
+            Clipboard clip = Toolkit.getDefaultToolkit().getSystemClipboard();
+            clip.setContents(selection, selection);
         });
         contextMenu.add(copyPath);
         this.add(contextMenu);
@@ -86,10 +76,10 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
     public void fileOpened(SqPack_IndexFile index) {
 
         if (index.hasNoFolders()) {
-            SqPack_Folder fakefolder = index.getPackFolders()[0];
-            Arrays.sort(fakefolder.getFiles(), fileComparator);
-            for (int j = 0; j < fakefolder.getFiles().length; j++)
-                root.add(new DefaultMutableTreeNode(fakefolder.getFiles()[j]));
+            SqPack_Folder fakeFolder = index.getPackFolders()[0];
+            Arrays.sort(fakeFolder.getFiles(), fileComparator);
+            for (int j = 0; j < fakeFolder.getFiles().length; j++)
+                root.add(new DefaultMutableTreeNode(fakeFolder.getFiles()[j]));
         } else {
             Arrays.sort(index.getPackFolders(), folderComparator);
 
@@ -140,7 +130,7 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
     public void mouseExited(MouseEvent e) {
     }
 
-    private class TreeRenderer extends DefaultTreeCellRenderer {
+    private static class TreeRenderer extends DefaultTreeCellRenderer {
 
         private final Icon fileIcon =
                 (Icon) UIManager.get("FileView.fileIcon");
@@ -177,9 +167,9 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
             } else //ROOT
             {
                 if (tree.getModel().getChildCount(node) == 0)
-                    value = "No File Loaded";
+                    value = "ファイルが読み込まれていません";
                 else
-                    value = "Dat File";
+                    value = "Datファイル";
                 setOpenIcon(folderIcon);
                 setClosedIcon(folderIcon);
             }
@@ -207,7 +197,7 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
     }
 
     public ArrayList<SqPack_File> getSelectedFiles() {
-        ArrayList<SqPack_File> selectedFiles = new ArrayList<SqPack_File>();
+        ArrayList<SqPack_File> selectedFiles = new ArrayList<>();
         TreePath[] selectedPaths = fileTree.getSelectionPaths();
 
         if (selectedPaths == null)
@@ -234,6 +224,8 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
 
     public void select(long offset) {
         DefaultMutableTreeNode root = (DefaultMutableTreeNode) fileTree.getModel().getRoot();
+        //Enumeration<DefaultMutableTreeNode> e = root.depthFirstEnumeration();
+        @SuppressWarnings("unchecked")
         Enumeration<DefaultMutableTreeNode> e = root.depthFirstEnumeration();
         while (e.hasMoreElements()) {
             DefaultMutableTreeNode node = e.nextElement();
@@ -246,24 +238,13 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
         }
     }
 
+    //private final Comparator<SqPack_Folder> folderComparator = Comparator.comparing(SqPack_Folder::getName);
+    //ファイル名やパスに大文字表示できるようにしたため、ツリー表示用のソート時には小文字で比較するよう変更
+    private final Comparator<SqPack_Folder> folderComparator = Comparator.comparing((SqPack_Folder spFolder) -> spFolder.getName().toLowerCase());
 
-    private final Comparator<SqPack_Folder> folderComparator = new Comparator<SqPack_Folder>() {
-
-        @Override
-        public int compare(SqPack_Folder o1, SqPack_Folder o2) {
-
-            return o1.getName().compareTo(o2.getName());
-        }
-    };
-
-    private final Comparator<SqPack_File> fileComparator = new Comparator<SqPack_File>() {
-
-        @Override
-        public int compare(SqPack_File o1, SqPack_File o2) {
-
-            return o1.getName().compareTo(o2.getName());
-        }
-    };
+    //private final Comparator<SqPack_File> fileComparator = Comparator.comparing(SqPack_File::getName);
+    //ファイル名やパスに大文字表示できるようにしたため、ツリー表示用のソート時には小文字で比較するよう変更
+    private final Comparator<SqPack_File> fileComparator = Comparator.comparing((SqPack_File spFile) -> spFile.getName().toLowerCase());
 
 
 }

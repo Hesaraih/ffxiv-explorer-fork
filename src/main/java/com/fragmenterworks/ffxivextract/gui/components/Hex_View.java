@@ -4,10 +4,9 @@ import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
 
-@SuppressWarnings("serial")
 public class Hex_View extends JScrollPane {
 
-    private JTable txtHexData = null;
+    private final JTable txtHexData;
     private final int columnCount;
     private byte[] bytes = null;
     private final String[] byteToStr = new String[256];
@@ -44,29 +43,32 @@ public class Hex_View extends JScrollPane {
                     setFont(header.getFont());
                 }
 
-                if (column == 0)
+                if (column == 0) {
                     setHorizontalAlignment(JLabel.RIGHT);
-                else
+                } else {
                     setHorizontalAlignment(JLabel.CENTER);
+                }
                 setText((value == null) ? "" : value.toString());
 
-                if (column == 0)
+                if (column == 0) {
                     setBorder(BorderFactory.createMatteBorder(0, 0, 1, 2,
                             Color.LIGHT_GRAY));
-                else if (column == Hex_View.this.columnCount) {
-                    if (value == null)
+                } else if (column == Hex_View.this.columnCount) {
+                    if (value == null) {
                         setBorder(BorderFactory.createMatteBorder(0, 0, 0, 0,
                                 Color.LIGHT_GRAY));
-                    else
+                    } else {
                         setBorder(BorderFactory.createMatteBorder(0, 0, 1, 2,
                                 Color.LIGHT_GRAY));
+                    }
                 } else {
-                    if (value == null)
+                    if (value == null) {
                         setBorder(BorderFactory.createMatteBorder(0, 0, 0, 0,
                                 Color.LIGHT_GRAY));
-                    else
+                    } else {
                         setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1,
                                 Color.LIGHT_GRAY));
+                    }
                 }
 
                 return this;
@@ -111,7 +113,6 @@ public class Hex_View extends JScrollPane {
 
         if (byteArray == null) {
             bytes = new byte[1];
-            bytes[0] = 0x00;
             return;
         }
 
@@ -131,13 +132,14 @@ public class Hex_View extends JScrollPane {
 
         @Override
         public int getRowCount() {
-            if (bytes == null || bytes.length == 0)
+            if (bytes == null || bytes.length == 0) {
                 return 0;
-            else {
-                if (bytes.length % columnCount == 0)
+            } else {
+                if (bytes.length % columnCount == 0) {
                     return (bytes.length / columnCount);
-                else
+                } else {
                     return (bytes.length / columnCount) + 1;
+                }
             }
 
         }
@@ -152,17 +154,19 @@ public class Hex_View extends JScrollPane {
             if (columnIndex == 0) {
                 return String.format("%x: ", columnCount * rowIndex);
             } else if (columnIndex >= 1 && columnIndex <= columnCount) {
-                if (((rowIndex * columnCount) + columnIndex - 1) > bytes.length - 1)
+                if (((rowIndex * columnCount) + columnIndex - 1) > bytes.length - 1) {
                     return null;
+                }
 
                 int value = bytes[(rowIndex * columnCount) + columnIndex - 1];
                 return byteToStr[value & 0xFF];
             } else {
-                if (((rowIndex * columnCount) + columnIndex - columnCount - 1) > bytes.length - 1)
+                final int allColumns = (rowIndex * columnCount) + columnIndex - columnCount - 1;
+                if (allColumns > bytes.length - 1) {
                     return null;
+                }
 
-                int value = bytes[(rowIndex * columnCount) + columnIndex
-                        - columnCount - 1];
+                int value = bytes[allColumns];
                 return byteToChar[value & 0xFF];
             }
         }

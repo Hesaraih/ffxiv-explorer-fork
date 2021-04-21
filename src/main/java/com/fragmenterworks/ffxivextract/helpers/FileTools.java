@@ -27,6 +27,7 @@ public class FileTools {
     }
 
 
+    @SuppressWarnings("unused")
     public static BufferedImage getIcon(SqPack_IndexFile sqPak, int iconID) {
         String file;
         if (sqPak == null) {
@@ -38,6 +39,7 @@ public class FileTools {
         return getIcon(file, iconID);
     }
 
+    @SuppressWarnings("unused")
     public static BufferedImage getIcon(int iconID) {
         return getIcon((String) null, iconID);
     }
@@ -48,17 +50,18 @@ public class FileTools {
         }
         String iconPath = String.format("ui/icon/%06d/%06d.tex", iconID - (iconID % 1000), iconID);
         Utils.getGlobalLogger().debug("IconPath: {}, iconID: {}", iconPath, iconID);
-        BufferedImage bi = getTexture(sqPakPath, iconPath);
-        return bi;
+        return getTexture(sqPakPath, iconPath);
     }
 
 
+    @SuppressWarnings("unused")
     public static byte[] getRaw(SqPack_IndexFile sqPak, String path) {
         String file = sqPak.getPath();
-        String sqpakpath = new File(file).getParentFile().getPath();
-        return getRaw(sqpakpath, path);
+        String sqPackPath = new File(file).getParentFile().getPath();
+        return getRaw(sqPackPath, path);
     }
 
+    @SuppressWarnings("unused")
     public static byte[] getRaw(String path) {
         return getRaw((String) null, path);
     }
@@ -68,8 +71,8 @@ public class FileTools {
         if (sqPakPath == null) {
             sqPakPath = Constants.datPath;
         }
-        String lowerpath = path.toLowerCase();
-        String dat = getDatByPath(lowerpath);
+        String lowerPath = path.toLowerCase();
+        String dat = getDatByPath(lowerPath);
 
         if (!sqPakPath.endsWith(File.separator)) {
             sqPakPath += File.separator;
@@ -83,7 +86,7 @@ public class FileTools {
 
         if (index != null) {
             try {
-                return index.extractFile(lowerpath);
+                return index.extractFile(lowerPath);
             } catch (IOException e) {
                 Utils.getGlobalLogger().error(e);
             }
@@ -91,8 +94,8 @@ public class FileTools {
         return new byte[0];
     }
 
-    private static String getDatByPath(final String lowerpath) {
-        String root = lowerpath.substring(0, lowerpath.indexOf("/"));
+    private static String getDatByPath(final String lowerPath) {
+        String root = lowerPath.substring(0, lowerPath.indexOf("/"));
         String dat;
         switch (root) {
             case "exd": {
@@ -150,6 +153,7 @@ public class FileTools {
         return dat;
     }
 
+    @SuppressWarnings("unused")
     public static BufferedImage getTexture(String path) {
         return getTexture(null, path);
     }
@@ -163,8 +167,7 @@ public class FileTools {
         //TODO: Random ULD stuff can be little-endian, no?
         Texture_File tf = new Texture_File(data, ByteOrder.LITTLE_ENDIAN);
         try {
-            BufferedImage bf = tf.decode(0, new HashMap<>());
-            return bf;
+            return tf.decode(0, new HashMap<>());
         } catch (ImageDecoding.ImageDecodingException e) {
             Utils.getGlobalLogger().error(e);
         }

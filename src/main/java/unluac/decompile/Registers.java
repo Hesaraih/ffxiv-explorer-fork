@@ -17,10 +17,11 @@ public class Registers {
   
   private final Declaration[][] decls;
   private final Function f;
+  public final boolean isNoDebug;
   private final Expression[][] values;
   private final int[][] updated;
   
-  public Registers(int registers, int length, Declaration[] declList, Function f) {
+  public Registers(int registers, int length, Declaration[] declList, Function f, boolean isNoDebug) {
     this.registers = registers;
     this.length = length;
     decls = new Declaration[registers][length + 1];
@@ -44,10 +45,15 @@ public class Registers {
     startedLines = new boolean[length + 1];
     Arrays.fill(startedLines, false);
     this.f = f;
+    this.isNoDebug = isNoDebug;
+  }
+  
+  public Function getFunction() {
+    return f;
   }
   
   public boolean isAssignable(int register, int line) {
-    return isLocal(register, line) && !decls[register][line].forLoop;
+    return isLocal(register, line) && (!decls[register][line].forLoop || isNoDebug);
   }
   
   public boolean isLocal(int register, int line) {
@@ -105,8 +111,20 @@ public class Registers {
     }
   }
   
+  public Expression getKExpression54(int register, boolean k, int line) {
+    if(k) {
+      return f.getConstantExpression(register);
+    } else {
+      return getExpression(register, line);
+    }
+  }
+  
   public Expression getValue(int register, int line) {
-    return values[register][line - 1];
+    if(isNoDebug) {
+      return getExpression(register, line);
+    } else {
+      return values[register][line - 1];
+    }
   }
 
   public int getUpdated(int register, int line) {
@@ -131,8 +149,11 @@ public class Registers {
       decl = new Declaration("_FOR_", begin, end);
       decl.register = register;
       newDeclaration(decl, register, begin, end);
-      throw new IllegalStateException("TEMP");
-      
+      if(!isNoDebug) {
+        throw new IllegalStateException("TEMP");
+      }
+    } else if(isNoDebug) {
+      //
     } else {
       if(decl.begin != begin || decl.end != end) {
         System.err.println("given: " + begin + " " + end);
@@ -149,7 +170,10 @@ public class Registers {
       decl = new Declaration("_FORV_" + register + "_", begin, end);
       decl.register = register;
       newDeclaration(decl, register, begin, end);
-      throw new IllegalStateException("TEMP");
+      if(!isNoDebug) {
+        throw new IllegalStateException("TEMP");
+      }
+    } else if(isNoDebug) {
       
     } else {
       if(decl.begin != begin || decl.end != end) {

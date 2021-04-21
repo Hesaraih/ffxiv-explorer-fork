@@ -1,5 +1,8 @@
 package unluac.parse;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 
 
@@ -72,6 +75,65 @@ public class LNumberType extends BObjectType<LNumber> {
       System.out.println("-- parsed <number> " + value);
     }
     return value;
+  }
+  
+  @Override
+  public void write(OutputStream out, BHeader header, LNumber n) throws IOException {
+    long bits = n.bits();
+    if(header.lheader.endianness == LHeader.LEndianness.LITTLE) {
+      for(int i = 0; i < size; i++) {
+        out.write((byte)(bits & 0xFF));
+        bits = bits >>> 8;
+      }
+    } else {
+      for(int i = size - 1; i >= 0; i--) {
+        out.write((byte)((bits >> (i * 8)) & 0xFF));
+      }
+    }
+  }
+  
+  public LNumber create(double x) {
+    if(integral) {
+      switch(size) {
+        case 4:
+          return new LIntNumber((int) x);
+        case 8:
+          return new LLongNumber((long) x);
+        default:
+          throw new IllegalStateException();
+      }
+    } else {
+      switch(size) {
+        case 4:
+          return new LFloatNumber((float) x, mode);
+        case 8:
+          return new LDoubleNumber(x, mode);
+        default:
+          throw new IllegalStateException();
+      }
+    }
+  }
+  
+  public LNumber create(BigInteger x) {
+    if(integral) {
+      switch(size) {
+        case 4:
+          return new LIntNumber(x.intValueExact());
+        case 8:
+          return new LLongNumber(x.longValueExact());
+        default:
+          throw new IllegalStateException();
+      }
+    } else {
+      switch(size) {
+        case 4:
+          return new LFloatNumber(x.floatValue(), mode);
+        case 8:
+          return new LDoubleNumber(x.doubleValue(), mode);
+        default:
+          throw new IllegalStateException();
+      }
+    }
   }
 
 }

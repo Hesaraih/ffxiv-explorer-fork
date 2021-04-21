@@ -8,16 +8,16 @@ import java.nio.ByteOrder;
  */
 public class EARandomAccessFile {
 
-    private RandomAccessFile raf;
-    private byte[] work;
+    private final RandomAccessFile raf;
+    private final byte[] work;
     private final ByteOrder endian;
 
     /**
      * @param file   file to read/write.
      * @param rw     like {@link java.io.RandomAccessFile} where "r" for read "rw" for read and write, "rws" for
-     *               read-write sync, and "rwd" for read-write dsync. Sync ensures the physical I/O has completed befor
+     *               read-write sync, and "rwd" for read-write desync. Sync ensures the physical I/O has completed before
      *               the method returns.
-     * @param endian the endian style to use.
+     * @param endian ByteOrder.LITTLE_ENDIAN または ByteOrder.BIG_ENDIAN
      * @throws java.io.FileNotFoundException if open fails.
      */
     public EARandomAccessFile(File file, String rw, ByteOrder endian) throws FileNotFoundException {
@@ -26,6 +26,7 @@ public class EARandomAccessFile {
         work = new byte[8];
     }
 
+    @SuppressWarnings("unused")
     public int peekInt() throws IOException {
         long pos = raf.getFilePointer();
         int ret = readInt();
@@ -45,7 +46,7 @@ public class EARandomAccessFile {
      *
      * @param file   name of file.
      * @param rw     string "r" or "rw" depending on read or read/write
-     * @param endian the endian style to use. true = bigEndian
+     * @param endian ByteOrder.LITTLE_ENDIAN または ByteOrder.BIG_ENDIAN
      * @throws java.io.FileNotFoundException if open fails.
      * @noinspection SameParameterValue
      */
@@ -70,6 +71,7 @@ public class EARandomAccessFile {
      * @return file descriptor (handle to open file)
      * @throws IOException if get fails.
      */
+    @SuppressWarnings("unused")
     public final FileDescriptor getFD() throws IOException {
         return raf.getFD();
     }
@@ -134,6 +136,7 @@ public class EARandomAccessFile {
      * @return true or false.
      * @throws IOException if read fails.
      */
+    @SuppressWarnings("unused")
     public final boolean readBoolean() throws IOException {
         return raf.readBoolean();
     }
@@ -149,11 +152,12 @@ public class EARandomAccessFile {
     }
 
     /**
-     * Read a char. like RandomAcessFile.readChar except little endian.
+     * Read a char. like RandomAccessFile.readChar except little endian.
      *
      * @return char read.
      * @throws IOException if read fails.
      */
+    @SuppressWarnings("unused")
     public final char readChar() throws IOException {
         raf.readFully(work, 0, 2);
 
@@ -163,21 +167,23 @@ public class EARandomAccessFile {
     }
 
     /**
-     * read a double. like RandomAcessFile.readDouble except little endian.
+     * read a double. like RandomAccessFile.readDouble except little endian.
      *
      * @return the double read.
      * @throws IOException if read fails.
      */
+    @SuppressWarnings("unused")
     public final double readDouble() throws IOException {
         return Double.longBitsToDouble(readLong());
     }
 
     /**
-     * read a float. like RandomAcessFile.readFloat except little endian.
+     * read a float. like RandomAccessFile.readFloat except little endian.
      *
      * @return float read.
      * @throws IOException if read fails.
      */
+    @SuppressWarnings("unused")
     public final float readFloat() throws IOException {
         return Float.intBitsToFloat(readInt());
     }
@@ -232,6 +238,7 @@ public class EARandomAccessFile {
      * @return line read.
      * @throws IOException if read fails.
      */
+    @SuppressWarnings("unused")
     public final String readLine() throws IOException {
         return raf.readLine();
     }
@@ -239,7 +246,7 @@ public class EARandomAccessFile {
     /**
      * Read a long, 64 bits.
      *
-     * @return long read. like RandomAcessFile.readLong except little endian.
+     * @return long read. like RandomAccessFile.readLong except little endian.
      * @throws IOException if read fails.
      */
     private long readLong() throws IOException {
@@ -268,7 +275,7 @@ public class EARandomAccessFile {
     /**
      * Read a short, 16 bits.
      *
-     * @return short read. like RandomAcessFile.readShort except little endian.
+     * @return short read. like RandomAccessFile.readShort except little endian.
      * @throws IOException if read fails.
      */
     public final short readShort() throws IOException {
@@ -285,27 +292,30 @@ public class EARandomAccessFile {
      * @return string read.
      * @throws IOException if read fails.
      */
+    @SuppressWarnings("unused")
     public final String readUTF() throws IOException {
         return raf.readUTF();
     }
 
     /**
-     * return an unsigned byte. Noote: returns an int, even though says Byte.
+     * return an unsigned byte. Note: returns an int, even though says Byte.
      *
      * @return the byte read.
      * @throws IOException if read fails.
      */
+    @SuppressWarnings("unused")
     public final int readUnsignedByte() throws IOException {
         return raf.readUnsignedByte();
     }
 
     /**
-     * Read an unsigned short, 16 bits. Like RandomAcessFile.readUnsignedShort except little endian. Note, returns int
+     * Read an unsigned short, 16 bits. Like RandomAccessFile.readUnsignedShort except little endian. Note, returns int
      * even though it reads a short.
      *
      * @return little-endian unsigned short, as an int.
      * @throws IOException if read fails.
      */
+    @SuppressWarnings("unused")
     public final int readUnsignedShort() throws IOException {
 
 
@@ -334,6 +344,7 @@ public class EARandomAccessFile {
      * @return the actual number of bytes skipped.
      * @throws IOException if read fails.
      */
+    @SuppressWarnings("UnusedReturnValue")
     public final int skipBytes(int n) throws IOException {
         return raf.skipBytes(n);
     }
@@ -379,6 +390,7 @@ public class EARandomAccessFile {
      * @throws IOException if read fails.
      * @see java.io.DataOutput#writeBoolean(boolean)
      */
+    @SuppressWarnings("unused")
     public final void writeBoolean(boolean v) throws IOException {
         raf.writeBoolean(v);
     }
@@ -390,6 +402,7 @@ public class EARandomAccessFile {
      * @throws IOException if read fails.
      * @see java.io.DataOutput#writeByte(int)
      */
+    @SuppressWarnings("unused")
     public final void writeByte(int v) throws IOException {
         raf.writeByte(v);
     }
@@ -401,6 +414,7 @@ public class EARandomAccessFile {
      * @throws IOException if read fails.
      * @see java.io.DataOutput#writeBytes(java.lang.String)
      */
+    @SuppressWarnings("unused")
     public final void writeBytes(String s) throws IOException {
         raf.writeBytes(s);
     }
@@ -408,7 +422,7 @@ public class EARandomAccessFile {
     /**
      * Write a char.  note param is an int though writes a char.
      *
-     * @param v char to write. like RandomAcessFile.writeChar. Note the param is an int even though this as a writeChar
+     * @param v char to write. like RandomAccessFile.writeChar. Note the param is an int even though this as a writeChar
      * @throws IOException if read fails.
      */
     private void writeChar(int v) throws IOException {
@@ -425,11 +439,12 @@ public class EARandomAccessFile {
     }
 
     /**
-     * Write a string, even though method called writeChars. like RandomAcessFile.writeChars, has to flip each char.
+     * Write a string, even though method called writeChars. like RandomAccessFile.writeChars, has to flip each char.
      *
-     * @param s Strinhg to write.
+     * @param s String to write.
      * @throws IOException if read fails.
      */
+    @SuppressWarnings("unused")
     public final void writeChars(String s) throws IOException {
         int len = s.length();
         for (int i = 0; i < len; i++) {
@@ -438,27 +453,29 @@ public class EARandomAccessFile {
     }
 
     /**
-     * Write a double. Like RandomAcessFile.writeDouble.
+     * Write a double. Like RandomAccessFile.writeDouble.
      *
      * @param v double to write.
      * @throws IOException if read fails.
      */
+    @SuppressWarnings("unused")
     public final void writeDouble(double v) throws IOException {
         writeLong(Double.doubleToLongBits(v));
     }
 
     /**
-     * Write a float. Like RandomAcessFile.writeFloat.
+     * Write a float. Like RandomAccessFile.writeFloat.
      *
      * @param v float to write.
      * @throws java.io.IOException if read fails.
      */
+    @SuppressWarnings("unused")
     public final void writeFloat(float v) throws IOException {
         writeInt(Float.floatToIntBits(v));
     }
 
     /**
-     * write an int, 32-bits. Like RandomAcessFile.writeInt.
+     * write an int, 32-bits. Like RandomAccessFile.writeInt.
      *
      * @param v int to write.
      * @throws IOException if read fails.
@@ -513,12 +530,13 @@ public class EARandomAccessFile {
     }
 
     /**
-     * Write an signed short even though parameter is an int. Like java.io.RandomAcessFile#writeShort. also acts as a
+     * Write an signed short even though parameter is an int. Like java.io.RandomAccessFile#writeShort. also acts as a
      * writeUnsignedShort.
      *
      * @param v signed number to write
      * @throws IOException if read fails.
      */
+    @SuppressWarnings("unused")
     public final void writeShort(int v) throws IOException {
         if (endian == ByteOrder.BIG_ENDIAN) {
             work[1] = (byte) v;
@@ -539,6 +557,7 @@ public class EARandomAccessFile {
      * @throws IOException if read fails.
      * @see java.io.DataOutput#writeUTF(java.lang.String)
      */
+    @SuppressWarnings("unused")
     public final void writeUTF(String s) throws IOException {
         raf.writeUTF(s);
     }

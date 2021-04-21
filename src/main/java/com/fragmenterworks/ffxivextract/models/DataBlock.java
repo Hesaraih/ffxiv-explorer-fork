@@ -11,15 +11,15 @@ import java.nio.ByteOrder;
 
 public class DataBlock {
 
-    private long offset = 0;
+    private long offset;
     private int size;
     private int version;
     private int compressedSize;
     private int decompressedSize;
 
-    private byte[] compressedData;
-    private byte[] decompressedData;
-    private boolean mustBeDecompressed;
+    private final byte[] compressedData;
+    private final byte[] decompressedData;
+    private final boolean mustBeDecompressed;
 
     public long getOffset() {
         return offset;
@@ -37,10 +37,12 @@ public class DataBlock {
         this.size = size;
     }
 
+    @SuppressWarnings("unused")
     public int getCompressedSize() {
         return compressedSize;
     }
 
+    @SuppressWarnings("unused")
     public void setCompressedSize(int compressedSize) {
         this.compressedSize = compressedSize;
     }
@@ -49,6 +51,7 @@ public class DataBlock {
         return decompressedSize;
     }
 
+    @SuppressWarnings("unused")
     public void setDecompressedSize(int decompressedSize) {
         this.decompressedSize = decompressedSize;
     }
@@ -126,7 +129,7 @@ public class DataBlock {
             err = inflater.end();
             CHECK_ERR(inflater, err, "inflateEnd");
 
-            inflater.finished();
+//            inflater.finished();
 
             return decompressedData;
         } catch (Exception e) {
@@ -144,6 +147,7 @@ public class DataBlock {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private int adler32(byte[] bytes, int offset, int size) {
         final int a32mod = 65521;
         int s1 = 1, s2 = 0;
@@ -155,5 +159,13 @@ public class DataBlock {
             s2 = (s2 + s1) % a32mod;
         }
         return (s2 << 16) + s1;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
     }
 }

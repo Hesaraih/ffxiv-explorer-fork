@@ -20,32 +20,32 @@ public class Image_View extends JPanel {
 
         JPanel pnlTexInfo = new JPanel();
         add(pnlTexInfo, BorderLayout.NORTH);
-        pnlTexInfo.setBorder(new TitledBorder(null, "Texture Info", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+        pnlTexInfo.setBorder(new TitledBorder(null, "テクスチャ情報", TitledBorder.LEADING, TitledBorder.TOP, null, null));
         pnlTexInfo.setLayout(new BorderLayout(0, 0));
 
         JScrollPane scrollPane_1 = new JScrollPane();
         pnlTexInfo.add(scrollPane_1, BorderLayout.CENTER);
 
-        JList list = new JList();
+        JList<String> list = new JList<>();
         list.setAutoscrolls(false);
         list.setEnabled(false);
 
-        final String[] values = new String[]{"Compression Type: " + texture.getCompressionTypeString(), "Width: " + texture.uncompressedWidth, "Height: " + texture.uncompressedHeight, "Number of MipMaps: " + texture.numMipMaps};
+        final String[] values = new String[]{"圧縮タイプ: " + texture.getCompressionTypeString(), "幅: " + texture.uncompressedWidth, "高さ: " + texture.uncompressedHeight, "MipMaps番号: " + texture.numMipMaps};
 
-        list.setModel(new AbstractListModel() {
+        list.setModel(new AbstractListModel<String>() {
 
             public int getSize() {
                 return values.length;
             }
 
-            public Object getElementAt(int index) {
+            public String getElementAt(int index) {
                 return values[index];
             }
         });
         scrollPane_1.setViewportView(list);
 
         JPanel pnlTexPreview = new JPanel();
-        pnlTexPreview.setBorder(new TitledBorder(null, "Texture Preview", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+        pnlTexPreview.setBorder(new TitledBorder(null, "プレビュー", TitledBorder.LEADING, TitledBorder.TOP, null, null));
         add(pnlTexPreview, BorderLayout.CENTER);
         pnlTexPreview.setLayout(new BorderLayout(0, 0));
 
@@ -57,6 +57,7 @@ public class Image_View extends JPanel {
         setImage(0);
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void setImage(int index) {
         try {
             BufferedImage preview = currentTexture.decode(index, null);

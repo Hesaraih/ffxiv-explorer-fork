@@ -13,6 +13,7 @@ public class Loading_Dialog extends JDialog {
     private final int numFiles;
     private int numBlocks;
 
+    @SuppressWarnings("unused")
     public boolean isCancelled = false;
 
     public Loading_Dialog(JFrame parent, int numFiles) {
@@ -21,8 +22,8 @@ public class Loading_Dialog extends JDialog {
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.PAGE_AXIS));
 
-        txtCurrentFile = new JLabel("No File");
-        txtCurrentBlock = new JLabel("No Block");
+        txtCurrentFile = new JLabel("ファイルなし");
+        txtCurrentBlock = new JLabel("ブロックなし");
 
         fileProgress = new JProgressBar();
         blockProgress = new JProgressBar();

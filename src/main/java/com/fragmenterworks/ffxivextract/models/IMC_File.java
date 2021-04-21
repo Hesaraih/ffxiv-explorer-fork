@@ -1,5 +1,7 @@
 package com.fragmenterworks.ffxivextract.models;
 
+import com.fragmenterworks.ffxivextract.helpers.Utils;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -12,15 +14,19 @@ public class IMC_File extends Game_File {
 
     private int numVariances;
 
-    final HashMap<Integer, ImcPart> parts = new HashMap<Integer, ImcPart>();
+    final HashMap<Integer, ImcPart> parts = new HashMap<>();
 
+    @SuppressWarnings("unused")
     public IMC_File(String path, ByteOrder endian) throws IOException {
         super(endian);
         File file = new File(path);
-        FileInputStream fis = new FileInputStream(file);
-        byte[] data = new byte[(int) file.length()];
-        fis.read(data);
-        fis.close();
+        byte[] data;
+        try (FileInputStream fis = new FileInputStream(file)) {
+            data = new byte[(int) file.length()];
+            while (fis.read(data) != -1) {
+                Utils.getGlobalLogger().debug("IMC読み取り");
+            }
+        }
         loadIMC(data);
     }
 
@@ -74,7 +80,7 @@ public class IMC_File extends Game_File {
     public static class ImcPart {
         final int bit;
         final VarianceInfo partsVarient;
-        public final ArrayList<VarianceInfo> variants = new ArrayList<VarianceInfo>();
+        public final ArrayList<VarianceInfo> variants = new ArrayList<>();
 
         ImcPart(int bit, VarianceInfo variance) {
             this.bit = bit;

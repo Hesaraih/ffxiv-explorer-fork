@@ -1,13 +1,17 @@
 package unluac.decompile.block;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import unluac.decompile.Decompiler;
 import unluac.decompile.Output;
 import unluac.decompile.Registers;
 import unluac.decompile.Walker;
 import unluac.decompile.condition.AndCondition;
 import unluac.decompile.condition.Condition;
+import unluac.decompile.condition.FinalSetCondition;
 import unluac.decompile.condition.OrCondition;
-import unluac.decompile.condition.SetCondition;
 import unluac.decompile.expression.Expression;
 import unluac.decompile.operation.Operation;
 import unluac.decompile.statement.Assignment;
@@ -62,7 +66,7 @@ public class IfThenEndBlock extends ContainerBlock {
   public Operation process(Decompiler d) {
     final int test = cond.register();
     //System.err.println(cond);
-    if(!scopeUsed && !redirected && test >= 0 && r.getUpdated(test, end - 1) >= begin) {
+    if(!scopeUsed && !redirected && test >= 0 && r.getUpdated(test, end - 1) >= begin && !d.getNoDebug()) {
       // Check for a single assignment
       Assignment assign = null;
       if(statements.size() == 1) {
@@ -78,7 +82,8 @@ public class IfThenEndBlock extends ContainerBlock {
         }
       }
       if(assign != null && (cond.isRegisterTest() || cond.isOrCondition() || assign.isDeclaration()) && assign.getLastTarget().isLocal() && assign.getLastTarget().getIndex() == test || statements.isEmpty()) {
-        Condition finalset = new SetCondition(end - 1, test);
+        FinalSetCondition finalset = new FinalSetCondition(end - 1, test);
+        finalset.type = FinalSetCondition.Type.VALUE;
         Condition combined;
         
         if(cond.invertible()) {
@@ -97,11 +102,13 @@ public class IfThenEndBlock extends ContainerBlock {
         return new Operation(end - 1) {
           
           @Override
-          public Statement process(Registers r, Block block) {
+          public List<Statement> process(Registers r, Block block) {
             if(fassign == null) {
               r.setValue(test, end - 1, fcombined.asExpression(r));
+              return Collections.emptyList();
+            } else {
+              return Arrays.asList(fassign);
             }
-            return fassign;
           }
           
         };

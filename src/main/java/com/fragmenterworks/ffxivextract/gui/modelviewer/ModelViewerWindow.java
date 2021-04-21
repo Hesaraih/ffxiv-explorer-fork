@@ -10,6 +10,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Objects;
 
 public class ModelViewerWindow extends JFrame {
 
@@ -20,13 +21,12 @@ public class ModelViewerWindow extends JFrame {
     private SqPack_IndexFile modelIndexFile;
     private SqPack_IndexFile buildingIndexFile;
     private final JTabbedPane tabbedPane;
-    private EXDF_View itemView;
 
     public ModelViewerWindow(JFrame parent, String sqPackPath) {
 
         this.setTitle(Strings.DIALOG_TITLE_MODELVIEWER);
         URL imageURL = getClass().getResource("/frameicon.png");
-        ImageIcon image = new ImageIcon(imageURL);
+        ImageIcon image = new ImageIcon(Objects.requireNonNull(imageURL));
         this.setIconImage(image.getImage());
         setSize(800, 600);
 
@@ -42,10 +42,12 @@ public class ModelViewerWindow extends JFrame {
         return exdIndexFile;
     }
 
+    @SuppressWarnings("unused")
     public SqPack_IndexFile getModelIndexFile() {
         return modelIndexFile;
     }
 
+    @SuppressWarnings("unused")
     public SqPack_IndexFile getBuildingIndexFile() {
         return buildingIndexFile;
     }
@@ -79,17 +81,17 @@ public class ModelViewerWindow extends JFrame {
                 modelIndexFile = new SqPack_IndexFile(getSqpackPath() + "\\game\\sqpack\\ffxiv\\040000.win32.index", true);
                 dialog.nextFile(2, "..\\game\\sqpack\\ffxiv\\010000.win32.index");
                 buildingIndexFile = new SqPack_IndexFile(getSqpackPath() + "\\game\\sqpack\\ffxiv\\010000.win32.index", true);
-                dialog.nextFile(3, "Setting up lists...");
+                dialog.nextFile(3, "リストの設定...");
                 EXHF_File exhfFile = new EXHF_File(exdIndexFile.extractFile("exd/item.exh"));
-                itemView = new EXDF_View(exdIndexFile, "exd/item.exh", exhfFile);
+                EXDF_View itemView = new EXDF_View(exdIndexFile, "exd/item.exh", exhfFile);
 
-                tabbedPane.add("Monsters", new ModelViewerMonsters(ModelViewerWindow.this, modelIndexFile));
-                tabbedPane.add("Items", new ModelViewerItems(ModelViewerWindow.this, modelIndexFile, itemView));
-                tabbedPane.add("Furniture", new ModelViewerFurniture(ModelViewerWindow.this, buildingIndexFile));
+                tabbedPane.add("モンスター", new ModelViewerMonsters(ModelViewerWindow.this, modelIndexFile));
+                tabbedPane.add("アイテム", new ModelViewerItems(ModelViewerWindow.this, modelIndexFile, itemView));
+                tabbedPane.add("家具・庭具", new ModelViewerFurniture(ModelViewerWindow.this, buildingIndexFile));
             } catch (IOException e1) {
                 Utils.getGlobalLogger().error(e1);
                 getContentPane().removeAll();
-                getContentPane().add(new JLabel("Error: Could not find game files. Is DAT path correct?"));
+                getContentPane().add(new JLabel("エラー：ゲームファイルが見つかりませんでした。 DATパスは正しいですか？"));
                 return null;
             }
             return null;

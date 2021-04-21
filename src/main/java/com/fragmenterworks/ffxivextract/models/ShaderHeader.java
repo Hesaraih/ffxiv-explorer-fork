@@ -6,10 +6,6 @@ public class ShaderHeader {
     final public int type;
     final public int shaderBytecodeOffset;
     final public int shaderBytecodeSize;
-    private final int numConstants;
-    private final int numSamplers;
-    private final int numX;
-    private final int numY;
 
     final public ParameterInfo[] paramInfo;
 
@@ -18,10 +14,10 @@ public class ShaderHeader {
         this.type = type;
         shaderBytecodeOffset = bb.getInt();
         shaderBytecodeSize = bb.getInt();
-        numConstants = bb.getShort();
-        numSamplers = bb.getShort();
-        numX = bb.getShort();
-        numY = bb.getShort();
+        int numConstants = bb.getShort();
+        int numSamplers = bb.getShort();
+        int numX = bb.getShort();
+        int numY = bb.getShort();
 
         //Read in parameter info
         paramInfo = new ParameterInfo[numConstants + numSamplers + numX + numY];

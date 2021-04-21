@@ -1,5 +1,7 @@
 package unluac.parse;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 import unluac.Configuration;
@@ -18,20 +20,47 @@ public class BHeader {
   public final Configuration config;
   public final Version version;
   public final LHeader lheader;
+  public final LHeaderType lheader_type;
   public final BIntegerType integer;
-  public final BSizeTType sizeT;
+  public final BIntegerType sizeT;
   public final LBooleanType bool;
   public final LNumberType number;
   public final LNumberType linteger;
   public final LNumberType lfloat;
   public final LStringType string;
   public final LConstantType constant;
+  public final LAbsLineInfoType abslineinfo;
   public final LLocalType local;
   public final LUpvalueType upvalue;
   public final LFunctionType function;
   public final CodeExtract extractor;
   
   public final LFunction main;
+  
+  public BHeader(Version version, LHeader lheader) {
+    this(version, lheader, null);
+  }
+  
+  public BHeader(Version version, LHeader lheader, LFunction main) {
+    this.config = null;
+    this.version = version;
+    this.lheader = lheader;
+    this.lheader_type = version.getLHeaderType();
+    integer = lheader.integer;
+    sizeT = lheader.sizeT;
+    bool = lheader.bool;
+    number = lheader.number;
+    linteger = lheader.linteger;
+    lfloat = lheader.lfloat;
+    string = lheader.string;
+    constant = lheader.constant;
+    abslineinfo = lheader.abslineinfo;
+    local = lheader.local;
+    upvalue = lheader.upvalue;
+    function = lheader.function;
+    extractor = lheader.extractor;
+    this.main = main;
+  }
   
   public BHeader(ByteBuffer buffer, Configuration config) {
     this.config = config;
@@ -41,29 +70,18 @@ public class BHeader {
         throw new IllegalStateException("The input file does not have the signature of a valid Lua file.");
       }
     }
-    // 1 byte Lua version
+    
     int versionNumber = 0xFF & buffer.get();
-    switch(versionNumber)
-    {
-      case 0x50:
-        version = Version.LUA50;
-        break;
-      case 0x51:
-        version = Version.LUA51;
-        break;
-      case 0x52:
-        version = Version.LUA52;
-        break;
-      case 0x53:
-        version = Version.LUA53;
-        break;
-      default: {
-        int major = versionNumber >> 4;
-        int minor = versionNumber & 0x0F;
-        throw new IllegalStateException("The input chunk's Lua version is " + major + "." + minor + "; unluac can only handle Lua 5.0 - Lua 5.3.");
-      }
+    int major = versionNumber >> 4;
+    int minor = versionNumber & 0x0F;
+    
+    version = Version.getVersion(major, minor);
+    if(version == null) {
+      throw new IllegalStateException("The input chunk's Lua version is " + major + "." + minor + "; unluac can only handle Lua 5.0 - Lua 5.4.");
     }
-    lheader = version.getLHeaderType().parse(buffer, this);
+    
+    lheader_type = version.getLHeaderType();
+    lheader = lheader_type.parse(buffer, this);
     integer = lheader.integer;
     sizeT = lheader.sizeT;
     bool = lheader.bool;
@@ -72,6 +90,7 @@ public class BHeader {
     lfloat = lheader.lfloat;
     string = lheader.string;
     constant = lheader.constant;
+    abslineinfo = lheader.abslineinfo;
     local = lheader.local;
     upvalue = lheader.upvalue;
     function = lheader.function;
@@ -94,6 +113,20 @@ public class BHeader {
     if(main.numUpvalues >= 1 && versionNumber >= 0x52 && (main.upvalues[0].name == null || main.upvalues[0].name.isEmpty())) {
       main.upvalues[0].name = "_ENV";
     }
+    main.setLevel(1);
+  }
+  
+  public void write(OutputStream out) throws IOException {
+    out.write(signature);
+    int major = version.getVersionMajor();
+    int minor = version.getVersionMinor();
+    int versionNumber = (major << 4) | minor;
+    out.write(versionNumber);
+    version.getLHeaderType().write(out, this, lheader);
+    if(version.useupvaluecountinheader.get()) {
+      out.write(main.numUpvalues);
+    }
+    function.write(out, this, main);
   }
   
 }

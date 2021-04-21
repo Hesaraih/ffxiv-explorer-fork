@@ -9,19 +9,19 @@ import java.nio.ByteBuffer;
  */
 public class COHDEntryType_Graphics extends COHDEntryType {
     private final int dw_0x0;
-    private final int graphcisNode;
+    private final int graphicsNode;
 
     public COHDEntryType_Graphics(final ByteBuffer data) {
         super(data);
         this.dw_0x0 = data.getInt();
-        graphcisNode = data.getInt();
+        graphicsNode = data.getInt();
     }
 
     @Override
     public String toString() {
         return "COHDType_Graphics{" +
                 "dw_0x0=" + dw_0x0 +
-                ", graphcisNode=" + graphcisNode +
+                ", graphicsNode=" + graphicsNode +
                 "} " + super.toString();
     }
 }
