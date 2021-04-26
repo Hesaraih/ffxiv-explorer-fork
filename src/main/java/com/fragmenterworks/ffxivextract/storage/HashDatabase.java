@@ -94,24 +94,36 @@ public class HashDatabase {
         return Integer.parseInt(version);
     }
 
+    /**
+     * hashlist.dbにフォルダパスのみ追加(実装)
+     * @param folderName フォルダ名
+     * @param archive  Indexファイル名
+     * @return  追加成功可否
+     */
     @SuppressWarnings("unused")
     public static boolean addFolderToDB(String folderName, String archive) {
         if (folderName.endsWith("/")) {
             folderName = folderName.substring(0, folderName.length() - 1);
         }
 
-        int folderHash = computeCRC(folderName.getBytes(), 0,
-                folderName.getBytes().length);
+        String folder_L = folderName.toLowerCase(); //hash値計算用
+
+        int folderHash = computeCRC(folder_L.getBytes(), 0, folder_L.getBytes().length);
 
         Utils.getGlobalLogger().info("フォルダエントリに追加: {}", folderName);
 
+        if(!archive.startsWith("0") || !archive.startsWith("1")){
+            archive = getArchiveID(folderName);
+        }
+
         Connection connection = null;
         try {
-            connection = DriverManager
-                    .getConnection("jdbc:sqlite:./hashlist.db");
+            connection = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
             Statement statement = connection.createStatement();
-            statement.setQueryTimeout(30); // set timeout to 30 sec.
-            statement.executeUpdate(String.format("insert or ignore into folders values(%d, '%s', '0', '%s', %d)", folderHash, folderName, archive, Constants.DB_VERSION_CODE));
+            statement.setQueryTimeout(30); //タイムアウトを30秒に設定
+            statement.executeUpdate(String.format("insert or ignore into folders values(%d, '%s', 0, '%s', '%s')", folderHash, folderName, archive, Constants.DB_VERSION_CODE));
+            statement.executeUpdate(String.format("UPDATE  folders set path = '%s' where hash = %d and archive = '%s'", folderName, folderHash, archive));
+            //statement.executeUpdate(String.format("insert or ignore into folders values(%d, '%s', '0', '%s', %d)", folderHash, folderName, archive, Constants.DB_VERSION_CODE));
             statement.close();
 
             folders.put((long) folderHash, folderName);

@@ -19,6 +19,10 @@ public class Path_to_Hash_Window extends JFrame {
 
     private final JTextField edtFullPath;
     private final JTextArea txtOutput;
+    /**
+     * ファイルパスの照合結果状態 2:ファイルがある 1:パスは合ってる 0:ファイル名もパスもなし
+     */
+    private Integer pathCheck = 0;
 
     SqPack_IndexFile currentIndex;
 
@@ -98,14 +102,25 @@ public class Path_to_Hash_Window extends JFrame {
 
     private void commit() {
         //計算ボタンを押したときの動作
+        String path = edtFullPath.getText();
+
+
+
         HashDatabase.beginConnection();
         try {
             HashDatabase.setAutoCommit(false);
         } catch (SQLException e1) {
             Utils.getGlobalLogger().error(e1);
         }
+        boolean result = false;
+        if (pathCheck == 2){
+            //ファイルパスとファイル名を強制的に追加
+            result = HashDatabase.addPathToDB(edtFullPath.getText(), currentIndex.getName(), HashDatabase.globalConnection,true);
+        }else if (pathCheck == 1){
+            //ファイルパスのみ追加
+            result = HashDatabase.addFolderToDB(edtFullPath.getText(), currentIndex.getName());
+        }
 
-        boolean result = HashDatabase.addPathToDB(edtFullPath.getText(), currentIndex.getName(), HashDatabase.globalConnection,true);
         if (result) {
             JOptionPane.showMessageDialog(this,
                     "データベースにパスを追加しました。",
@@ -155,10 +170,17 @@ public class Path_to_Hash_Window extends JFrame {
         Border border = BorderFactory.createLineBorder(Color.RED, 2);
 
         try {
-            if (currentIndex.extractFile(path) != null) {
+            pathCheck = currentIndex.existsFile2(path);
+            if (pathCheck == 2){
                 HashDatabase.addPathToDB(edtFullPath.getText(), currentIndex.getName());
                 border = BorderFactory.createLineBorder(Color.GREEN, 2);
+            }else if (pathCheck == 1){
+                border = BorderFactory.createLineBorder(Color.ORANGE, 2);
             }
+//            if (currentIndex.extractFile(path) != null) {
+//                HashDatabase.addPathToDB(edtFullPath.getText(), currentIndex.getName());
+//                border = BorderFactory.createLineBorder(Color.GREEN, 2);
+//            }
         } catch (Exception e) {
             Utils.getGlobalLogger().error(e);
         }

@@ -630,6 +630,18 @@ public class SqPack_IndexFile {
         String folder = fullPath.substring(0, fullPath.lastIndexOf("/"));
         String file = fullPath.substring(fullPath.lastIndexOf("/") + 1);
 
+        return existsFile(folder, file) == 2;
+    }
+
+    /**
+     * 指定したフルパス先のファイルとパスの照合
+     * @param fullPath ファイルパス
+     * @return 2:ファイルがある 1:パスは合ってる 0:ファイル名もパスもなし
+     */
+    public Integer existsFile2(String fullPath){
+        String folder = fullPath.substring(0, fullPath.lastIndexOf("/"));
+        String file = fullPath.substring(fullPath.lastIndexOf("/") + 1);
+
         return existsFile(folder, file);
     }
 
@@ -637,15 +649,17 @@ public class SqPack_IndexFile {
      * 指定したフルパス先のファイルの存在確認
      * @param folderName フォルダパス
      * @param filename ファイル名
-     * @return  true:ファイルがある false:ファイルなし
+     * @return  2:ファイルがある 1:パスは合ってる 0:ファイル名もパスもなし
      */
-    public boolean existsFile(String folderName, String filename){
+    public Integer existsFile(String folderName, String filename){
+        int returnValue = 0;
         if (getPath().contains("index2")) {
             String fullPath = folderName + "/" + filename;
             int hash = HashDatabase.computeCRC(fullPath.toLowerCase().getBytes(), 0, fullPath.getBytes().length);
             for (SqPack_File f : getPackFolders()[0].getFiles()) {
                 if (f.getId() == hash) {
-                    return true;
+                    returnValue = 2;
+                    return returnValue;
                 }
             }
         } else {
@@ -654,11 +668,12 @@ public class SqPack_IndexFile {
             if (!isFastLoaded) {
                 for (SqPack_Folder f : getPackFolders()) {
                     if (f.getId() == hash1) {
-
+                        returnValue = 1;
                         int hash2 = HashDatabase.computeCRC(filename.toLowerCase().getBytes(), 0, filename.getBytes().length);
                         for (SqPack_File file : f.getFiles()) {
                             if (file.id == hash2) {
-                                return true;
+                                returnValue = 2;
+                                return returnValue;
                             }
                         }
 
@@ -669,15 +684,17 @@ public class SqPack_IndexFile {
                 for (int i = 0; i < packFolders[0].getFiles().length; i++) {
                     SqPack_File file = packFolders[0].getFiles()[i];
                     if (file.getId2() == hash1) {
+                        returnValue = 1;
                         int hash2 = HashDatabase.computeCRC(filename.toLowerCase().getBytes(), 0, filename.getBytes().length);
                         if (file.getId() == hash2) {
-                            return true;
+                            returnValue = 2;
+                            return returnValue;
                         }
                     }
                 }
             }
         }
-        return false;
+        return returnValue;
     }
 
     /**
