@@ -13,8 +13,7 @@ public class MSADPCM_Decode {
 
     public static int getBufferSize(long inputBufferLength, int channels, int blockAlign, int bitsPerSample) {
         if (inputBufferLength > Integer.MAX_VALUE)
-            throw new NumberFormatException("Number too large: "
-                    + inputBufferLength);
+            throw new NumberFormatException("値が大きすぎます: " + inputBufferLength);
 
         int blockHeaderOverhead = (7 * channels);
         int numOfBlocks = ((int) inputBufferLength / blockAlign);
@@ -30,11 +29,15 @@ public class MSADPCM_Decode {
         return outputBuffer;
     }
 
-    /*
-     * MS ADPCM part starts here. It (mostly) works on the WAV file (some
-     * hisses, but normal sound otherwise), but I was unable to test over the
-     * network, becuse the "RDP Clip monitor" crashes on the server, if ADPCM is
-     * forced. Go figure :(
+    /**
+     * MS ADPCM部分はここから始まります。 それは（ほとんど）WAVファイルで動作します
+     * （いくつかのヒスノイズがありますが、それ以外は通常の音です）が、ADPCMが強制されると、
+     * サーバーで「RDPクリップモニター」がクラッシュするため、ネットワーク経由でテストできませんでした
+     * @param inputBuffer 入力バッファ
+     * @param outputBuffer 出力バッファ
+     * @param len 長さ
+     * @param channels チャンネル
+     * @param blockAlign ブロック整列
      */
     private static void decodeADPCM(byte[] inputBuffer, byte[] outputBuffer,
                                     int len, int channels, int blockAlign) {
@@ -61,7 +64,7 @@ public class MSADPCM_Decode {
         short predictor = (short) (prePredictor & 0xFFFF);
         c.sample2 = c.sample1;
         c.sample1 = predictor;
-        c.idelta = (AdaptationTable[(int) nibble] * c.idelta) >> 8;
+        c.idelta = (AdaptationTable[nibble] * c.idelta) >> 8;
         if (c.idelta < 16) {
             c.idelta = 16;
         }
@@ -71,19 +74,15 @@ public class MSADPCM_Decode {
     /*
      * Based on: ADPCM codecs Copyright (c) 2001-2003 The ffmpeg Project
      *
-     * This library is free software; you can redistribute it and/or modify it
-     * under the terms of the GNU Lesser General Public License as published by
-     * the Free Software Foundation; either version 2 of the License, or (at
-     * your option) any later version.
+     * このライブラリはフリーソフトウェアです。
+     * フリーソフトウェアファウンデーションによって公開されているGNU劣等一般公衆利用許諾契約書の条件に基づいて、
+     * 再配布および/または変更することができます。 ライセンスのバージョン2、または（オプションで）それ以降のバージョン。
      *
-     * This library is distributed in the hope that it will be useful, but
-     * WITHOUT ANY WARRANTY; without even the implied warranty of
-     * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
-     * General Public License for more details.
+     * このライブラリは、役立つことを期待して配布されていますが、いかなる保証もありません。
+     * 商品性または特定目的への適合性の黙示の保証もありません。 詳細については、GNU劣等一般公衆利用許諾契約書を参照してください。
      *
-     * You should have received a copy of the GNU Lesser General Public License
-     * along with this library; if not, write to the Free Software Foundation,
-     * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+     * このライブラリと一緒にGNU劣等一般公衆利用許諾契約書のコピーを受け取っているはずです。
+     * そうでない場合は、Free Software Foundation、Inc.、51 Franklin Street、Fifth Floor、Boston、MA 02110-1301USAにご連絡ください。
      *
      * --- end license ---
      *
@@ -104,6 +103,7 @@ public class MSADPCM_Decode {
         if (n < 0)
             return dstIndex;
         blockPredictor[0] = clip(srcBuffer[srcIndex++], 0, 7);
+        //noinspection ConstantConditions
         blockPredictor[1] = 0;
         if (st)
             blockPredictor[1] = clip(srcBuffer[srcIndex++], 0, 7);
@@ -152,12 +152,14 @@ public class MSADPCM_Decode {
         return dstIndex;
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static int clip(int a, int amin, int amax) {
         if (a < amin)
             return amin;
         else return Math.min(a, amax);
     }
 
+    @SuppressWarnings("unused")
     static class ADPCMChannelStatus {
         public int predictor = 0;
         public short step_index = 0;

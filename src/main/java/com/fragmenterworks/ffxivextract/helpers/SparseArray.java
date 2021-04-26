@@ -52,8 +52,10 @@ public class SparseArray<E> implements Cloneable {
     private Object[] mValues;
     private int mSize;
 
+    @SuppressWarnings("unused")
     static final boolean[] EMPTY_BOOLEANS = new boolean[0];
     private static final int[] EMPTY_INTS = new int[0];
+    @SuppressWarnings("unused")
     static final long[] EMPTY_LONGS = new long[0];
     private static final Object[] EMPTY_OBJECTS = new Object[0];
 
@@ -157,6 +159,7 @@ public class SparseArray<E> implements Cloneable {
      * @param index Index to begin at
      * @param size  Number of mappings to remove
      */
+    @SuppressWarnings("unused")
     public void removeAtRange(int index, int size) {
         final int end = Math.min(mSize, index + size);
         for (int i = index; i < end; i++) {
@@ -221,15 +224,15 @@ public class SparseArray<E> implements Cloneable {
             if (mSize >= mKeys.length) {
                 int n = idealIntArraySize(mSize + 1);
 
-                int[] nkeys = new int[n];
-                Object[] nvalues = new Object[n];
+                int[] nKeys = new int[n];
+                Object[] nValues = new Object[n];
 
                 // Log.e("SparseArray", "grow " + mKeys.length + " to " + n);
-                System.arraycopy(mKeys, 0, nkeys, 0, mKeys.length);
-                System.arraycopy(mValues, 0, nvalues, 0, mValues.length);
+                System.arraycopy(mKeys, 0, nKeys, 0, mKeys.length);
+                System.arraycopy(mValues, 0, nValues, 0, mValues.length);
 
-                mKeys = nkeys;
-                mValues = nvalues;
+                mKeys = nKeys;
+                mValues = nValues;
             }
 
             if (mSize - i != 0) {
@@ -299,6 +302,7 @@ public class SparseArray<E> implements Cloneable {
      * value for the <code>index</code>th key-value mapping that this
      * SparseArray stores.
      */
+    @SuppressWarnings("unused")
     public void setValueAt(int index, E value) {
         if (mGarbage) {
             gc();
@@ -312,6 +316,7 @@ public class SparseArray<E> implements Cloneable {
      * specified key, or a negative number if the specified
      * key is not mapped.
      */
+    @SuppressWarnings("unused")
     public int indexOfKey(int key) {
         if (mGarbage) {
             gc();
@@ -330,6 +335,7 @@ public class SparseArray<E> implements Cloneable {
      * <p>Note also that unlike most collections' {@code indexOf} methods,
      * this method compares values using {@code ==} rather than {@code equals}.
      */
+    @SuppressWarnings("unused")
     public int indexOfValue(E value) {
         if (mGarbage) {
             gc();
@@ -375,15 +381,15 @@ public class SparseArray<E> implements Cloneable {
         if (pos >= mKeys.length) {
             int n = idealIntArraySize(pos + 1);
 
-            int[] nkeys = new int[n];
-            Object[] nvalues = new Object[n];
+            int[] nKeys = new int[n];
+            Object[] nValues = new Object[n];
 
             // Log.e("SparseArray", "grow " + mKeys.length + " to " + n);
-            System.arraycopy(mKeys, 0, nkeys, 0, mKeys.length);
-            System.arraycopy(mValues, 0, nvalues, 0, mValues.length);
+            System.arraycopy(mKeys, 0, nKeys, 0, mKeys.length);
+            System.arraycopy(mValues, 0, nValues, 0, mValues.length);
 
-            mKeys = nkeys;
-            mValues = nvalues;
+            mKeys = nKeys;
+            mValues = nValues;
         }
 
         mKeys[pos] = key;
@@ -456,6 +462,7 @@ public class SparseArray<E> implements Cloneable {
         return ~lo;  // value not present
     }
 
+    @SuppressWarnings("unused")
     static int binarySearch(long[] array, int size, long value) {
         int lo = 0;
         int hi = size - 1;

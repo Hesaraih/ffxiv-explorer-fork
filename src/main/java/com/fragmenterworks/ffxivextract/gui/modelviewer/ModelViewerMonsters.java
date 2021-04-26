@@ -269,7 +269,7 @@ class ModelViewerMonsters extends JPanel {
                                     demihuman.setModel(EquippableRender.TOP, modelIndexFile, "chara/demihuman/d1021/obj/equipment/e0001/model/d1021e0001_top.mdl", 1);
                                     demihuman.setModel(EquippableRender.GLV, modelIndexFile, "chara/demihuman/d1021/obj/equipment/e0001/model/d1021e0001_glv.mdl", 1);
                                     break;
-                                case 1022: //ウェディング チョコボ
+                                case 1022: //エターナルチョコボ
                                     demihuman.setModel(EquippableRender.MET, modelIndexFile, "chara/demihuman/d1022/obj/equipment/e0001/model/d1022e0001_met.mdl", 1);
                                     demihuman.setModel(EquippableRender.TOP, modelIndexFile, "chara/demihuman/d1022/obj/equipment/e0001/model/d1022e0001_top.mdl", 1);
                                     demihuman.setModel(EquippableRender.DWN, modelIndexFile, "chara/demihuman/d1022/obj/equipment/e0001/model/d1022e0001_dwn.mdl", 1);
@@ -376,7 +376,7 @@ class ModelViewerMonsters extends JPanel {
                                 case 1044: //エル・トゥ(成長)
                                     demihuman.setModel(EquippableRender.TOP, modelIndexFile, "chara/demihuman/d1044/obj/equipment/e0001/model/d1044e0001_top.mdl", 1);
                                     break;
-                                case 1045: //エデン関係？
+                                case 1045: //女王グンヒルド
                                     demihuman.setModel(EquippableRender.MET, modelIndexFile, "chara/demihuman/d1045/obj/equipment/e0001/model/d1045e0001_met.mdl", 1);
                                     demihuman.setModel(EquippableRender.SHO, modelIndexFile, "chara/demihuman/d1045/obj/equipment/e0001/model/d1045e0001_sho.mdl", 1);
                                     demihuman.setModel(EquippableRender.TOP, modelIndexFile, "chara/demihuman/d1045/obj/equipment/e0001/model/d1045e0001_top.mdl", 1);

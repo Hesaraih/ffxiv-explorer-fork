@@ -9,10 +9,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Objects;
 
 public class DatBuilder {
 
-    private EARandomAccessFile fileOut = null;
+    private final EARandomAccessFile fileOut;
     private final String path;
     private long currentOffset = 0x800;
     private final int index;
@@ -25,6 +26,7 @@ public class DatBuilder {
 
         File f = new File(outPath);
         if (f.exists())
+            //noinspection ResultOfMethodCallIgnored
             f.delete();
 
         fileOut = new EARandomAccessFile(new File(outPath), "rw", endian);
@@ -35,10 +37,11 @@ public class DatBuilder {
         byte[] data = new byte[(int) fileToLoad.length()];
 
         FileInputStream fIn = new FileInputStream(fileToLoad);
+        //noinspection ResultOfMethodCallIgnored
         fIn.read(data);
         fIn.close();
 
-        ArrayList<DataBlock> blocks = new ArrayList<DatBuilder.DataBlock>();
+        ArrayList<DataBlock> blocks = new ArrayList<>();
         int position = 0;
         int largestBlock = 0;
         while (data.length - position > 16000) {
@@ -53,7 +56,7 @@ public class DatBuilder {
                 Utils.getGlobalLogger().error(e);
             }
 
-            if (currentBlock.uncompressedSize > largestBlock)
+            if (Objects.requireNonNull(currentBlock).uncompressedSize > largestBlock)
                 largestBlock = currentBlock.uncompressedSize;
         }
 
@@ -102,10 +105,7 @@ public class DatBuilder {
         fileOut.seek(currentOffset);
         fileOut.write(header);
 
-        Iterator<DataBlock> it2 = blocks.iterator();
-        while (it2.hasNext()) {
-            DataBlock block = it2.next();
-
+        for (DataBlock block : blocks) {
             fileOut.seek(currentOffset + header.length + block.offset);
 
             byte[] data2 = new byte[16 + block.compressedSize];
@@ -126,12 +126,12 @@ public class DatBuilder {
             fileOut.write(data2);
         }
 
-        long curposition = fileOut.getFilePointer();
-        while ((curposition & 0xFF) != 0x00)
-            curposition += 1;
+        long curPosition = fileOut.getFilePointer();
+        while ((curPosition & 0xFF) != 0x00)
+            curPosition += 1;
 
-        long entryOffset = ((currentOffset) / 8) + ((index - 1) * 2);
-        currentOffset = curposition;
+        long entryOffset = ((currentOffset) / 8) + ((index - 1) * 2L);
+        currentOffset = curPosition;
 
         Utils.getGlobalLogger().debug("Added file at path {} to offset {}", path, String.format("0x%08X", entryOffset));
 
@@ -202,7 +202,7 @@ public class DatBuilder {
         return dataHeader;
     }
 
-    private class DataBlock {
+    private static class DataBlock {
         final short totalSize;
         final byte[] compressedData;
         final int compressedSize;
@@ -249,11 +249,11 @@ public class DatBuilder {
                 bb.rewind();
                 if (bytesRead <= 0)
                     break;
-                md.update(buffer, 0, bytesRead);
+                Objects.requireNonNull(md).update(buffer, 0, bytesRead);
                 bb.rewind();
             }
 
-            byte[] sha1 = md.digest();
+            byte[] sha1 = Objects.requireNonNull(md).digest();
 
             fileOut.seek(0);
             fileOut.write(buildSqpackDatHeader());

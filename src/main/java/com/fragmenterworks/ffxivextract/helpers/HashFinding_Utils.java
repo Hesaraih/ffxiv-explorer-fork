@@ -215,6 +215,7 @@ public class HashFinding_Utils {
     /**
      * Soundハッシュ検索
      */
+    @SuppressWarnings("unused")
     public static void findSoundHashes() {
         Utils.getGlobalLogger().info("bgm.exhを開いています...");
 
@@ -270,7 +271,7 @@ public class HashFinding_Utils {
 
             //sound/event/検索
             for (int i = 1; i < searchIconNum; i++) {
-                String soundPath ="";
+                String soundPath;
                 //例：sound/event/se_event_246.scd
                 soundPath = String.format("sound/event/se_event_%03d.scd",i);
 
@@ -287,7 +288,7 @@ public class HashFinding_Utils {
 
             //sound/battle/mon検索
             for (int i = 3001; i < searchIconNum; i++) {
-                String soundPath ="";
+                String soundPath;
                 //例：sound/battle/mon/13001.scd
                 String[] multi = {"_ja","_en","_fr","_de"};
                 if (i <= 3900 || i > 3990){
@@ -314,7 +315,7 @@ public class HashFinding_Utils {
 
             //sound/battle/mon検索
             for (int i = 1000; i < searchIconNum; i++) {
-                String soundPath ="";
+                String soundPath;
                 //例：sound/voice/vo_line/8201000_ja.scd
                 String[] multi = {"_ja","_en","_fr","_de"};
                 for (String lang :multi) {
@@ -400,8 +401,8 @@ public class HashFinding_Utils {
                 //ui/icon検索
                 boolean multiFlag = false;
                 for (int i = 0; i < searchIconNum; i++) {
-                    String iconPath ="";
-                    String iconPath2 ="";
+                    String iconPath;
+                    String iconPath2;
                     //例：ui/icon/181000/ja/181001.tex
                     String[] multi = {"ja/","en/","fr/","de/"};
                     int pathNum = (i / 1000) * 1000;

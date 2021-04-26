@@ -6,7 +6,7 @@ public class ShaderIdHelper {
 
     private static void initArray() {
 
-        idToName = new SparseArray<String>();
+        idToName = new SparseArray<>();
 
         idToName.put(0x115306be, "g_SamplerDiffuse");
         idToName.put(0x2b99e025, "g_SamplerSpecular");

@@ -9,189 +9,33 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7750d66e-bdc7-456a-9f25-fc3483b7926a" name="Default" comment="できる限り日本語化">
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+    <list default="true" id="7750d66e-bdc7-456a-9f25-fc3483b7926a" name="Default" comment="ジェネリック型の警告が出るため修正">
+      <change afterPath="$PROJECT_DIR$/.idea/.name" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/jarRepositories.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/uiDesigner.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/Main.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/Main.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ffxiv-explorer-fork.iml" beforeDir="false" afterPath="$PROJECT_DIR$/ffxiv-explorer.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hashlist.db" beforeDir="false" afterPath="$PROJECT_DIR$/hashlist.db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/Constants.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/Constants.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/Strings.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/Strings.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/AboutWindow.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/AboutWindow.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/FileInjectorWindow.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/FileInjectorWindow.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/FileManagerWindow.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/FileManagerWindow.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/MusicSwapperWindow.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/MusicSwapperWindow.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/SCDConverterWindow.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/SCDConverterWindow.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/SearchWindow.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/SearchWindow.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/SettingsWindow.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/SettingsWindow.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/CMP_View.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/CMP_View.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/EXDF_View.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/EXDF_View.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/ExplorerPanel_View.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/ExplorerPanel_View.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Hex_View.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Hex_View.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Image_View.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Image_View.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Loading_Dialog.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Loading_Dialog.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Lua_View.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Lua_View.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/ModelCharacterRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/ModelCharacterRenderer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/ModelRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/ModelRenderer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/MusicFile_View.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/MusicFile_View.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/NavigableImagePanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/NavigableImagePanel.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/OpenGL_View.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/OpenGL_View.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/PAP_View.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/PAP_View.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Path_to_Hash_Window.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Path_to_Hash_Window.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Search_Loading_Dialog.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Search_Loading_Dialog.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Shader_View.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Shader_View.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Sound_View.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Sound_View.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/ULD_View.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/ULD_View.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Update_Dialog.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/components/Update_Dialog.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/ItemChooserDialog.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/ItemChooserDialog.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/Loading_Dialog.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/Loading_Dialog.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/ModelFurnitureEntry.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/ModelFurnitureEntry.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/ModelItemEntry.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/ModelItemEntry.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/ModelViewerFurniture.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/ModelViewerFurniture.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/ModelViewerItems.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/ModelViewerItems.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/ModelViewerMonsters.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/ModelViewerMonsters.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/ModelViewerWindow.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/gui/modelviewer/ModelViewerWindow.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/EARandomAccessFile.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/EARandomAccessFile.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/DatBuilder.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/DatBuilder.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/EXDDef.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/EXDDef.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/FFXIV_String.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/FFXIV_String.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/FileTools.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/FileTools.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/GLHelper2.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/GLHelper2.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/GLHelper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/GLHelper.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/HashFinding_Utils.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/HashFinding_Utils.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/LERandomAccessFile.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/LERandomAccessFile.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/HavokNative.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/HavokNative.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/ImageDecoding.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/ImageDecoding.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/JOrbisPlayer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/JOrbisPlayer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/LittleEndianInputStream.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/LittleEndianInputStream.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/MSADPCM_Decode.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/MSADPCM_Decode.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/PathSearcher.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/PathSearcher.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/AVFX_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/AVFX_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/CMP_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/CMP_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/ContentType4Container.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/ContentType4Container.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/DataBlock.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/DataBlock.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/EXDF_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/EXDF_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/EXHF_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/EXHF_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/Game_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/Game_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/IMC_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/IMC_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/LoDSubModel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/LoDSubModel.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/Log_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/Log_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/Macro_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/Macro_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/Material.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/Material.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/Mesh.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/Mesh.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/MeshPart.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/MeshPart.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/Model.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/Model.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/PAP_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/PAP_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/ParameterInfo.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/ParameterInfo.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/SCD_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/SCD_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/SGB_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/SGB_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/SHCD_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/SHCD_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/SHPK_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/SHPK_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/SKLB_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/SKLB_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/ShaderHeader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/ShaderHeader.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/SqPack_DatFile.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/SqPack_DatFile.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/ShaderIdHelper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/ShaderIdHelper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/SparseArray.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/SparseArray.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/Utils.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/Utils.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/WavefrontObjectWriter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/helpers/WavefrontObjectWriter.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/SqPack_IndexFile.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/SqPack_IndexFile.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/Texture_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/Texture_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/ULD_File.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/ULD_File.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/COHDEntryType.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/COHDEntryType.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/COHDEntryType_Graphics.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/COHDEntryType_Graphics.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/GraphicsNodeTypeData.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/GraphicsNodeTypeData.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/GraphicsNodeTypeData_3.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/GraphicsNodeTypeData_3.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/GraphicsNodeTypeData_4.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/GraphicsNodeTypeData_4.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/ImageSet.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/ImageSet.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/ImageSetRegion.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/ImageSetRegion.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/TLHDSetTypeA_Entry.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/TLHDSetTypeA_Entry.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/TLHDSetTypeB_Entry.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/TLHDSetTypeB_Entry.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/WDHDEntry.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/WDHDEntry.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/renderer/ULD_File_Renderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/models/uldStuff/renderer/ULD_File_Renderer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/shaders/BlendShader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/shaders/BlendShader.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/shaders/BlurShader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/shaders/BlurShader.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/shaders/FXAAShader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/shaders/FXAAShader.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/shaders/HairShader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/shaders/HairShader.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/shaders/IrisShader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/shaders/IrisShader.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/shaders/MinifiedShaders.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/shaders/MinifiedShaders.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/shaders/Shader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/shaders/Shader.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/storage/CompareFile.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/storage/CompareFile.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/storage/HashDatabase.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fragmenterworks/ffxivextract/storage/HashDatabase.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/Configuration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/Configuration.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/Version.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/Version.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/Code.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/Code.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/Code50.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/CodeExtract.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/CodeExtract.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/Constant.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/Constant.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/ControlFlowHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/ControlFlowHandler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/Declaration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/Declaration.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/Decompiler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/Decompiler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/Disassembler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/Disassembler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/Function.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/Function.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/Op.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/Op.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/OpcodeFormat.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/OpcodeMap.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/OpcodeMap.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/Registers.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/Registers.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/VariableFinder.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/VariableFinder.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/Block.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/Block.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/Break.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/Break.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/ContainerBlock.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/ContainerBlock.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/ForBlock.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/ForBlock.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/ForBlock50.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/ForBlock50.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/ForBlock51.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/ForBlock51.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/IfThenEndBlock.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/IfThenEndBlock.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/OuterBlock.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/OuterBlock.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/RepeatBlock.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/RepeatBlock.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/SetBlock.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/SetBlock.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/TForBlock.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/TForBlock.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/TForBlock50.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/TForBlock51.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/WhileBlock.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/block/WhileBlock.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/AndCondition.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/AndCondition.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/BinaryCondition.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/BinaryCondition.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/Condition.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/Condition.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/ConstantCondition.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/ConstantCondition.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/NotCondition.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/NotCondition.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/OrCondition.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/OrCondition.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/RegisterSetCondition.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/SetCondition.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/TestCondition.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/condition/TestCondition.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/expression/BinaryExpression.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/expression/BinaryExpression.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/expression/ClosureExpression.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/expression/ClosureExpression.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/expression/ConstantExpression.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/expression/ConstantExpression.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/expression/Expression.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/expression/Expression.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/expression/TableLiteral.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/expression/TableLiteral.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/CallOperation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/CallOperation.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/GlobalSet.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/GlobalSet.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/LoadNil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/LoadNil.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/MultipleRegisterSet.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/MultipleRegisterSet.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/Operation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/Operation.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/RegisterSet.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/RegisterSet.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/ReturnOperation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/ReturnOperation.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/TableSet.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/TableSet.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/UpvalueSet.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/operation/UpvalueSet.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/statement/Assignment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/statement/Assignment.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/statement/Statement.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/statement/Statement.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/target/GlobalTarget.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/target/GlobalTarget.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/target/TableTarget.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/target/TableTarget.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/target/Target.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/target/Target.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/target/UpvalueTarget.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/target/UpvalueTarget.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/decompile/target/VariableTarget.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/decompile/target/VariableTarget.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/license.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/BHeader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/BHeader.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/BInteger.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/BInteger.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/BIntegerType.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/BIntegerType.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/BList.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/BList.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/BObjectType.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/BObjectType.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/BSizeT.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/BSizeTType.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LBoolean.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LBoolean.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LBooleanType.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LBooleanType.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LConstantType.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LConstantType.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LFunction.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LFunction.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LFunctionType.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LFunctionType.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LHeader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LHeader.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LHeaderType.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LHeaderType.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LLocalType.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LLocalType.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LNil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LNil.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LNumber.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LNumber.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LNumberType.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LNumberType.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LObject.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LObject.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LString.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LString.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LStringType.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LStringType.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LUpvalue.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LUpvalue.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/parse/LUpvalueType.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/parse/LUpvalueType.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/unluac/util/Stack.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/unluac/util/Stack.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -423,7 +267,7 @@
     <property name="project.structure.last.edited" value="グローバルライブラリ" />
     <property name="project.structure.proportion" value="0.15" />
     <property name="project.structure.side.proportion" value="0.2" />
-    <property name="settings.editor.selected.configurable" value="reference.settingsdialog.project.gradle" />
+    <property name="settings.editor.selected.configurable" value="org.jetbrains.plugins.github.ui.GithubSettingsConfigurable" />
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
@@ -582,6 +426,42 @@
       <option name="presentableId" value="Default" />
       <updated>1497548980720</updated>
     </task>
+    <task id="LOCAL-00001" summary="できる限り日本語化">
+      <created>1618988283936</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1618988283936</updated>
+    </task>
+    <task id="LOCAL-00002" summary="unluacを2021.04.09バージョンに差し替え">
+      <created>1618989295835</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1618989295835</updated>
+    </task>
+    <task id="LOCAL-00003" summary="随時更新">
+      <created>1618989653376</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1618989653376</updated>
+    </task>
+    <task id="LOCAL-00004" summary="unluacを2021.04.09バージョンに差し替え">
+      <created>1618989865823</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1618989865823</updated>
+    </task>
+    <task id="LOCAL-00005" summary="ジェネリック型の警告が出るため修正">
+      <created>1618990527423</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1618990527423</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -622,6 +502,31 @@
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
       <map>
+        <entry key="3fe4d323-cdd3-4831-890b-c3918a8e5992">
+          <value>
+            <State>
+              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="HEAD" />
+                      </list>
+                    </value>
+                  </entry>
+                  <entry key="structure">
+                    <value>
+                      <list>
+                        <option value="dir:F:/Users/MRFKC03/Documents/社内/事務/FFXIV/FFXIV Explorer/FFXIV.Explorer.1.9/source/ffxiv-explorer-fork/src/main/java/unluac" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
         <entry key="MAIN">
           <value>
             <State />
@@ -629,11 +534,19 @@
         </entry>
       </map>
     </option>
+    <option name="OPEN_GENERIC_TABS">
+      <map>
+        <entry key="3fe4d323-cdd3-4831-890b-c3918a8e5992" value="TOOL_WINDOW" />
+      </map>
+    </option>
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="できる限り日本語化" />
-    <option name="LAST_COMMIT_MESSAGE" value="できる限り日本語化" />
+    <MESSAGE value="随時更新" />
+    <MESSAGE value="unluacを2021.04.09バージョンに差し替え" />
+    <MESSAGE value="ジェネリック型の警告が出るため修正" />
+    <option name="LAST_COMMIT_MESSAGE" value="ジェネリック型の警告が出るため修正" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

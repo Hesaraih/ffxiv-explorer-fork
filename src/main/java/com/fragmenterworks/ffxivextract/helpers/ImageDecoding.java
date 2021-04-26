@@ -26,13 +26,12 @@ public final class ImageDecoding {
     public static final Boolean OFF_VALUE = Boolean.FALSE;
 
     /**
-     * @param data
-     * @param targetWidth
-     * @param targetHeight
-     * @param compressedWidth
-     * @param compressedHeight
-     * @return
-     * @throws ImageDecodingException
+     * @param data 実データ
+     * @param targetWidth 幅
+     * @param targetHeight 高さ
+     * @param compressedWidth 圧縮後の幅
+     * @param compressedHeight 圧縮後の高さ
+     * @return イメージ
      */
     public static BufferedImage decodeImage4444(final byte[] data, final int offset, final int targetWidth, final int targetHeight, final int compressedWidth, final int compressedHeight) throws ImageDecodingException {
         final BufferedImage img = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
@@ -61,13 +60,12 @@ public final class ImageDecoding {
 
 
     /**
-     * @param data
-     * @param targetWidth
-     * @param targetHeight
-     * @param compressedWidth
-     * @param compressedHeight
-     * @return
-     * @throws ImageDecodingException
+     * @param data 実データ
+     * @param targetWidth 幅
+     * @param targetHeight 高さ
+     * @param compressedWidth 圧縮後の幅
+     * @param compressedHeight 圧縮後の高さ
+     * @return イメージ
      */
     public static BufferedImage decodeImage4444split(final byte[] data, final int offset, final int targetWidth, final int targetHeight, final int compressedWidth, final int compressedHeight) throws ImageDecodingException {
         final BufferedImage img = new BufferedImage(targetWidth * 2, targetHeight * 2, BufferedImage.TYPE_BYTE_INDEXED);
@@ -161,14 +159,12 @@ public final class ImageDecoding {
     }
 
     /**
-     * @param data
-     * @param targetWidth
-     * @param targetHeight
-     * @param compressedWidth
-     * @param compressedHeight
-     * @param parameters
-     * @return
-     * @throws ImageDecodingException
+     * @param data 実データ
+     * @param targetWidth 幅
+     * @param targetHeight 高さ
+     * @param compressedWidth 圧縮後の幅
+     * @param compressedHeight 圧縮後の高さ
+     * @return イメージ
      */
     public static BufferedImage decodeImage5551(final byte[] data, final int offset, final int targetWidth, final int targetHeight, final int compressedWidth, final int compressedHeight, final Map<String, Object> parameters) throws ImageDecodingException {
         final BufferedImage img = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
@@ -193,6 +189,7 @@ public final class ImageDecoding {
                     b = ((pixel & 0x1F)) * 8;
                     g = ((pixel & 0x3E0) >> 5) * 8;
                     r = ((pixel & 0x7E00) >> 10) * 8;
+                    //noinspection UnusedAssignment
                     a = ((pixel & 0x8000) >> 15) * 255;
                     a = Math.min(255, (r + g + b) / 3);
                 } else {
@@ -213,13 +210,12 @@ public final class ImageDecoding {
     }
 
     /**
-     * @param data
-     * @param targetWidth
-     * @param targetHeight
-     * @param compressedWidth
-     * @param compressedHeight
-     * @return
-     * @throws ImageDecodingException
+     * @param data 実データ
+     * @param targetWidth 幅
+     * @param targetHeight 高さ
+     * @param compressedWidth 圧縮後の幅
+     * @param compressedHeight 圧縮後の高さ
+     * @return イメージ
      */
     public static BufferedImage decodeImageDX1(final byte[] data, final int offset, final int targetWidth, final int targetHeight, final int compressedWidth, final int compressedHeight) throws ImageDecodingException {
         final BufferedImage img = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
@@ -247,13 +243,12 @@ public final class ImageDecoding {
     }
 
     /**
-     * @param data
-     * @param targetWidth
-     * @param targetHeight
-     * @param compressedWidth
-     * @param compressedHeight
-     * @return
-     * @throws ImageDecodingException
+     * @param data 実データ
+     * @param targetWidth 幅
+     * @param targetHeight 高さ
+     * @param compressedWidth 圧縮後の幅
+     * @param compressedHeight 圧縮後の高さ
+     * @return イメージ
      */
     public static BufferedImage decodeImageDX3(final byte[] data, final int offset, final int targetWidth, final int targetHeight, final int compressedWidth, final int compressedHeight) throws ImageDecodingException {
         final BufferedImage img = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
@@ -281,13 +276,12 @@ public final class ImageDecoding {
     }
 
     /**
-     * @param data
-     * @param targetWidth
-     * @param targetHeight
-     * @param compressedWidth
-     * @param compressedHeight
-     * @return
-     * @throws ImageDecodingException
+     * @param data 実データ
+     * @param targetWidth 幅
+     * @param targetHeight 高さ
+     * @param compressedWidth 圧縮後の幅
+     * @param compressedHeight 圧縮後の高さ
+     * @return イメージ
      */
     public static BufferedImage decodeImageDX5(final byte[] data, final int offset, final int targetWidth, final int targetHeight, final int compressedWidth, final int compressedHeight) throws ImageDecodingException {
         final BufferedImage img = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
@@ -350,13 +344,12 @@ public final class ImageDecoding {
     }
 
     /**
-     * @param data
-     * @param targetWidth
-     * @param targetHeight
-     * @param compressedWidth
-     * @param compressedHeight
-     * @return
-     * @throws ImageDecodingException
+     * @param data 実データ
+     * @param targetWidth 幅
+     * @param targetHeight 高さ
+     * @param compressedWidth 圧縮後の幅
+     * @param compressedHeight 圧縮後の高さ
+     * @return イメージ
      */
     public static BufferedImage decodeImageRGBA(final byte[] data, final int offset, final int targetWidth, final int targetHeight, final int compressedWidth, final int compressedHeight) throws ImageDecodingException {
         final BufferedImage img = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
@@ -383,13 +376,12 @@ public final class ImageDecoding {
     }
 
     /**
-     * @param data
-     * @param targetWidth
-     * @param targetHeight
-     * @param compressedWidth
-     * @param compressedHeight
-     * @return
-     * @throws ImageDecodingException
+     * @param data 実データ
+     * @param targetWidth 幅
+     * @param targetHeight 高さ
+     * @param compressedWidth 圧縮後の幅
+     * @param compressedHeight 圧縮後の高さ
+     * @return イメージ
      */
     public static BufferedImage decodeImageRGBAF(final byte[] data, ByteOrder endian, final int offset, final int targetWidth, final int targetHeight, final int compressedWidth, final int compressedHeight) throws ImageDecodingException {
         final BufferedImage img = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
@@ -441,13 +433,12 @@ public final class ImageDecoding {
 
 
     /**
-     * @param data
-     * @param targetWidth
-     * @param targetHeight
-     * @param compressedWidth
-     * @param compressedHeight
-     * @return
-     * @throws ImageDecodingException
+     * @param data 実データ
+     * @param targetWidth 幅
+     * @param targetHeight 高さ
+     * @param compressedWidth 圧縮後の幅
+     * @param compressedHeight 圧縮後の高さ
+     * @return イメージ
      */
     public static BufferedImage decodeImageTester(final byte[] data, final int offset, final int targetWidth, final int targetHeight, final int compressedWidth, final int compressedHeight) throws ImageDecodingException {
         final BufferedImage img = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
@@ -461,6 +452,7 @@ public final class ImageDecoding {
 
         final int p = 0;
         for (int y = 0; y < targetHeight; y++) {
+            //noinspection StatementWithEmptyBody
             for (int x = 0; x < targetWidth; x++) {
 
             }
@@ -469,15 +461,16 @@ public final class ImageDecoding {
     }
 
     /**
-     * @param x
-     * @param y
-     * @param width
-     * @param color0
-     * @param color1
-     * @param txl1
-     * @param txl2
-     * @param img
+     * @param x 横位置
+     * @param y 縦位置
+     * @param width 幅
+     * @param color0 色
+     * @param color1 入り
+     * @param txl1 あとで調べます
+     * @param txl2 あとで調べます
+     * @param img イメージ
      */
+    @SuppressWarnings("UnusedAssignment")
     private static void decompressBlockDTX1(final int x, final int y, final int width, final int color0, final int color1, final int txl1, final int txl2, final BufferedImage img) {
         float temp = ((color0 >> 11) * 255f) + 16f;
         final float r0 = (((temp / 32f) + temp) / 32f);
@@ -593,23 +586,21 @@ public final class ImageDecoding {
     }
 
     /**
-     * @param x
-     * @param y
-     * @param width
-     * @param bit0
-     * @param bit1
-     * @param bit2
-     * @param bit3
-     * @param bit4
-     * @param color0
-     * @param color1
-     * @param txl1
-     * @param txl2
-     * @param img
+     * @param x 横
+     * @param y 縦
+     * @param width 幅
+     * @param bit0 ビット0
+     * @param bit1 ビット1
+     * @param bit2 ビット2
+     * @param bit3 ビット3
+     * @param bit4 ビット4
+     * @param color0 色0
+     * @param color1 色1
+     * @param txl1 txl1
+     * @param txl2 txl2
+     * @param img イメージ
      */
     private static void decompressBlockDTX5(final int x, final int y, final int width, final int bit0, final int bit1, final int bit2, final int bit3, final int bit4, final int color0, final int color1, final int txl1, final int txl2, final BufferedImage img) {
-        final int alpha0 = bit0;
-        final int alpha1 = bit1;
         final int alphaCode1 = (bit4 << 8) | ((bit3 >> 8) & 0xff);
         final int alphaCode2 = ((bit3 & 0xff) << 16) | bit2;
 
@@ -638,21 +629,23 @@ public final class ImageDecoding {
                     alphaCode = (alphaCode1 >> (d - 24)) & 0x07;
                 }
 
+                @SuppressWarnings("UnusedAssignment")
                 int finalAlpha = 0;
                 if (alphaCode == 0) {
-                    finalAlpha = alpha0;
+                    finalAlpha = bit0;
                 } else if (alphaCode == 1) {
-                    finalAlpha = alpha1;
+                    finalAlpha = bit1;
                 } else {
-                    if (alpha0 > alpha1) {
-                        finalAlpha = (((8 - alphaCode) * alpha0) + ((alphaCode - 1) * alpha1)) / 7;
+                    if (bit0 > bit1) {
+                        finalAlpha = (((8 - alphaCode) * bit0) + ((alphaCode - 1) * bit1)) / 7;
                     } else {
                         if (alphaCode == 6) {
+                            //noinspection ConstantConditions
                             finalAlpha = 0;
                         } else if (alphaCode == 7) {
                             finalAlpha = 255;
                         } else {
-                            finalAlpha = (((6 - alphaCode) * alpha0) + ((alphaCode - 1) * alpha1)) / 5;
+                            finalAlpha = (((6 - alphaCode) * bit0) + ((alphaCode - 1) * bit1)) / 5;
                         }
                     }
                 }

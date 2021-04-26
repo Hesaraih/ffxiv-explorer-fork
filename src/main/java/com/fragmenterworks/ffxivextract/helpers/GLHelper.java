@@ -35,6 +35,7 @@ public class GLHelper {
         }
     }
 
+    @SuppressWarnings("unused")
     public static boolean isNormalized(int datatype) {
         return false;
     }

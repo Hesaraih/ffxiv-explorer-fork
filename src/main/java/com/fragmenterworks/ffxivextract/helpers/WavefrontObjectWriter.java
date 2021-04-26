@@ -10,6 +10,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Objects;
 
 public class WavefrontObjectWriter {
 
@@ -28,10 +29,6 @@ public class WavefrontObjectWriter {
 
             out.write("#FFXIV Model\r\n#Exported using FFXIV Explorer by Ioncannon\r\n#Visit: " + Constants.URL_WEBSITE + "\r\n\r\n");
 
-            //out.write("mtllib " + path.replace(".obj", ".mtl").substring(path.lastIndexOf("\\")+1) + "\r\n");
-
-            //out.write("usemtl mesh"+i+"\r\n");
-
             DX9VertexElement[] elements = model.getDX9Struct(0, i);
             DX9VertexElement vertElement = null, texCoordElement = null, normalElement = null;
 
@@ -49,9 +46,9 @@ public class WavefrontObjectWriter {
                 }
             }
 
-            writeVerts(vertElement, model.getMeshes(0)[i], out);
-            writeTexCoords(texCoordElement, model.getMeshes(0)[i], out);
-            writeNormals(normalElement, model.getMeshes(0)[i], out);
+            writeVerts(Objects.requireNonNull(vertElement), model.getMeshes(0)[i], out);
+            writeTexCoords(Objects.requireNonNull(texCoordElement), model.getMeshes(0)[i], out);
+            writeNormals(Objects.requireNonNull(normalElement), model.getMeshes(0)[i], out);
             writeIndices(model.getMeshes(0)[i], out);
 
             out.close();
@@ -61,6 +58,7 @@ public class WavefrontObjectWriter {
 
     }
 
+    @SuppressWarnings("unused")
     public static void writeMtl(String path, Model model) throws IOException {
         if (path.contains(".obj"))
             path = path.replace(".obj", ".mtl");
@@ -72,7 +70,7 @@ public class WavefrontObjectWriter {
         out.write("#FFXIV Material\r\n");
 
         for (int i = 0; i < model.getNumMesh(0); i++) {
-            out.write("newmtl mesh" + i + "\r\n");
+            out.write("new mtl mesh" + i + "\r\n");
             out.write("illum 2\r\n");
             out.write("Ka 0.9882 0.9882 0.9882\r\n");
             out.write("Kd 0.9882 0.9882 0.9882\r\n");

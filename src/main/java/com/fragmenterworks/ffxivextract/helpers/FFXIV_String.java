@@ -46,8 +46,11 @@ public class FFXIV_String {
 
     private final static int TYPE_ITEM_LOOKUP = 0x31;
 
-    final static int INFO_NAME = 235;
-    final static int INFO_GENDER = 233;
+    final static int TYPE_Other_0 = 0xDE;
+    final static int TYPE_Other_1 = 0xDF;
+
+    final static int INFO_NAME = 0xEB;
+    final static int INFO_GENDER = 0xE9;
 
     private final static int SIZE_DATATYPE_BYTE = 0xF0;
     private final static int SIZE_DATATYPE_BYTE256 = 0xF1;
@@ -126,7 +129,7 @@ public class FFXIV_String {
         buffIn.get(payload);
 
         switch (type) {
-            case (byte) 223:
+            case TYPE_Other_1:
                 for (byte b : payload) {
                     System.out.printf("0x%x ", b);
                 }
@@ -166,7 +169,7 @@ public class FFXIV_String {
 
                 buffOut.put(">".getBytes(StandardCharsets.UTF_8));
                 break;
-            case (byte) 222:
+            case TYPE_Other_0:
                 byte[] opt1 = new byte[payload[4] - 1];
                 byte[] opt2 = new byte[payload[4 + payload[4]] - 1];
 
@@ -211,15 +214,6 @@ public class FFXIV_String {
                 }
                 break;
             case TYPE_LINK:
-
-			/*byte unknownBuffer[] = new byte[payload[1]];
-			System.arraycopy(payload, 2, unknownBuffer, 0, unknownBuffer.length);
-			ByteBuffer unknownBB = ByteBuffer.wrap(unknownBuffer);
-			unknownBB.position(1);
-			byte[] outUnknownProcessBuffer = new byte[512];
-			ByteBuffer outUnknownProcessBB = ByteBuffer.wrap(outUnknownProcessBuffer);
-			processPacket(unknownBB, outUnknownProcessBB);*/
-
                 buffOut.put(String.format("<2b?:0x%x, 0x%x, 0x%x>", payload[0], payload[1], payload[2]).getBytes(StandardCharsets.UTF_8));
 
                 break;
@@ -234,7 +228,6 @@ public class FFXIV_String {
                 buffOut.put(String.format("<ref:%s>", new String(exdName)).getBytes(StandardCharsets.UTF_8));
                 break;
             case TYPE_IF:
-
                 ByteBuffer payloadBB = ByteBuffer.wrap(payload);
                 payloadBB.order(ByteOrder.LITTLE_ENDIAN);
 

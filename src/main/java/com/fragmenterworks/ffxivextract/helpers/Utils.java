@@ -16,13 +16,12 @@ public class Utils {
     }
 
     /**
-     * Converts a single precision (32 bit) floating point value
-     * into half precision (16 bit).
+     * 単精度（32ビット）浮動小数点値を半精度（16ビット）に変換します。
      * <p>
      * Source: http://www.fox-toolkit.org/ftp/fasthalffloatconversion.pdf
      *
-     * @param half The half floating point value as a short.
-     * @return floating point value of the half.
+     * @param half shortとしての半精度浮動小数点値
+     * @return 半分の浮動小数点値
      */
     public static float convertHalfToFloat(short half) {
         switch ((int) half) {
@@ -42,9 +41,10 @@ public class Utils {
         }
     }
 
+    @SuppressWarnings("unused")
     public static short convertFloatToHalf(float flt) {
         if (Float.isNaN(flt)) {
-            throw new UnsupportedOperationException("NaN to half conversion not supported!");
+            throw new UnsupportedOperationException("Not a Numberからハーフへの変換はサポートされていません!");
         } else if (flt == Float.POSITIVE_INFINITY) {
             return (short) 0x7c00;
         } else if (flt == Float.NEGATIVE_INFINITY) {
@@ -54,7 +54,7 @@ public class Utils {
         } else if (flt == -0f) {
             return (short) 0x8000;
         } else if (flt > 65504f) {
-            // max value supported by half float
+            // 半精度でサポートされる最大値
             return 0x7bff;
         } else if (flt < -65504f) {
             return (short) (0x7bff | 0x8000);
@@ -73,11 +73,11 @@ public class Utils {
     public static String getRegexpFromFormatString(String format) {
         String toReturn = format;
 
-        // escape some special regexp chars
+        // いくつかの特別な正規表現文字をエスケープ
         toReturn = toReturn.replaceAll("\\.", "\\\\.");
-        toReturn = toReturn.replaceAll("\\!", "\\\\!");
+        toReturn = toReturn.replaceAll("!", "\\\\!");
 
-        if (toReturn.indexOf("%") >= 0) {
+        if (toReturn.contains("%")) {
             toReturn = toReturn.replaceAll("%s", "[\\\\w]+"); //accepts 0-9 A-Z a-z _
 
             while (toReturn.matches(".*%([0-9]+)[d]{1}.*")) {
@@ -91,10 +91,10 @@ public class Utils {
     }
 
     public static byte[] readContentIntoByteArray(File file) throws IOException {
-        FileInputStream fileInputStream = null;
+        FileInputStream fileInputStream;
         byte[] bFile = new byte[(int) file.length()];
 
-        //convert file into array of bytes
+        //ファイルをバイトの配列に変換
         fileInputStream = new FileInputStream(file);
         fileInputStream.read(bFile);
         fileInputStream.close();
