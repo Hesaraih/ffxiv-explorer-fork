@@ -43,6 +43,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
     private File lastOpenedIndexFile = null;
     private File lastOpenedTextFile = null;
     private File lastSaveLocation = null;
+    private File lastSaveLocation_2 = null;
     private SqPack_IndexFile currentIndexFile;
 
     //UI
@@ -140,7 +141,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
         pnlInfo.setBorder(null);
         pnlStatusBar.add(pnlInfo, BorderLayout.WEST);
 
-        JLabel lblOffset = new JLabel("Offset: ");
+        JLabel lblOffset = new JLabel("オフセット: ");
         pnlInfo.add(lblOffset);
         lblOffset.setHorizontalAlignment(SwingConstants.LEFT);
 
@@ -152,7 +153,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
         separator_1.setOrientation(SwingConstants.VERTICAL);
         pnlInfo.add(separator_1);
 
-        JLabel lblHash = new JLabel("Hash: ");
+        JLabel lblHash = new JLabel("ハッシュ値: ");
         pnlInfo.add(lblHash);
 
         lblHashValue = new JLabel("*");
@@ -177,7 +178,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
         lblHashInfoValue = new JLabel("* / *");
         pnlInfo.add(lblHashInfoValue);
 
-        JLabel lblHashInfo = new JLabel(" filenames loaded");
+        JLabel lblHashInfo = new JLabel(" filenamesを読み込みました");
         pnlInfo.add(lblHashInfo);
 
         JPanel pnlProgBar = new JPanel();
@@ -402,6 +403,8 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
                 prgLoadingBar.setValue(0);
                 prgLoadingBar.setVisible(false);
                 lblLoadingBarString.setVisible(false);
+            } else if (event.getActionCommand().equals("tool_Test")) {
+                HashFinding_Utils.TestPrg();
             } else if (event.getActionCommand().equals("settings")) {
                 SettingsWindow settings = new SettingsWindow(FileManagerWindow.this);
                 settings.setLocationRelativeTo(FileManagerWindow.this);
@@ -418,7 +421,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
             } else if (event.getActionCommand().equals("cedumpimport")) {
                 //テキストファイルからインポート
                 if (lastOpenedTextFile == null){
-                    lastOpenedTextFile = new File(System.getProperty("java.class.path"));
+                    lastOpenedTextFile = new File("./");
                 }
                 JFileChooser fc = new JFileChooser(lastOpenedTextFile);
                 int returnVal = fc.showOpenDialog(getParent()); //フレームが親コンポーネントである場合
@@ -445,53 +448,80 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
                 swapper.setVisible(true);
             } else if (event.getActionCommand().equals("filename_save")) {
                 //フルパス一覧出力
-                ArrayList<SqPack_File> files = fileTree.getSelectedFiles();
+                if (currentIndexFile != null) {
+                    SqPack_IndexFile.SqPack_Folder[] folders = currentIndexFile.getPackFolders();
 
-                if (lastSaveLocation == null){
-                    lastSaveLocation = new File("./");
-                }
-                JFileChooser fileChooser = new JFileChooser(lastSaveLocation);
-                lastSaveLocation = fileChooser.getSelectedFile();
-
-                String SavePath = null;
-                try {
-                    SavePath = lastSaveLocation.getCanonicalPath() + "\\" + currentIndexFile.getName() + "_AllFile.txt";
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                File mkDirPath = new File(Objects.requireNonNull(SavePath));
-                if (mkDirPath.getParentFile().mkdirs()) {
-                    Utils.getGlobalLogger().debug("フォルダ作成に成功");
-                }
-
-                try {
-                    File file = new File(SavePath);
-                    FileWriter filewriter = new FileWriter(file, true); //追記モード
-
-                    for (SqPack_File sqPack_file : files) {
-                        String folderName = HashDatabase.getFolder(sqPack_file.getId2());
-                        String fileName = sqPack_file.getName();
-                        if (fileName == null) {
-                            fileName = String.format("%X", sqPack_file.getId());
-                        }
-                        if (folderName == null) {
-                            folderName = String.format("%X", sqPack_file.getId2());
-                        }
-
-                        String path = folderName + "/" + fileName + "\r\n";
-
-                        filewriter.write(path);
+                    if (lastSaveLocation_2 == null) {
+                        lastSaveLocation_2 = new File("./" + Constants.DBFILE_NAME);
                     }
-                    filewriter.close();
+                    JFileChooser fileChooser = new JFileChooser(lastSaveLocation_2);
+                    fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 
-                } catch (FileNotFoundException e) {
-                    Utils.getGlobalLogger().error(e);
+                    FileFilter filter = new FileFilter() {
+                        @Override
+                        public String getDescription() {
+                            return "ファイル一覧出力";
+                        }
 
-                } catch (IOException e) {
-                    e.printStackTrace();
+                        @Override
+                        public boolean accept(File f) {
+                            return f.getName().endsWith(".txt") || f.isDirectory();
+                        }
+                    };
+                    fileChooser.addChoosableFileFilter(filter);
+                    fileChooser.setFileFilter(filter);
+                    fileChooser.setAcceptAllFileFilterUsed(false);
+
+                    //SaveDialogを開く
+                    int retunval = fileChooser.showSaveDialog(FileManagerWindow.this);
+
+                    if (retunval == JFileChooser.APPROVE_OPTION) {
+                        lastSaveLocation_2 = fileChooser.getSelectedFile();
+                        if (lastSaveLocation_2.getParentFile().mkdirs()){
+                            Utils.getGlobalLogger().debug("フォルダ作成に成功");
+                        }
+
+                        String SavePath = "./" + currentIndexFile.getName() + "_AllFile.txt";
+                        try {
+                            SavePath = lastSaveLocation_2.getCanonicalPath() + "\\" + currentIndexFile.getName() + "_AllFile.txt";
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                        try {
+                            File file = new File(SavePath);
+                            FileWriter filewriter = new FileWriter(file, true); //追記モード
+
+                            for (SqPack_IndexFile.SqPack_Folder spPack_folder : folders){
+                                SqPack_File[] files = spPack_folder.getFiles();
+                                for (SqPack_File sqPack_file : files) {
+                                    String folderName = spPack_folder.getName();
+
+                                    String fileName = sqPack_file.getName();
+                                    if (fileName == null) {
+                                        fileName = String.format("%X", sqPack_file.getId());
+                                    }
+                                    if (folderName == null) {
+                                        folderName = String.format("%X", spPack_folder.getId());
+                                    }
+
+                                    String path = folderName + "/" + fileName + "\r\n";
+
+                                    filewriter.write(path);
+                                }
+                            }
+                            filewriter.close();
+                            Utils.getGlobalLogger().info("ファイル一覧出力完了");
+                        } catch (FileNotFoundException e) {
+                            Utils.getGlobalLogger().error(e);
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }else{
+                    Utils.getGlobalLogger().debug("Indexファイルが読み込まれていません");
                 }
-
             }
         }
     };
@@ -589,6 +619,10 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
         tools_findMaps.setActionCommand("find_maps");
         tools_findMaps.addActionListener(menuHandler);
 
+        JMenuItem tools_Test = new JMenuItem("ツールテスト");
+        tools_Test.setActionCommand("tool_Test");
+        tools_Test.addActionListener(menuHandler);
+
         JMenuItem options_settings = new JMenuItem(Strings.MENUITEM_SETTINGS);
         options_settings.setActionCommand("settings");
         options_settings.addActionListener(menuHandler);
@@ -649,6 +683,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
         tools.add(tools_findexhs);
         tools.add(tools_findMusic);
         tools.add(tools_findMaps);
+        tools.add(tools_Test);
 
         database.add(db_hashcalculator);
         database.add(db_importCeDump);
@@ -827,7 +862,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
         } else if (data.length >= 4 && contentType == 2 && file.getName().endsWith("mtrl")) {
             //魚拓や絵画などのmdlファイルがないものでもmtrlファイル情報からtexをDB登録できるようにした
             new Material(HashDatabase.getFolder(file.getId2()), currentIndexFile, data, currentIndexFile.getEndian());
-        } else if (contentType == 4 || file.getName().endsWith("atex")
+        } else if (contentType == 4 || file.getName().endsWith(".atex")
                 ||(data.length >= 4 && (data[0]==0 && data[1]==0 && data[2] == (byte)0x80 && data[3] == 0))) {
             Image_View imageComponent = new Image_View(new Texture_File(data, currentIndexFile.getEndian()));
             tabs.addTab("テクスチャ", imageComponent);
@@ -864,6 +899,10 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
             } catch (IOException e) {
                 Utils.getGlobalLogger().error(e);
             }
+        } else if (data.length >= 4 && checkMagic(data, "imc ")) {
+            //file.getName().endsWith(".imc")
+            IMC_View imcView = new IMC_View(new IMC_File(data, currentIndexFile.getEndian()));
+            tabs.addTab("モデル情報ファイル", imcView);
         } else if (data.length >= 4 && checkMagic(data, "SGB1")) {
             try {
                 @SuppressWarnings("unused")
@@ -963,7 +1002,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
             if (lastSaveLocation.getParentFile().mkdirs()){
                 Utils.getGlobalLogger().debug("フォルダ作成に成功");
             }else{
-                Utils.getGlobalLogger().debug("フォルダ作成に失敗");
+                Utils.getGlobalLogger().debug("フォルダが既にあるか、作成に失敗した");
             }
             Loading_Dialog loadingDialog = new Loading_Dialog(FileManagerWindow.this, files.size());
             loadingDialog.setTitle("抽出中...");
