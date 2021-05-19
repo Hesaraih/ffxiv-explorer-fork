@@ -7,7 +7,8 @@ import com.fragmenterworks.ffxivextract.storage.HashDatabase;
 import java.io.IOException;
 import java.util.ArrayList;
 
-class EquipableRender {
+@SuppressWarnings("unused")
+class EquippableRender {
 
     public static final int MET = 0;
     public static final int TOP = 1;
@@ -82,7 +83,7 @@ class EquipableRender {
     }
 
     public ArrayList<Model> getModels() {
-        ArrayList<Model> models = new ArrayList<Model>();
+        ArrayList<Model> models = new ArrayList<>();
 
         if (met != null)
             models.add(met);
