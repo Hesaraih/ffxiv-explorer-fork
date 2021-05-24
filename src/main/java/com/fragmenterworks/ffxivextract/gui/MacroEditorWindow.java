@@ -11,15 +11,15 @@ import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.text.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 class MacroEditorWindow extends JFrame {
 
@@ -29,8 +29,8 @@ class MacroEditorWindow extends JFrame {
 
     // GUI
     private final JTextField txtDatPath;
-    private final JComboBox drpMacroChooser;
-    private final JComboBox drpIconChooser;
+    private final JComboBox<String> drpMacroChooser;
+    private final JComboBox<String> drpIconChooser;
     private final JTextField txtMacroName;
     private final JTextArea txtMacroBody;
     private final JLabel txtNameCounter;
@@ -52,7 +52,7 @@ class MacroEditorWindow extends JFrame {
 
         this.setTitle("Macro Editor");
         URL imageURL = getClass().getResource("/frameicon.png");
-        ImageIcon image = new ImageIcon(imageURL);
+        ImageIcon image = new ImageIcon(Objects.requireNonNull(imageURL));
         this.setIconImage(image.getImage());
 
         setBounds(100, 100, 600, 600);
@@ -98,13 +98,7 @@ class MacroEditorWindow extends JFrame {
         pnlFileSelect.add(txtDatPath, gbc_textField);
 
         JButton btnBrowse = new JButton("Browse");
-        btnBrowse.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                setPath();
-            }
-        });
+        btnBrowse.addActionListener(arg0 -> setPath());
 
         GridBagConstraints gbc_button = new GridBagConstraints();
         gbc_button.anchor = GridBagConstraints.NORTHWEST;
@@ -135,7 +129,7 @@ class MacroEditorWindow extends JFrame {
         panel_1.add(lblMacroChooserLabel);
         lblMacroChooserLabel.setEnabled(false);
 
-        drpMacroChooser = new JComboBox();
+        drpMacroChooser = new JComboBox<>();
         panel_1.add(drpMacroChooser);
         drpMacroChooser.setEnabled(false);
 
@@ -147,7 +141,7 @@ class MacroEditorWindow extends JFrame {
         panel_2.add(lblIconChooserLabel);
         lblIconChooserLabel.setEnabled(false);
 
-        drpIconChooser = new JComboBox();
+        drpIconChooser = new JComboBox<>();
         panel_2.add(drpIconChooser);
         drpIconChooser.setEnabled(false);
 
@@ -223,14 +217,10 @@ class MacroEditorWindow extends JFrame {
 
         btnSetMacro = new JButton("Set Macro");
         btnSetMacro.setEnabled(false);
-        btnSetMacro.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].title = txtMacroName.getText();
-                currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].icon = Integer.parseInt((String) drpIconChooser.getSelectedItem());
-                setLines();
-            }
+        btnSetMacro.addActionListener(arg0 -> {
+            currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].title = txtMacroName.getText();
+            currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].icon = Integer.parseInt((String) Objects.requireNonNull(drpIconChooser.getSelectedItem()));
+            setLines();
         });
 
         panel_9.add(btnSetMacro);
@@ -238,15 +228,11 @@ class MacroEditorWindow extends JFrame {
         btnSave = new JButton("Save File");
         btnSave.setEnabled(false);
         panel_9.add(btnSave);
-        btnSave.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].title = txtMacroName.getText();
-                currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].icon = Integer.parseInt((String) drpIconChooser.getSelectedItem());
-                setLines();
-                doSave();
-            }
+        btnSave.addActionListener(arg0 -> {
+            currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].title = txtMacroName.getText();
+            currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].icon = Integer.parseInt((String) Objects.requireNonNull(drpIconChooser.getSelectedItem()));
+            setLines();
+            doSave();
         });
 
         DefaultStyledDocument doc = new DefaultStyledDocument();
@@ -262,6 +248,7 @@ class MacroEditorWindow extends JFrame {
         panel_10.add(txtLineCounter, BorderLayout.EAST);
     }
 
+    @SuppressWarnings("ConstantConditions")
     private void setPath() {
         JFileChooser fileChooser = new JFileChooser(lastOpenedFile);
 
@@ -312,42 +299,38 @@ class MacroEditorWindow extends JFrame {
         for (int i = 0; i < Constants.macroIconList.length; i++)
             drpIconChooser.addItem("" + Constants.macroIconList[i]);
 
-        drpMacroChooser.addItemListener(new ItemListener() {
-            public void itemStateChanged(ItemEvent itemEvent) {
-                int state = itemEvent.getStateChange();
-                if (state == ItemEvent.SELECTED) {
+        drpMacroChooser.addItemListener(itemEvent -> {
+            int state = itemEvent.getStateChange();
+            if (state == ItemEvent.SELECTED) {
 
-                    txtMacroName.setText(currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].title);
-                    txtMacroBody.setText("");
+                txtMacroName.setText(currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].title);
+                txtMacroBody.setText("");
 
-                    //Precheck
-                    int end = 0;
-                    for (int i = 0; i < currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].lines.length; i++) {
-                        if (!currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].lines[i].isEmpty())
-                            end = i;
-                    }
+                //PreCheck
+                int end = 0;
+                for (int i = 0; i < currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].lines.length; i++) {
+                    if (!currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].lines[i].isEmpty())
+                        end = i;
+                }
 
-                    for (int i = 0; i <= end; i++) {
-                        txtMacroBody.append(currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].lines[i] + (i + 1 >= currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].lines.length ? "" : "\n"));
-                        //System.out.println(currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].lines[i]);
-                    }
+                for (int i = 0; i <= end; i++) {
+                    txtMacroBody.append(currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].lines[i] + (i + 1 >= currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].lines.length ? "" : "\n"));
+                    //System.out.println(currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].lines[i]);
+                }
 
-                    //Select Correct Icon
-                    for (int i = 0; i < Constants.macroIconList.length; i++) {
-                        if (currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].icon == Constants.macroIconList[i]) {
-                            drpIconChooser.setSelectedIndex(i);
-                            break;
-                        }
+                //Select Correct Icon
+                for (int i = 0; i < Constants.macroIconList.length; i++) {
+                    if (currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].icon == Constants.macroIconList[i]) {
+                        drpIconChooser.setSelectedIndex(i);
+                        break;
                     }
                 }
             }
         });
-        drpIconChooser.addItemListener(new ItemListener() {
-            public void itemStateChanged(ItemEvent itemEvent) {
-                int state = itemEvent.getStateChange();
-                if (state == ItemEvent.SELECTED) {
-                    currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].icon = Integer.parseInt((String) drpIconChooser.getSelectedItem());
-                }
+        drpIconChooser.addItemListener(itemEvent -> {
+            int state = itemEvent.getStateChange();
+            if (state == ItemEvent.SELECTED) {
+                currentMacro_File.entries[drpMacroChooser.getSelectedIndex()].icon = Integer.parseInt((String) Objects.requireNonNull(drpIconChooser.getSelectedItem()));
             }
         });
 
@@ -365,6 +348,7 @@ class MacroEditorWindow extends JFrame {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void setEditorEnabled(boolean isEnabled) {
         lblMacroChooserLabel.setEnabled(isEnabled);
         lblIconChooserLabel.setEnabled(isEnabled);
@@ -465,8 +449,6 @@ class MacroEditorWindow extends JFrame {
             fio.write(header);
             fio.write(body);
             fio.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -475,9 +457,11 @@ class MacroEditorWindow extends JFrame {
     class DocumentSizeFilter extends DocumentFilter {
 
         final JTextArea area;
+        @SuppressWarnings("unused")
         boolean DEBUG = false;
         final int maxLines;
 		final int maxLength;
+        @SuppressWarnings("unused")
         String EOL = "\n";
 
         DocumentSizeFilter(JTextArea area, int maxLines, int maxLength) {
@@ -491,7 +475,9 @@ class MacroEditorWindow extends JFrame {
                 throws BadLocationException {
 
             int actRow = area.getLineOfOffset(offs);
-            int rowBeginn = area.getLineStartOffset(actRow);
+            @SuppressWarnings("unused")
+            int rowBegin = area.getLineStartOffset(actRow);
+            @SuppressWarnings("unused")
             int rowEnd = area.getLineEndOffset(actRow);
 
             //Count newlines
@@ -549,7 +535,7 @@ class MacroEditorWindow extends JFrame {
         }
     }
 
-    class JTextFieldLimit extends PlainDocument {
+    static class JTextFieldLimit extends PlainDocument {
         private final int limit;
 
         JTextFieldLimit(int limit) {
@@ -557,6 +543,7 @@ class MacroEditorWindow extends JFrame {
             this.limit = limit;
         }
 
+        @SuppressWarnings("unused")
         JTextFieldLimit(int limit, boolean upper) {
             super();
             this.limit = limit;

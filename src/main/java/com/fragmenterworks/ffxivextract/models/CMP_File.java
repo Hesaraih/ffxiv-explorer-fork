@@ -11,6 +11,12 @@ public class CMP_File {
 
     private final ArrayList<Integer> colors = new ArrayList<>();
 
+    /**
+     * 抽出したcmpファイルから読み取り
+     * JFileChooserが定義されていないので現在未使用
+     * @param path ファイルパス
+     * @throws IOException 読み込みエラー
+     */
     @SuppressWarnings("unused")
     public CMP_File(String path) throws IOException {
         File file = new File(path);
@@ -24,6 +30,10 @@ public class CMP_File {
         loadCMP(data);
     }
 
+    /**
+     * cmpファイル読み取り(コンストラクタ)
+     * @param data データ
+     */
     public CMP_File(byte[] data) {
         loadCMP(data);
     }

@@ -8,18 +8,15 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileFilter;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Objects;
 
 class SCDConverterWindow extends JFrame {
 
-    private final int SCD_HEADER_SIZE = 0x540;
-
-    private final JPanel contentPane;
     private final JTextField txtPath;
     private final JTextField edtVolume;
     private final JTextField edtChannels;
@@ -39,15 +36,13 @@ class SCDConverterWindow extends JFrame {
 
     private File currentOggFile;
 
-    private final JButton btnConvert;
-
     public SCDConverterWindow() {
         this.setTitle(Strings.DIALOG_TITLE_SCDCONVERTER);
         URL imageURL = getClass().getResource("/frameicon.png");
-        ImageIcon image = new ImageIcon(imageURL);
+        ImageIcon image = new ImageIcon(Objects.requireNonNull(imageURL));
         this.setIconImage(image.getImage());
 
-        contentPane = new JPanel();
+        JPanel contentPane = new JPanel();
         contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
         setContentPane(contentPane);
         contentPane.setLayout(new BorderLayout(0, 0));
@@ -64,7 +59,7 @@ class SCDConverterWindow extends JFrame {
         panel.add(panel_4, BorderLayout.SOUTH);
         panel_4.setLayout(new BoxLayout(panel_4, BoxLayout.X_AXIS));
 
-        JLabel lblNewLabel = new JLabel("変換されたファイルは「inputfile.ogg.scd」になります。");
+        JLabel lblNewLabel = new JLabel("変換されたファイルは「inputFile.ogg.scd」になります。");
         panel_4.add(lblNewLabel);
 
         txtPath = new JTextField();
@@ -179,7 +174,7 @@ class SCDConverterWindow extends JFrame {
         contentPane.add(panel_2, BorderLayout.SOUTH);
         panel_2.setLayout(new BorderLayout(0, 0));
 
-        btnConvert = new JButton("Convert");
+        JButton btnConvert = new JButton("Convert");
         panel_2.add(btnConvert, BorderLayout.NORTH);
         pack();
         setBounds(getBounds().x, getBounds().y, 500, getBounds().height);
@@ -217,25 +212,21 @@ class SCDConverterWindow extends JFrame {
 
         setEnabled(false);
 
-        btnConvert.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    convert(currentOggFile.getCanonicalPath());
-                    JOptionPane
-                            .showMessageDialog(
-                                    null,
-                                    "変換完了",
-                                    "Ogg to SCD Converter", JOptionPane.INFORMATION_MESSAGE);
-                } catch (IOException e1) {
-                    Utils.getGlobalLogger().error(e1);
-                    JOptionPane
-                            .showMessageDialog(
-                                    null,
-                                    "変換できませんでした",
-                                    "Ogg to SCD Converter", JOptionPane.ERROR_MESSAGE);
-                }
+        btnConvert.addActionListener(e -> {
+            try {
+                convert(currentOggFile.getCanonicalPath());
+                JOptionPane
+                        .showMessageDialog(
+                                null,
+                                "変換完了",
+                                "Ogg to SCD Converter", JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException e1) {
+                Utils.getGlobalLogger().error(e1);
+                JOptionPane
+                        .showMessageDialog(
+                                null,
+                                "変換できませんでした",
+                                "Ogg to SCD Converter", JOptionPane.ERROR_MESSAGE);
             }
         });
     }
@@ -293,9 +284,11 @@ class SCDConverterWindow extends JFrame {
     private byte[] createSCDHeader(int oggLength, float volume, int numChannels, int sampleRate, int loopStart, int loopEnd) {
         //scdテンプレートとscdヘッダーをロード
         InputStream inStream = getClass().getResourceAsStream("/scd_header.bin");
+        int SCD_HEADER_SIZE = 0x540;
         byte[] scdHeader = new byte[SCD_HEADER_SIZE];
         try {
-            inStream.read(scdHeader);
+            //noinspection ResultOfMethodCallIgnored
+            Objects.requireNonNull(inStream).read(scdHeader);
             inStream.close();
         } catch (IOException e) {
             e.printStackTrace();
@@ -387,8 +380,8 @@ class SCDConverterWindow extends JFrame {
         pnlOpt.setEnabled(b);
     }
 
-    private int getBytePosition(float samplePosition, float numSamples, float filesize) {
-        return (int) ((filesize / numSamples) * samplePosition);
+    private int getBytePosition(float samplePosition, float numSamples, float fileSize) {
+        return (int) ((fileSize / numSamples) * samplePosition);
     }
 
 }

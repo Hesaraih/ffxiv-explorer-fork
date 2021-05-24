@@ -33,7 +33,11 @@ public class Shader_View extends JPanel {
 
         initUi();
 
-        cmbShaderIndex.addItem(shader.getShaderType() == 0 ? "Vertex Shader #0" : "Pixel Shader #0");
+        if (shader.getShaderType() == 0) {
+            cmbShaderIndex.addItem("Vertex Shader #0");
+        } else {
+            cmbShaderIndex.addItem("Pixel Shader #0");
+        }
         cmbShaderIndex.setEnabled(false);
 
         loadShader(0);
@@ -52,11 +56,13 @@ public class Shader_View extends JPanel {
         @SuppressWarnings("unused")
         String[] list = new String[shaderPack.getNumVertShaders() + shaderPack.getNumPixelShaders()];
 
-        for (int i = 0; i < shaderPack.getNumVertShaders(); i++)
+        for (int i = 0; i < shaderPack.getNumVertShaders(); i++) {
             cmbShaderIndex.addItem("Vertex Shader #" + i);
+        }
 
-        for (int i = 0; i < shaderPack.getNumPixelShaders(); i++)
+        for (int i = 0; i < shaderPack.getNumPixelShaders(); i++) {
             cmbShaderIndex.addItem("Pixel Shader #" + i);
+        }
 
         cmbShaderIndex.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
@@ -72,20 +78,26 @@ public class Shader_View extends JPanel {
             processCTable(0, shader.getShaderType(), shader.getConstantTable());
             hexView.setBytes(shader.getShaderBytecode());
 
-            for (ParameterInfo pi : shader.getShaderHeader().paramInfo)
+            for (ParameterInfo pi : shader.getShaderHeader().paramInfo) {
                 Utils.getGlobalLogger().debug("名前: {}, ID: {}", pi.parameterName, String.format("0x%04X", pi.id));
+            }
         } else {
             processCTable(i, shaderPack.getShaderType(i), shaderPack.getConstantTable(i));
             hexView.setBytes(shaderPack.getShaderBytecode(i));
 
-            for (ParameterInfo pi : shaderPack.getShaderHeader(i).paramInfo)
+            for (ParameterInfo pi : shaderPack.getShaderHeader(i).paramInfo) {
                 Utils.getGlobalLogger().debug("名前: {}, ID: {}", pi.parameterName, String.format("0x%04X", pi.id));
+            }
         }
     }
 
     private void processCTable(int num, int type, D3DXShader_ConstantTable cTable) {
         DefaultMutableTreeNode root = new DefaultMutableTreeNode();
-        root.setUserObject(type == 0 ? "Vertex Shader" : "Pixel Shader");
+        if (type == 0) {
+            root.setUserObject("Vertex Shader");
+        } else {
+            root.setUserObject("Pixel Shader");
+        }
 
         for (int i = 0; i < cTable.constantInfo.length; i++) {
             String paramId = "";

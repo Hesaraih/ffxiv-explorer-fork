@@ -57,14 +57,16 @@ public class IMC_File extends Game_File {
         //Get the variances
         int remaining = numVariances;
         while (--remaining >= 0) {
-            for (ImcPart imcPart : parts.values())
+            for (ImcPart imcPart : parts.values()) {
                 imcPart.variants.add(new VarianceInfo(bb.getShort(), bb.getShort(), bb.getShort()));
+            }
         }
     }
 
     public VarianceInfo getVarianceInfo(int i) {
-        if (i > numVariances || i == -1)
+        if (i > numVariances || i == -1) {
             return parts.get(0).variants.get(0);
+        }
 
         return parts.get(0).variants.get(i);
     }
@@ -94,14 +96,18 @@ public class IMC_File extends Game_File {
         final short effectNumber;
 
         VarianceInfo(short materialNumber, short partVisiMask, short effectNumber) {
-            this.materialNumber = materialNumber == 0 ? 1 : materialNumber;
+            if (materialNumber == 0) {
+                this.materialNumber = 1;
+            } else {
+                this.materialNumber = materialNumber;
+            }
             this.partVisibiltyMask = partVisiMask;
             this.effectNumber = effectNumber;
         }
 
         @Override
         public String toString() {
-            return String.format("Mat#: %d, Parts:0x%x, Eff#: %d", materialNumber, partVisibiltyMask, effectNumber);
+            return String.format("Material Set: %d, Hidden Parts:0x%x, VFX ID: %d", materialNumber, partVisibiltyMask, effectNumber);
         }
     }
 }

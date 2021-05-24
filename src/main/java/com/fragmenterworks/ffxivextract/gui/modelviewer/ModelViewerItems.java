@@ -28,12 +28,14 @@ import java.util.Objects;
 
 class ModelViewerItems extends JPanel {
 
-    private final ArrayList<ModelItemEntry>[] entries = new ArrayList[22];
+    //private final ArrayList<ModelItemEntry>[] entries = new ArrayList[22];
+    private ArrayList<ModelItemEntry>[] entries;
 
     private final ArrayList<ModelItemEntry> filteredEntries = new ArrayList<>();
 
     @SuppressWarnings("unused")
     ModelItemEntry[] addedItems = new ModelItemEntry[22];
+
 
     private final SparseArray<String> slots = new SparseArray<>();
 
@@ -69,16 +71,15 @@ class ModelViewerItems extends JPanel {
     private final SqPack_IndexFile modelIndexFile;
     private final EXDF_View itemView;
 
-    @SuppressWarnings("unused")
     public ModelViewerItems(ModelViewerWindow parent, SqPack_IndexFile modelIndex, EXDF_View itemView) {
 
         this.modelIndexFile = modelIndex;
         this.itemView = itemView;
 
         //Fill the Equipment Slots
-        slots.append(1, "片手武器");
+        slots.append(1, "片手メイン");
         slots.append(13, "両手武器");
-        slots.append(2, "素手");
+        slots.append(2, "片手サブ");
         slots.append(3, "頭");
         slots.append(4, "胴");
         slots.append(5, "手");
@@ -91,7 +92,7 @@ class ModelViewerItems extends JPanel {
 
         slots.append(15, "胴 + 頭");
         slots.append(16, "全身 - 頭");
-        //slots.append(17, "SoulStone");
+        //slots.append(17, "ソウルクリスタル");
         slots.append(18, "脚 + 足");
         slots.append(19, "全身");
         slots.append(20, "胴 + 手");
@@ -115,11 +116,14 @@ class ModelViewerItems extends JPanel {
         charIds.append(13, "アウラ♂");
         charIds.append(14, "アウラ♀");
         charIds.append(15, "ロスガル♂");
-        //charIds.append(16, "ロスガル♀");
-        //charIds.append(17, "ヴィエラ♂");
+        //charIds.append(16, "ロスガル♀")
+        //charIds.append(17, "ヴィエラ♂")
         charIds.append(18, "ヴィエラ♀");
 
         Arrays.fill(entries, new ArrayList<ModelItemEntry>());
+
+
+        Utils.getGlobalLogger().debug(parent.getName());
 
         setLayout(new BorderLayout(0, 0));
 
@@ -422,48 +426,54 @@ class ModelViewerItems extends JPanel {
         byte[] modelData = null;
         ModelItemEntry currentItem = filteredEntries.get(selected);
 
-        int characterNumber = ((charNumberOverride == -1 ? currentBody * 100 + 1 : charNumberOverride));
+        int characterNumber;
+        if (charNumberOverride == -1) {
+            characterNumber = currentBody * 100 + 1;
+        } else {
+            characterNumber = charNumberOverride;
+        }
 
         try {
 
             switch (currentCategory) {
-                case 13:
-                case 0:
-                case 1:
-                case 2:
+                case 0: //調理品(モデルあり)、その他アイテム(モデル無し)
+                case 1: //片手武器(メインスロット用)
+                case 2: //片手武器(サブスロット用)
+                case 13: //両手武器(メイン装備可、サブ装備不可)
+                case 14: //片手武器(メインとサブスロットのどちらでも可)(二刀流？)
                     modelPath = String.format("chara/weapon/w%04d/obj/body/b%04d/model/w%04db%04d.mdl", currentItem.id, currentItem.model, currentItem.id, currentItem.model);
                     break;
-                case 3:
+                case 3: //頭防具
                     modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_met.mdl", currentItem.id, characterNumber, currentItem.id);
                     break;
-                case 4:
-                case 21:
-                case 20:
-                case 19:
-                case 16:
-                case 15:
+                case 4: //胴防具
+                case 15: //胴防具(頭装備不可)
+                case 16: //胴防具(手脚足装備不可)
+                case 19: //胴防具(頭手脚足装備不可)
+                case 20: //胴防具(手脚装備不可)
+                case 21: //胴防具(脚足装備不可)
                     modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_top.mdl", currentItem.id, characterNumber, currentItem.id);
                     break;
-                case 5:
+                case 5: //手防具
                     modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_glv.mdl", currentItem.id, characterNumber, currentItem.id);
                     break;
-                case 7:
-                case 18:
+                case 7: //脚防具
+                case 18: //脚防具(足装備不可)
                     modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_dwn.mdl", currentItem.id, characterNumber, currentItem.id);
                     break;
-                case 8:
+                case 8: //足防具
                     modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_sho.mdl", currentItem.id, characterNumber, currentItem.id);
                     break;
-                case 9:
+                case 9: //耳飾り
                     modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_ear.mdl", currentItem.id, characterNumber, currentItem.id);
                     break;
-                case 10:
+                case 10: //首飾り
                     modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_nek.mdl", currentItem.id, characterNumber, currentItem.id);
                     break;
-                case 11:
+                case 11: //腕輪
                     modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_wrs.mdl", currentItem.id, characterNumber, currentItem.id);
                     break;
-                case 12:
+                case 12: //指輪
                     modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_rir.mdl", currentItem.id, characterNumber, currentItem.id);
                     break;
             }
@@ -552,6 +562,10 @@ class ModelViewerItems extends JPanel {
         }
 
         return 101;
+    }
+
+    public void setEntries(ArrayList<ModelItemEntry>[] entries) {
+        this.entries = entries;
     }
 
     class ItemsListModel extends AbstractListModel<String> {

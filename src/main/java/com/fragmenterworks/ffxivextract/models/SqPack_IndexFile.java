@@ -11,6 +11,7 @@ import javax.swing.*;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteOrder;
+import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
@@ -397,7 +398,23 @@ public class SqPack_IndexFile {
                 this.name = String.format("~%x", id);
             }
             else if (Constants.DEBUG){
+                HashDatabase.beginConnection();
+                //いらないかな？
+                try {
+                    HashDatabase.setAutoCommit(false);
+                } catch (SQLException e1) {
+                    Utils.getGlobalLogger().error(e1);
+                }
+
                 HashDatabase.flagFolderNameAsUsed(id);
+
+                try {
+                    HashDatabase.commit();
+                } catch (SQLException e) {
+                    Utils.getGlobalLogger().error(e);
+                }
+
+                HashDatabase.closeConnection();
             }
         }
 
@@ -549,7 +566,23 @@ public class SqPack_IndexFile {
                 }
             }
             else if (Constants.DEBUG){
+                HashDatabase.beginConnection();
+                //いらないかな？
+                try {
+                    HashDatabase.setAutoCommit(false);
+                } catch (SQLException e1) {
+                    Utils.getGlobalLogger().error(e1);
+                }
+
                 HashDatabase.flagFileNameAsUsed(id);
+
+                try {
+                    HashDatabase.commit();
+                } catch (SQLException e) {
+                    Utils.getGlobalLogger().error(e);
+                }
+
+                HashDatabase.closeConnection();
             }
         }
 
@@ -639,9 +672,14 @@ public class SqPack_IndexFile {
      * @return 2:ファイルがある 1:パスは合ってる 0:ファイル名もパスもなし
      */
     public Integer existsFile2(String fullPath){
-        String folder = fullPath.substring(0, fullPath.lastIndexOf("/"));
-        String file = fullPath.substring(fullPath.lastIndexOf("/") + 1);
-
+        String folder,file;
+        if (fullPath.contains(".")) {
+            folder = fullPath.substring(0, fullPath.lastIndexOf("/"));
+            file = fullPath.substring(fullPath.lastIndexOf("/") + 1);
+        }else{
+            folder = fullPath;
+            file = "";
+        }
         return existsFile(folder, file);
     }
 

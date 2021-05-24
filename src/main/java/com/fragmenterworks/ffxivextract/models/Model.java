@@ -182,18 +182,18 @@ public class Model extends Game_File {
         bb.position(bb.position() + (32 * unknownCount1));
 
         //LOD Headers
-        Utils.getGlobalLogger().trace("-----LoD Header Info-----");
+        Utils.getGlobalLogger().trace("-----Level of Detail(LoD) Header Info-----");
         for (int i = 0; i < lodModels.length; i++) {
-            Utils.getGlobalLogger().trace(String.format("LoD Level %d:", i));
+            Utils.getGlobalLogger().trace(String.format("Level of Detail(LoD) Level %d:", i));
             lodModels[i] = LoDSubModel.loadInfo(bb);
         }
 
         //Load Mesh Info
-        Utils.getGlobalLogger().trace("-----LoD Mesh Info-----");
+        Utils.getGlobalLogger().trace("-----Level of Detail(LoD) Mesh Info-----");
 
         int vertElementNumber = 0;
         for (int i = 0; i < lodModels.length; i++) {
-            Utils.getGlobalLogger().trace(String.format("LoD %d:", i));
+            Utils.getGlobalLogger().trace(String.format("Level of Detail(LoD) %d:", i));
 
             Mesh[] meshList = new Mesh[lodModels[i].numMeshes];
             for (int j = 0; j < lodModels[i].numMeshes; j++) {
@@ -386,9 +386,9 @@ public class Model extends Game_File {
             return null;
         }
 
-        String incFolderPath = String.format("%s", modelPath.substring(0, modelPath.indexOf("model") - 1));
-        String fileString = incFolderPath.substring(incFolderPath.lastIndexOf("/") + 1) + ".imc";
-        String imcPath = incFolderPath + "/" + fileString;
+        String imcFolderPath = String.format("%s", modelPath.substring(0, modelPath.indexOf("model") - 1));
+        String fileString = imcFolderPath.substring(imcFolderPath.lastIndexOf("/") + 1) + ".imc";
+        String imcPath = imcFolderPath + "/" + fileString;
         try {
             byte[] data = currentIndex.extractFile(imcPath);
 

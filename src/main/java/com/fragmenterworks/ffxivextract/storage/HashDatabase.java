@@ -4,16 +4,11 @@ import com.fragmenterworks.ffxivextract.Constants;
 import com.fragmenterworks.ffxivextract.helpers.EARandomAccessFile;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.*;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
 
 public class HashDatabase {
 
@@ -28,7 +23,16 @@ public class HashDatabase {
         Connection connection = null;
         try {
             // create a database connection
-            connection = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
+            if (globalConnection == null) {
+                try {
+                    connection = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
+                } catch (Exception e) {
+                    Utils.getGlobalLogger().error(e);
+                    return;
+                }
+            }else{
+                connection = globalConnection;
+            }
 
             files = new HashMap<>();
             folders = new HashMap<>();
@@ -95,52 +99,29 @@ public class HashDatabase {
     }
 
     /**
-     * hashlist.dbにフォルダパスのみ追加(実装)
+     * hashlist.dbにフォルダパスのみ追加(カプセル化)
      * @param folderName フォルダ名
      * @param archive  Indexファイル名
-     * @return  追加成功可否
      */
     @SuppressWarnings("unused")
-    public static boolean addFolderToDB(String folderName, String archive) {
-        if (folderName.endsWith("/")) {
-            folderName = folderName.substring(0, folderName.length() - 1);
-        }
-
-        String folder_L = folderName.toLowerCase(); //hash値計算用
-
-        int folderHash = computeCRC(folder_L.getBytes(), 0, folder_L.getBytes().length);
-
-        Utils.getGlobalLogger().info("フォルダエントリに追加: {}", folderName);
-
-        if(!archive.startsWith("0") || !archive.startsWith("1")){
-            archive = getArchiveID(folderName);
-        }
-
-        Connection connection = null;
-        try {
-            connection = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
-            Statement statement = connection.createStatement();
-            statement.setQueryTimeout(30); //タイムアウトを30秒に設定
-            statement.executeUpdate(String.format("insert or ignore into folders values(%d, '%s', 0, '%s', '%s')", folderHash, folderName, archive, Constants.DB_VERSION_CODE));
-            statement.executeUpdate(String.format("UPDATE  folders set path = '%s' where hash = %d and archive = '%s'", folderName, folderHash, archive));
-            //statement.executeUpdate(String.format("insert or ignore into folders values(%d, '%s', '0', '%s', %d)", folderHash, folderName, archive, Constants.DB_VERSION_CODE));
-            statement.close();
-
-            folders.put((long) folderHash, folderName);
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-            return false;
-        } finally {
-            try {
-                if (connection != null) {
-                    connection.close();
-                }
-            } catch (SQLException e) {
-                Utils.getGlobalLogger().error(e);
-            }
-        }
-        return true;
+    public static void addFolderToDB(String folderName, String archive) {
+        addFolderToDB(folderName, archive, false);
     }
+
+    public static boolean addFolderToDB(String folderName, String archive, boolean ForcedDB) {
+        Connection conn;
+        if (globalConnection == null) {
+            try {
+                conn = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
+            } catch (Exception e) {
+                Utils.getGlobalLogger().error(e);
+                return false;
+            }
+        }else{
+            conn = globalConnection;
+        }
+        return addPathToDB(folderName, archive, conn, ForcedDB,true);
+     }
 
     /**
      * hashlist.dbにファイルを追加(カプセル化)
@@ -151,12 +132,17 @@ public class HashDatabase {
      */
     public static boolean addPathToDB(String fullPath, String archive) {
         Connection conn;
-        try {
-            conn = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
-        } catch (Exception e) {
-            Utils.getGlobalLogger().error(e);
-            return false;
+        if (globalConnection == null) {
+            try {
+                conn = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
+            } catch (Exception e) {
+                Utils.getGlobalLogger().error(e);
+                return false;
+            }
+        }else{
+            conn = globalConnection;
         }
+
         return addPathToDB(fullPath, archive, conn,false);
     }
 
@@ -171,6 +157,10 @@ public class HashDatabase {
         return addPathToDB(fullPath, archive, conn,false);
     }
 
+    public static boolean addPathToDB(String fullPath, String archive, Connection conn, boolean ForcedDB) {
+        return addPathToDB(fullPath, archive, conn, ForcedDB,false);
+    }
+
     /**
      * hashlist.dbにファイルを追加(実装)
      * dbに追加するために使用 パスとファイル名に分割し自動的にハッシュ
@@ -180,22 +170,93 @@ public class HashDatabase {
      * @param ForcedDB 強制追加モード true:強制上書き追加、false:hashが一致していた場合追加しない
      * @return 追加成功可否
      */
-    public static boolean addPathToDB(String fullPath, String archive, Connection conn, boolean ForcedDB) {
+    public static boolean addPathToDB(String fullPath, String archive, Connection conn, boolean ForcedDB, boolean IsFolder) {
 
-        String folder = fullPath.substring(0, fullPath.lastIndexOf('/'));
+        String folder;
+        String filename = "";
+        if (IsFolder){
+            if (fullPath.endsWith("/")) {
+                folder = fullPath.substring(0, fullPath.length() - 1);
+            }else{
+                folder = fullPath;
+            }
+            if (fullPath.contains(".")){
+                //ファイル名が入ってしまっている場合(プログラムミス以外ないはず)
+                folder = fullPath.substring(0, fullPath.lastIndexOf('/'));
+            }
+        }else{
+            folder = fullPath.substring(0, fullPath.lastIndexOf('/'));
+            filename = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+        }
         String folder_L = folder.toLowerCase(); //hash値計算用
-        String filename = fullPath.substring(fullPath.lastIndexOf('/') + 1);
         String filename_L = filename.toLowerCase(); //hash値計算用
 
         int folderHash = computeCRC(folder_L.getBytes(), 0, folder_L.getBytes().length);
-        int fileHash = computeCRC(filename_L.getBytes(), 0, filename_L.getBytes().length);
-
-        //HashMapにキーが存在するか確認
-        if (folders.containsKey((long) folderHash) && files.containsKey((long) fileHash) && !ForcedDB) {
-            return false;
+        int fileHash = 0;
+        if (!IsFolder) {
+            fileHash = computeCRC(filename_L.getBytes(), 0, filename_L.getBytes().length);
         }
 
-        Utils.getGlobalLogger().debug("{}をエントリーに追加しています", fullPath);
+        boolean IsHashRegistered = false;
+        //HashMapにキーが存在するか確認
+        if (IsFolder) {
+            if (folders.containsKey((long) folderHash) && !ForcedDB) {
+                IsHashRegistered = true;
+            }
+        }
+        else {
+            if (folders.containsKey((long) folderHash) && files.containsKey((long) fileHash) && !ForcedDB) {
+                IsHashRegistered = true;
+            }
+        }
+
+        if (IsHashRegistered){
+            String regFolder = folders.get((long) folderHash);
+
+            if (regFolder.equals(folder)){
+                //同じパス名が登録済みのため処理終了、ファイル名は違うかもしれないがHashは一致
+                //ファイル名の上書き保存については強制登録を使用し明示的に実行したほうが安全なので自動化しない
+                //大文字小文字の置き換えのみ自動的に上書き
+                if (!(filename.equals(""))){
+                    String regFile = files.get((long) fileHash);
+                    if (regFile.equalsIgnoreCase(filename) && !regFile.equals(filename)){
+                        //大文字・小文字が違う時のみ
+                        Utils.getGlobalLogger().debug("ファイル名を変更(上書き)します{} => {}", regFile, fullPath);
+                    }else{
+                        //ファイル名も完全一致している場合
+                        return true;
+                    }
+                }else{
+                    //フォルダパスのみの登録実行時に既に同じパスが存在している場合
+                    return true;
+                }
+            }else {
+                //同じHash値なのにパスが異なる時
+                if(Constants.DEBUG){
+                    String SavePath = "./フォルダハッシュ変更.txt";
+                    try {
+                        File file = new File(SavePath);
+                        FileWriter filewriter = new FileWriter(file, true); //追記モード
+                        //記録に残す。
+                        String path = regFolder + " => " + fullPath + "\r\n";
+                        filewriter.write(path);
+                        filewriter.close();
+
+                    } catch (FileNotFoundException e) {
+                        Utils.getGlobalLogger().error(e);
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                //パスのみ変更する。(同Hash値、異パス名は存在しないはず:存在してもどちらかが間違い)
+                Utils.getGlobalLogger().debug("パスを変更(上書き)します{} => {}", regFolder, fullPath);
+            }
+        }else{
+            Utils.getGlobalLogger().debug("{}をエントリーに追加しています", fullPath);
+        }
+
 
         if(!archive.startsWith("0") || !archive.startsWith("1")){
             archive = getArchiveID(fullPath);
@@ -215,13 +276,16 @@ public class HashDatabase {
             statement.setQueryTimeout(30); //タイムアウトを30秒に設定
             statement.executeUpdate(String.format("insert or ignore into folders values(%d, '%s', 0, '%s', '%s')", folderHash, folder, archive, Constants.DB_VERSION_CODE));
             statement.executeUpdate(String.format("UPDATE  folders set path = '%s' where hash = %d and archive = '%s'", folder, folderHash, archive));
-            statement.executeUpdate(String.format("insert or ignore into filenames values(%d, '%s', 0, '%s', '%s')", fileHash, filename, archive, Constants.DB_VERSION_CODE));
-            statement.executeUpdate(String.format("UPDATE  filenames set name = '%s' where hash = %d and archive = '%s'", filename, fileHash, archive));
-
+            if (!IsFolder) {
+                statement.executeUpdate(String.format("insert or ignore into filenames values(%d, '%s', 0, '%s', '%s')", fileHash, filename, archive, Constants.DB_VERSION_CODE));
+                statement.executeUpdate(String.format("UPDATE  filenames set name = '%s' where hash = %d and archive = '%s'", filename, fileHash, archive));
+            }
             statement.close();
 
             folders.put((long) folderHash, folder);
-            files.put((long) fileHash, filename);
+            if (!IsFolder) {
+                files.put((long) fileHash, filename);
+            }
 
         } catch (SQLException e) {
             Utils.getGlobalLogger().error(e);
@@ -412,53 +476,36 @@ public class HashDatabase {
 
     // 文字列からパスのリストを読み取るために使用 (exeまたはメモリから抽出)
     @SuppressWarnings("unused")
-    public static void loadPathsFromTXT(String path) throws SQLException {
+    public static void loadPathsFromTXT(String path) {
         int numAdded = 0;
         try {
             BufferedReader br = new BufferedReader(new FileReader(path));
             String line;
 
-            Connection connection = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
-            connection.setAutoCommit(false);
+            HashDatabase.beginConnection();
+            try {
+                HashDatabase.setAutoCommit(false);
+            } catch (SQLException e1) {
+                Utils.getGlobalLogger().error(e1);
+            }
 
             while ((line = br.readLine()) != null) {
-
                 if (line.equals("")) {
                     continue;
                 }
 
-                String folder = line.substring(0, line.lastIndexOf('/')).toLowerCase();
-                String filename = line.substring(line.lastIndexOf('/') + 1).toLowerCase();
+                HashDatabase.addPathToDB(line, getArchiveID(line), HashDatabase.globalConnection);
 
-                // Read
-                long fileHash = computeCRC(filename.getBytes(), 0, filename.getBytes().length);
-                long folderHash = computeCRC(folder.getBytes(), 0, folder.getBytes().length);
-
-                Utils.getGlobalLogger().info("フォルダエントリーに追加: {}", line);
-
-                try {
-                    Statement statement = connection.createStatement();
-                    statement.setQueryTimeout(30); // タイムアウトを30秒に設定
-
-                    statement.executeUpdate(String.format("insert or ignore into folders values(%d, '%s', 0, '%s', '%s')", folderHash, folder, "0a0000", Constants.DB_VERSION_CODE));
-                    statement.executeUpdate(String.format("UPDATE  folders set path='%s' where hash=%d", folder, folderHash));
-                    statement.executeUpdate(String.format("insert or ignore into filenames values(%d, '%s', 0, '%s', '%s')", fileHash, filename, "0a0000", Constants.DB_VERSION_CODE));
-                    statement.executeUpdate(String.format("UPDATE  filenames set name='%s' where hash=%d", filename, fileHash));
-
-                } catch (SQLException e) {
-                    Utils.getGlobalLogger().error("データベースへの{} / {}の追加中にエラーが発生しました", folder, filename, e);
-                }
                 numAdded++;
             }
-            connection.commit();
+
             try {
-                //noinspection ConstantConditions
-                if (connection != null) {
-                    connection.close();
-                }
+                HashDatabase.commit();
             } catch (SQLException e) {
-                Utils.getGlobalLogger().error("DB接続を閉じるときにエラーが発生しました。", e);
+                Utils.getGlobalLogger().error(e);
             }
+            HashDatabase.closeConnection();
+
             br.close();
         } catch (IOException e) {
             Utils.getGlobalLogger().error("TXTからのパスのバッチ追加でエラーが発生しました。", e);
@@ -495,19 +542,20 @@ public class HashDatabase {
             file.readInt();
             long lastStartPosition;
 
-            Connection connection = null;
+            HashDatabase.beginConnection();
             try {
-                connection = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
-                connection.setAutoCommit(false);
-            } catch (Exception ignored) {}
+                HashDatabase.setAutoCommit(false);
+            } catch (SQLException e1) {
+                Utils.getGlobalLogger().error(e1);
+            }
 
             // EOFに達するまで読みこむ
             while (true) {
                 lastStartPosition = file.getFilePointer();
 
                 // 読み込み
-                fileHash = file.readInt();
-                folderHash = file.readInt();
+                file.readInt(); //fileHash
+                file.readInt(); //folderHash
 
                 fullPath = new StringBuilder();
                 while (true) {
@@ -519,19 +567,7 @@ public class HashDatabase {
                     }
                 }
 
-                folder = fullPath.substring(0, fullPath.toString().lastIndexOf('/'));
-                filename = fullPath.substring(fullPath.toString().lastIndexOf('/') + 1);
-
-                Utils.getGlobalLogger().info("フォルダエントリーを追加: {}", fullPath.toString());
-
-                try {
-                    Statement statement = Objects.requireNonNull(connection).createStatement();
-                    statement.setQueryTimeout(30); // set timeout to 30 sec.
-                    statement.executeUpdate("insert or ignore into folders values(" + folderHash + ", '" + folder + "',0)");
-                    statement.executeUpdate("insert or ignore into filenames values(" + fileHash + ", '" + fullPath + "',0)");
-                } catch (SQLException e) {
-                    Utils.getGlobalLogger().error("データベースへの{} / {}の追加中にエラーが発生しました", folder, filename, e);
-                }
+                HashDatabase.addPathToDB(fullPath.toString(), getArchiveID(fullPath.toString()));
 
                 // Reset
                 file.seek(lastStartPosition);
@@ -543,12 +579,14 @@ public class HashDatabase {
 
                 file.skipBytes(0x108);
             }
+
             try {
-                Objects.requireNonNull(connection).commit();
-                connection.close();
+                HashDatabase.commit();
             } catch (SQLException e) {
-                Utils.getGlobalLogger().error("DB接続を閉じるときにエラーが発生しました。", e);
+                Utils.getGlobalLogger().error(e);
             }
+            HashDatabase.closeConnection();
+
             file.close();
         } catch (IOException e) {
             Utils.getGlobalLogger().error("SQDBからのパスのバッチ追加でエラーが発生しました。", e);
@@ -620,7 +658,10 @@ public class HashDatabase {
         return dwCRC;
     }
 
-    @SuppressWarnings("unused")
+    /**
+     * ファイル使用フラグを立てる
+     * @param hash ファイルのハッシュ値
+     */
     public static void flagFileNameAsUsed(int hash) {
         try {
             Statement statement = globalConnection.createStatement();
@@ -631,7 +672,10 @@ public class HashDatabase {
         }
     }
 
-    @SuppressWarnings("unused")
+    /**
+     * フォルダ使用フラグを立てる
+     * @param hash フォルダのハッシュ値
+     */
     public static void flagFolderNameAsUsed(int hash) {
         try {
             Statement statement = globalConnection.createStatement();
@@ -642,67 +686,24 @@ public class HashDatabase {
         }
     }
 
+    /**
+     * SQLの自動更新の状態変更
+     * @param flag True:自動更新する  、False:自働更新しない(トランザクションに記録しておく)
+     * @throws SQLException SQLエラー
+     */
     public static void setAutoCommit(boolean flag) throws SQLException {
         if (globalConnection != null) {
             globalConnection.setAutoCommit(flag);
         }
     }
 
+    /**
+     * SQLデータベースのトランザクションを終了しデータをDBに反映
+     * @throws SQLException SQLエラー
+     */
     public static void commit() throws SQLException {
         if (globalConnection != null) {
             globalConnection.commit();
-        }
-    }
-
-    /**
-     * テーブルのインターフェース
-     * テーブルは、二次元のキーに対する値を保持するデータ形式
-     */
-    public interface HashDbTable<K, A, V> {
-        /**
-         * テーブルに値を追加する
-         *
-         * @param Key Hash値
-         * @param archiveKey アーカイブ名
-         * @param value 値
-         */
-        void put(K Key, A archiveKey, V value);
-
-        /**
-         * テーブルから値を取得する
-         *
-         * @param Key Hash値
-         * @param archiveKey アーカイブ名
-         * @return 値
-         */
-        V get(K Key, A archiveKey);
-    }
-
-    /**
-     * HashMapを入れ子にすることによりテーブルを実現する、Tableインターフェースの実装
-     *
-     * @param <K> 行
-     * @param <A> 列
-     * @param <V> 値
-     */
-    @SuppressWarnings("unused")
-    public static class HashMapsTable<K, A, V> implements HashDbTable<K, A, V> {
-
-        private final Map<K, Map<A, V>> table = new HashMap<>();
-
-        @Override
-        public void put(K Key, A archiveKey, V value) {
-            Map<A, V> row = table.computeIfAbsent(Key, k -> new HashMap<>());
-            row.put(archiveKey, value);
-        }
-
-        @Override
-        public V get(K Key, A archiveKey) {
-            Map<A, V> row = table.get(Key);
-            if (row == null) {
-                return null;
-            }
-            return row.get(archiveKey);
         }
     }
 

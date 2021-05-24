@@ -21,7 +21,7 @@ public class Main {
 
     public static void main(String[] args) {
 
-        Utils.getGlobalLogger().info("Starting FFXIV Explorer...");
+        Utils.getGlobalLogger().info("FFXIV Explorerを開始しています...");
 
         // Set to windows UI
         try {
@@ -33,10 +33,7 @@ public class Main {
         // Init the hash database
         try {
             @SuppressWarnings("unused")
-            String jarPath = System.getProperty("java.class.path");
-            //String dirPath = jarPath.substring(0, jarPath.lastIndexOf(File.separator)+1);
             File dbFile = new File("./" + Constants.DBFILE_NAME);
-            //File dbFile = new File(dirPath + Constants.DBFILE_NAME);
             if (dbFile.exists()) {
                 HashDatabase.init();
             } else {
@@ -56,7 +53,7 @@ public class Main {
             // Info
             if (args.length == 1) {
                 if (args[0].equals("-help")) {
-                    System.out.println("Commands: -help, -debug, -pathsearch");
+                    System.out.println("コマンド: -help, -debug, -pathsearch");
                 } else if (args[0].equals("-pathsearch")) {
                     System.out.println("<str>で始まる文字列をアーカイブで検索します。" +
                             "\n-pathsearch <path to index> <str>");
@@ -67,6 +64,8 @@ public class Main {
                 Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.DEBUG);
                 Constants.DEBUG = true;
             }
+
+            //Constants.DEBUG = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0;
 
             // PATHSEARCH
             if (args[0].equals("-pathsearch")) {
@@ -86,7 +85,7 @@ public class Main {
             }
         }
 
-        Utils.getGlobalLogger().info("Logging set to {}", LogManager.getRootLogger().getLevel());
+        Utils.getGlobalLogger().info("ロギングを{}に設定", LogManager.getRootLogger().getLevel());
 
         // Open up the main window
         FileManagerWindow fileMan = new FileManagerWindow(Constants.APPNAME);

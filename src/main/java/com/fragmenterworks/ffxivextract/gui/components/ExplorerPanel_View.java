@@ -43,19 +43,20 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
             String path = "";
             TreePath[] selectedPaths = fileTree.getSelectionPaths();
 
-            if (selectedPaths == null)
+            if (selectedPaths == null) {
                 return;
+            }
 
-            TreePath tp = selectedPaths[0];
-            Object obj = ((DefaultMutableTreeNode) tp.getLastPathComponent()).getUserObject();
+            TreePath treePath = selectedPaths[0];
+            Object obj = ((DefaultMutableTreeNode) treePath.getLastPathComponent()).getUserObject();
 
-            if (obj == null)
+            if (obj == null) {
                 return;
-            else if (obj instanceof SqPack_Folder)
+            } else if (obj instanceof SqPack_Folder) {
                 path = ((SqPack_Folder) obj).getName();
-            else if (obj instanceof SqPack_File) {
+            } else if (obj instanceof SqPack_File) {
                 // It's messy but...
-                SqPack_Folder folder = (SqPack_Folder) ((DefaultMutableTreeNode) tp.getParentPath().getLastPathComponent()).getUserObject();
+                SqPack_Folder folder = (SqPack_Folder) ((DefaultMutableTreeNode) treePath.getParentPath().getLastPathComponent()).getUserObject();
                 SqPack_File file = (SqPack_File) obj;
 
                 path = folder.getName() + "/" + file.getName();
@@ -65,6 +66,7 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
             clip.setContents(selection, selection);
         });
         contextMenu.add(copyPath);
+
         this.add(contextMenu);
         this.getViewport().add(fileTree);
     }
@@ -78,8 +80,9 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
         if (index.hasNoFolders()) {
             SqPack_Folder fakeFolder = index.getPackFolders()[0];
             Arrays.sort(fakeFolder.getFiles(), fileComparator);
-            for (int j = 0; j < fakeFolder.getFiles().length; j++)
+            for (int j = 0; j < fakeFolder.getFiles().length; j++) {
                 root.add(new DefaultMutableTreeNode(fakeFolder.getFiles()[j]));
+            }
         } else {
             Arrays.sort(index.getPackFolders(), folderComparator);
 
@@ -90,8 +93,9 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
 
                 Arrays.sort(folder.getFiles(), fileComparator);
 
-                for (int j = 0; j < folder.getFiles().length; j++)
+                for (int j = 0; j < folder.getFiles().length; j++) {
                     folderNode.add(new DefaultMutableTreeNode(folder.getFiles()[j]));
+                }
 
                 root.add(folderNode);
             }
@@ -108,6 +112,7 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
     @Override
     public void mouseClicked(MouseEvent e) {
         if (SwingUtilities.isRightMouseButton(e)) {
+            //右クリック
             int row = fileTree.getClosestRowForLocation(e.getX(), e.getY());
             fileTree.setSelectionRow(row);
             contextMenu.show(fileTree, e.getX(), e.getY());
@@ -166,10 +171,11 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
                 setLeafIcon(fileIcon);
             } else //ROOT
             {
-                if (tree.getModel().getChildCount(node) == 0)
+                if (tree.getModel().getChildCount(node) == 0) {
                     value = "ファイルが読み込まれていません";
-                else
+                } else {
                     value = "Datファイル";
+                }
                 setOpenIcon(folderIcon);
                 setClosedIcon(folderIcon);
             }
@@ -185,11 +191,13 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
     public boolean isOnlyFolder() {
         TreePath[] selectedPaths = fileTree.getSelectionPaths();
 
-        if (selectedPaths == null)
+        if (selectedPaths == null) {
             return true;
+        }
 
-        if (selectedPaths.length != 1)
+        if (selectedPaths.length != 1) {
             return false;
+        }
 
         Object obj = ((DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent()).getUserObject();
 
@@ -200,23 +208,27 @@ public class ExplorerPanel_View extends JScrollPane implements MouseListener {
         ArrayList<SqPack_File> selectedFiles = new ArrayList<>();
         TreePath[] selectedPaths = fileTree.getSelectionPaths();
 
-        if (selectedPaths == null)
+        if (selectedPaths == null) {
             return selectedFiles;
+        }
 
         for (TreePath tp : selectedPaths) {
             Object obj = ((DefaultMutableTreeNode) tp.getLastPathComponent()).getUserObject();
-            if (obj == null)
+            if (obj == null) {
                 continue;
+            }
             if (obj instanceof SqPack_Folder) {
                 int children = ((DefaultMutableTreeNode) tp.getLastPathComponent()).getChildCount();
                 for (int i = 0; i < children; i++) {
                     SqPack_File file = (SqPack_File) ((DefaultMutableTreeNode) ((DefaultMutableTreeNode) tp.getLastPathComponent()).getChildAt(i)).getUserObject();
-                    if (!selectedFiles.contains(file))
+                    if (!selectedFiles.contains(file)) {
                         selectedFiles.add(file);
+                    }
                 }
             }
-            if (obj instanceof SqPack_File)
+            if (obj instanceof SqPack_File) {
                 selectedFiles.add((SqPack_File) obj);
+            }
         }
 
         return selectedFiles;

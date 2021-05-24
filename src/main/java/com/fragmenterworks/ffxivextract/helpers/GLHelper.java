@@ -11,9 +11,9 @@ public class GLHelper {
             case 5: //UBYTE4
             case 8: //UBYTE4N
                 return 4;
-            case 13://HALF FLOAT 2
+            case 13://半精度浮動小数点 2
                 return 2;
-            case 14://HALF FLOAT 3
+            case 14://半精度浮動小数点 3
                 return 3;
             default:
                 return -1;

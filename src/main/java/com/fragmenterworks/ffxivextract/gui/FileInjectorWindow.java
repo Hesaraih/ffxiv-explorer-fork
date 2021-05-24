@@ -16,33 +16,30 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileFilter;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.URL;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Hashtable;
+import java.util.*;
 
 class FileInjectorWindow extends JFrame {
 
     //FILE I/O
+    @SuppressWarnings("unused")
     private File lastOpenedFile;
     private File backup = null;
-    private File edittingIndexFile = null;
+    private File editingIndexFile = null;
     private SqPack_IndexFile editMusicFile, originalMusicFile;
     private SqPack_File[] editedFiles;
-    private final Hashtable<Integer, Integer> originalPositionTable = new Hashtable<Integer, Integer>(); //Fucking hack, but this is my fix if we want alphabetical sort
+    private final Hashtable<Integer, Integer> originalPositionTable = new Hashtable<>(); //Fucking hack, but this is my fix if we want alphabetical sort
     private ByteOrder endian;
 
     //CUSTOM MUSIC STUFF
     private int currentDatIndex;
     private String customDatPath;
-    private ArrayList<String> customPaths = new ArrayList<String>();
-    private ArrayList<Long> customIndexes = new ArrayList<Long>();
+    private ArrayList<String> customPaths = new ArrayList<>();
+    private ArrayList<Long> customIndexes = new ArrayList<>();
+    @SuppressWarnings("unused")
     private boolean datWasGenerated = false;
 
     //GUI
@@ -52,15 +49,15 @@ class FileInjectorWindow extends JFrame {
     private final JLabel lblBackup;
     private final JButton btnBackup;
     private final JButton btnRestore;
-    private JLabel txtSetTo;
+    private final JLabel txtSetTo;
     private final JLabel lblOriginal;
     private final JLabel lblSetId;
-    private final JList lstOriginal = new JList();
-    private final JList lstSet = new JList();
+    private final JList<String> lstOriginal = new JList<>();
+    private final JList<String> lstSet = new JList<>();
     private final JButton btnSwap;
     private final JButton btnRevert;
     private final JPanel pnlCustomMusic;
-    private final JList lstCustomMusic;
+    private final JList<String> lstCustomMusic;
     private final JButton btnAdd;
     private final JButton btnGenerateDat;
     private final JButton btnRemove;
@@ -69,7 +66,7 @@ class FileInjectorWindow extends JFrame {
     public FileInjectorWindow() {
         this.setTitle(Strings.DIALOG_TITLE_FILEINJECT);
         URL imageURL = getClass().getResource("/frameicon.png");
-        ImageIcon image = new ImageIcon(imageURL);
+        ImageIcon image = new ImageIcon(Objects.requireNonNull(imageURL));
         this.setIconImage(image.getImage());
 
         JPanel contentPane = new JPanel();
@@ -130,9 +127,9 @@ class FileInjectorWindow extends JFrame {
         JScrollPane scrollPane_2 = new JScrollPane();
         panel_1.add(scrollPane_2);
 
-        lstCustomMusic = new JList();
+        lstCustomMusic = new JList<>();
         lstCustomMusic.setVisibleRowCount(5);
-        lstCustomMusic.setModel(new DefaultListModel());
+        lstCustomMusic.setModel(new DefaultListModel<>());
         scrollPane_2.setViewportView(lstCustomMusic);
 
         JPanel panel_7 = new JPanel();
@@ -161,13 +158,9 @@ class FileInjectorWindow extends JFrame {
         JButton btnOgg2Scd = new JButton("Ogg2Scd Converter");
         panel_2.add(btnOgg2Scd);
 
-        btnOgg2Scd.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                SCDConverterWindow converter = new SCDConverterWindow();
-                converter.setVisible(true);
-            }
+        btnOgg2Scd.addActionListener(e -> {
+            SCDConverterWindow converter = new SCDConverterWindow();
+            converter.setVisible(true);
         });
 
         pnlSwapper = new JPanel();
@@ -192,7 +185,7 @@ class FileInjectorWindow extends JFrame {
         panel_6.add(scrollPane);
 
         lstOriginal.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        lstOriginal.setModel(new DefaultListModel());
+        lstOriginal.setModel(new DefaultListModel<>());
         lstOriginal.setCellRenderer(new SwapperCellRenderer());
         lstOriginal.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
 
@@ -204,13 +197,15 @@ class FileInjectorWindow extends JFrame {
                     return;
                 }
 
-                if (event.getValueIsAdjusting() || lstSet.getModel().getSize() == 0)
+                if (event.getValueIsAdjusting() || lstSet.getModel().getSize() == 0) {
                     return;
+                }
                 txtSetTo.setText(String.format(Strings.MUSICSWAPPER_CURRENTOFFSET, editedFiles[lstOriginal.getSelectedIndex()].getOffset()));
-                if (editedFiles[lstOriginal.getSelectedIndex()].getOffset() != originalMusicFile.getPackFolders()[0].getFiles()[lstOriginal.getSelectedIndex()].dataOffset)
+                if (editedFiles[lstOriginal.getSelectedIndex()].getOffset() != originalMusicFile.getPackFolders()[0].getFiles()[lstOriginal.getSelectedIndex()].dataOffset) {
                     txtSetTo.setForeground(Color.RED);
-                else
+                } else {
                     txtSetTo.setForeground(Color.decode("#006400"));
+                }
 
             }
         });
@@ -229,7 +224,7 @@ class FileInjectorWindow extends JFrame {
         scrollPane_1.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel_5.add(scrollPane_1);
 
-        lstSet.setModel(new DefaultListModel());
+        lstSet.setModel(new DefaultListModel<>());
         lstSet.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         scrollPane_1.setViewportView(lstSet);
 
@@ -259,186 +254,151 @@ class FileInjectorWindow extends JFrame {
 
         //SETUP
 
-        btnBrowse.addActionListener(new ActionListener() {
+        btnBrowse.addActionListener(arg0 -> setPath());
 
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                setPath();
+        btnSwap.addActionListener(e -> {
+
+            if (lstSet.getModel().getElementAt(lstSet.getSelectedIndex()).equals("-----------")) {
+                return;
+            }
+
+            swapMusic(lstOriginal.getSelectedIndex(),
+                    lstSet.getSelectedIndex());
+        });
+        btnRevert.addActionListener(e -> swapMusic(lstOriginal.getSelectedIndex(),
+                lstOriginal.getSelectedIndex() + (customIndexes.size() == 0 ? 0 : lstCustomMusic.getModel().getSize() + 1)));
+
+        btnBackup.addActionListener(e -> {
+            try {
+                createBackup();
+            } catch (IOException e1) {
+                Utils.getGlobalLogger().error(e1);
             }
         });
 
-        btnSwap.addActionListener(new ActionListener() {
+        btnRestore.addActionListener(e -> restoreFromBackup());
 
-            @Override
-            public void actionPerformed(ActionEvent e) {
+        btnAdd.addActionListener(arg0 -> {
+            JFileChooser fileChooser = new JFileChooser(lastOpenedFile);
 
-                if (lstSet.getModel().getElementAt(lstSet.getSelectedIndex()).equals("-----------"))
-                    return;
+            fileChooser.setMultiSelectionEnabled(true);
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
-                swapMusic(lstOriginal.getSelectedIndex(),
-                        lstSet.getSelectedIndex());
-            }
-        });
-        btnRevert.addActionListener(new ActionListener() {
+            int retunval = fileChooser.showOpenDialog(FileInjectorWindow.this);
 
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                swapMusic(lstOriginal.getSelectedIndex(),
-                        lstOriginal.getSelectedIndex() + (customIndexes.size() == 0 ? 0 : lstCustomMusic.getModel().getSize() + 1));
-            }
-        });
+            if (retunval == JFileChooser.APPROVE_OPTION) {
 
-        btnBackup.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    createBackup();
-                } catch (IOException e1) {
-                    Utils.getGlobalLogger().error(e1);
+                for (int i = 0; i < fileChooser.getSelectedFiles().length; i++) {
+                    ((DefaultListModel<String>) lstCustomMusic.getModel()).addElement(fileChooser.getSelectedFiles()[i].getAbsolutePath());
                 }
             }
+
+            btnGenerateDat.setEnabled(true);
         });
 
-        btnRestore.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                restoreFromBackup();
+        btnRemove.addActionListener(arg0 -> {
+            int selected = lstCustomMusic.getSelectedIndex();
+            if (selected >= 0) {
+                ((DefaultListModel<String>) lstCustomMusic.getModel()).remove(selected);
             }
+
+            btnGenerateDat.setEnabled(true);
         });
 
-        btnAdd.addActionListener(new ActionListener() {
+        btnGenerateDat.addActionListener(arg0 -> {
 
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                JFileChooser fileChooser = new JFileChooser(lastOpenedFile);
-
-                fileChooser.setMultiSelectionEnabled(true);
-                fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-
-                int retunval = fileChooser.showOpenDialog(FileInjectorWindow.this);
-
-                if (retunval == JFileChooser.APPROVE_OPTION) {
-
-                    for (int i = 0; i < fileChooser.getSelectedFiles().length; i++)
-                        ((DefaultListModel) lstCustomMusic.getModel()).addElement(fileChooser.getSelectedFiles()[i].getAbsolutePath());
+            if (customIndexes.size() != 0) {
+                for (int i = 0; i < customIndexes.size(); i++) {
+                    ((DefaultListModel<String>) lstSet.getModel()).removeElementAt(0);
                 }
-
-                btnGenerateDat.setEnabled(true);
             }
+
+            if (((DefaultListModel<String>) lstSet.getModel()).get(0).equals("-----------")) {
+                ((DefaultListModel<String>) lstSet.getModel()).removeElementAt(0);
+            }
+
+            customPaths.clear();
+            customIndexes.clear();
+
+            String lastLoaded = "";
+            try {
+                //Generate DAT
+                customDatPath = String.format("%s\\%s.win32.dat%d", editingIndexFile.getParent(), originalMusicFile.getName(), currentDatIndex);
+                File datListFile = new File(customDatPath + ".lst");
+                //noinspection ResultOfMethodCallIgnored
+                datListFile.delete();
+
+                DatBuilder builder = new DatBuilder(currentDatIndex, customDatPath, endian);
+                for (int i = 0; i < lstCustomMusic.getModel().getSize(); i++) {
+                    lastLoaded = lstCustomMusic.getModel().getElementAt(i);
+                    customPaths.add(lstCustomMusic.getModel().getElementAt(i));
+                    customIndexes.add(builder.addFile(lstCustomMusic.getModel().getElementAt(i)));
+                }
+                builder.finish();
+            } catch (FileNotFoundException e) {
+                JOptionPane.showMessageDialog(FileInjectorWindow.this,
+                        lastLoaded + " is missing. Dat generation was aborted. Please recreate the custom dat file, as some custom indexes may be invalid.\nDo not set any custom songs until done, as this may corrupt the index file and require a restore.",
+                        Strings.DIALOG_TITLE_ERROR,
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(FileInjectorWindow.this,
+                        "Write Error",
+                        "There was an error writing to the modded index file.",
+                        JOptionPane.ERROR_MESSAGE);
+                Utils.getGlobalLogger().error(e);
+                return;
+            }
+            try {
+                //Edit Index
+                EARandomAccessFile output = new EARandomAccessFile(editingIndexFile, "rw", endian);
+                output.seek(0x450);
+                output.writeInt(currentDatIndex + 1);
+                output.close();
+            } catch (FileNotFoundException e) {
+                JOptionPane.showMessageDialog(FileInjectorWindow.this,
+                        Strings.ERROR_CANNOT_OPEN_INDEX,
+                        Strings.DIALOG_TITLE_ERROR,
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(FileInjectorWindow.this,
+                        "Write Error",
+                        "There was an error writing to the modded index file.",
+                        JOptionPane.ERROR_MESSAGE);
+                Utils.getGlobalLogger().error(e);
+                return;
+            }
+
+
+            saveCustomDatIndexList();
+
+            //Put new songs into list
+            ((DefaultListModel<String>) lstSet.getModel()).add(0, "-----------");
+            for (int i = lstCustomMusic.getModel().getSize() - 1; i >= 0; i--) {
+                ((DefaultListModel<String>) lstSet.getModel()).add(0, ((DefaultListModel<String>) lstCustomMusic.getModel()).elementAt(i));
+            }
+
+            btnGenerateDat.setEnabled(false);
+            datWasGenerated = true;
+
+            lstOriginal.repaint();
         });
 
-        btnRemove.addActionListener(new ActionListener() {
+        btnGoto.addActionListener(arg0 -> {
+            String name = JOptionPane.showInputDialog(FileInjectorWindow.this, "What to search for?");
 
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                int selected = lstCustomMusic.getSelectedIndex();
-                if (selected >= 0)
-                    ((DefaultListModel) lstCustomMusic.getModel()).remove(selected);
+            int startIndex = lstOriginal.getSelectedIndex() + 1;
 
-                btnGenerateDat.setEnabled(true);
+            for (int i = startIndex; i < lstOriginal.getModel().getSize(); i++) {
+                if (lstOriginal.getModel().getElementAt(i).toLowerCase().contains(name.toLowerCase())) {
+                    lstOriginal.setSelectedIndex(i);
+                    break;
+                }
             }
-        });
 
-        btnGenerateDat.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-
-                if (customIndexes.size() != 0) {
-                    for (int i = 0; i < customIndexes.size(); i++)
-                        ((DefaultListModel) lstSet.getModel()).removeElementAt(0);
-                }
-
-                if (((DefaultListModel) lstSet.getModel()).get(0).equals("-----------"))
-                    ((DefaultListModel) lstSet.getModel()).removeElementAt(0);
-
-                customPaths.clear();
-                customIndexes.clear();
-
-                String lastLoaded = "";
-                try {
-                    //Generate DAT
-                    customDatPath = String.format("%s\\%s.win32.dat%d", edittingIndexFile.getParent(), originalMusicFile.getName(), currentDatIndex);
-                    File datlstfile = new File(customDatPath + ".lst");
-                    datlstfile.delete();
-
-                    DatBuilder builder = new DatBuilder(currentDatIndex, customDatPath, endian);
-                    for (int i = 0; i < lstCustomMusic.getModel().getSize(); i++) {
-                        lastLoaded = (String) lstCustomMusic.getModel().getElementAt(i);
-                        customPaths.add((String) lstCustomMusic.getModel().getElementAt(i));
-                        customIndexes.add(builder.addFile((String) lstCustomMusic.getModel().getElementAt(i)));
-                    }
-                    builder.finish();
-                } catch (FileNotFoundException e) {
-                    JOptionPane.showMessageDialog(FileInjectorWindow.this,
-                            lastLoaded + " is missing. Dat generation was aborted. Please recreate the custom dat file, as some custom indexes may be invalid.\nDo not set any custom songs until done, as this may corrupt the index file and require a restore.",
-                            Strings.DIALOG_TITLE_ERROR,
-                            JOptionPane.ERROR_MESSAGE);
-                    return;
-                } catch (IOException e) {
-                    JOptionPane.showMessageDialog(FileInjectorWindow.this,
-                            "Write Error",
-                            "There was an error writing to the modded index file.",
-                            JOptionPane.ERROR_MESSAGE);
-                    Utils.getGlobalLogger().error(e);
-                    return;
-                }
-                try {
-                    //Edit Index
-                    EARandomAccessFile output = new EARandomAccessFile(edittingIndexFile, "rw", endian);
-                    output.seek(0x450);
-                    output.writeInt(currentDatIndex + 1);
-                    output.close();
-                } catch (FileNotFoundException e) {
-                    JOptionPane.showMessageDialog(FileInjectorWindow.this,
-                            Strings.ERROR_CANNOT_OPEN_INDEX,
-                            Strings.DIALOG_TITLE_ERROR,
-                            JOptionPane.ERROR_MESSAGE);
-                    return;
-                } catch (IOException e) {
-                    JOptionPane.showMessageDialog(FileInjectorWindow.this,
-                            "Write Error",
-                            "There was an error writing to the modded index file.",
-                            JOptionPane.ERROR_MESSAGE);
-                    Utils.getGlobalLogger().error(e);
-                    return;
-                }
-
-
-                saveCustomDatIndexList();
-
-                //Put new songs into list
-                ((DefaultListModel) lstSet.getModel()).add(0, "-----------");
-                for (int i = lstCustomMusic.getModel().getSize() - 1; i >= 0; i--)
-                    ((DefaultListModel) lstSet.getModel()).add(0, ((DefaultListModel) lstCustomMusic.getModel()).elementAt(i));
-
-                btnGenerateDat.setEnabled(false);
-                datWasGenerated = true;
-
-                lstOriginal.repaint();
-            }
-        });
-
-        btnGoto.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                String name = JOptionPane.showInputDialog(FileInjectorWindow.this, "What to search for?");
-
-                int startIndex = lstOriginal.getSelectedIndex() + 1;
-
-                for (int i = startIndex; i < lstOriginal.getModel().getSize(); i++) {
-                    if (((String) lstOriginal.getModel().getElementAt(i)).toLowerCase().contains(name.toLowerCase())) {
-                        lstOriginal.setSelectedIndex(i);
-                        break;
-                    }
-                }
-
-                lstOriginal.ensureIndexIsVisible(lstOriginal.getSelectedIndex());
-                lstOriginal.repaint();
-            }
+            lstOriginal.ensureIndexIsVisible(lstOriginal.getSelectedIndex());
+            lstOriginal.repaint();
         });
 
         pack();
@@ -493,11 +453,11 @@ class FileInjectorWindow extends JFrame {
         setSwapperEnabled(true);
         SqPack_File[] originalFiles;
 
-        ((DefaultListModel) lstOriginal.getModel()).clear();
-        ((DefaultListModel) lstSet.getModel()).clear();
+        ((DefaultListModel<String>) lstOriginal.getModel()).clear();
+        ((DefaultListModel<String>) lstSet.getModel()).clear();
 
         datWasGenerated = false;
-        ((DefaultListModel) lstCustomMusic.getModel()).clear();
+        ((DefaultListModel<String>) lstCustomMusic.getModel()).clear();
         customPaths.clear();
         customIndexes.clear();
 
@@ -522,49 +482,25 @@ class FileInjectorWindow extends JFrame {
         originalMusicFile = new SqPack_IndexFile(backup.getCanonicalPath(), true);
         editMusicFile = new SqPack_IndexFile(file.getCanonicalPath(), true);
 
-        boolean sort = false;
+        boolean sort;
         int reply = JOptionPane.showConfirmDialog(null, "Do you want to sort the lists? This could take a while for big dats.", "", JOptionPane.YES_NO_OPTION);
         sort = reply == JOptionPane.YES_OPTION;
 
         if (sort) {
-            Arrays.sort(editMusicFile.getPackFolders()[0].getFiles(), new Comparator<SqPack_File>() {
-                @Override
-                public int compare(SqPack_File o1, SqPack_File o2) {
-//                    return String.format("%08X (%08X)", o1.getId() & 0xFFFFFFFF, o1.getOffset() & 0xFFFFFFFF).compareTo(
-//                            String.format("%08X (%08X)", o2.getId() & 0xFFFFFFFF, o2.getOffset() & 0xFFFFFFFF)
-                    return o1.getName2().compareTo(o2.getName2());
-                }
-            });
+            Arrays.sort(editMusicFile.getPackFolders()[0].getFiles(), Comparator.comparing(SqPack_File::getName2));
         }
 
         SqPack_File[] files = originalMusicFile.getPackFolders()[0].getFiles();
-        for (int i = 0; i < files.length; i++)
+        for (int i = 0; i < files.length; i++) {
             originalPositionTable.put(files[i].id, i);
+        }
 
         if (sort) {
-            Arrays.sort(originalMusicFile.getPackFolders()[0].getFiles(), new Comparator<SqPack_File>() {
-                @Override
-                public int compare(SqPack_File o1, SqPack_File o2) {
-                    return o1.getName2().compareTo(o2.getName2());
-                }
-            });
+            Arrays.sort(originalMusicFile.getPackFolders()[0].getFiles(), Comparator.comparing(SqPack_File::getName2));
         }
 
         originalFiles = originalMusicFile.getPackFolders()[0].getFiles();
         editedFiles = editMusicFile.getPackFolders()[0].getFiles();
-
-		/*
-		// Throw and remake backup
-		if (originalFiles.length != editedFiles.length) {
-			Utils.getGlobalLogger().info("File mismatch, there was an update... remaking backup");
-			backup.delete();
-			copyFile(file, backup);
-			originalMusicFile = new SqPack_IndexFile(
-					backup.getCanonicalPath(), true);
-			originalFiles = originalMusicFile.getPackFolders()[0]
-					.getFiles();
-		}
-		*/
 
         Utils.getGlobalLogger().info("File is good.");
         btnBackup.setEnabled(false);
@@ -580,29 +516,32 @@ class FileInjectorWindow extends JFrame {
         loadDropDown(lstOriginal, originalFiles, 0);
         loadDropDown(lstSet, originalFiles, 0);
 
-        edittingIndexFile = file;
+        editingIndexFile = file;
 
         loadCustomDatIndexList();
 
         //Init this since the list listener doesn't fire
         txtSetTo.setText(String.format(Strings.MUSICSWAPPER_CURRENTOFFSET, editedFiles[lstOriginal.getSelectedIndex()].getOffset()));
-        if (editedFiles[lstOriginal.getSelectedIndex()].getOffset() != originalMusicFile.getPackFolders()[0].getFiles()[lstOriginal.getSelectedIndex()].dataOffset)
+        if (editedFiles[lstOriginal.getSelectedIndex()].getOffset() != originalMusicFile.getPackFolders()[0].getFiles()[lstOriginal.getSelectedIndex()].dataOffset) {
             txtSetTo.setForeground(Color.RED);
-        else
+        } else {
             txtSetTo.setForeground(Color.decode("#006400"));
+        }
     }
 
-    private void loadDropDown(JList list, SqPack_File[] files,
+    @SuppressWarnings({"SameParameterValue", "unused"})
+    private void loadDropDown(JList<String> list, SqPack_File[] files,
                               int selectedSpot) {
-        DefaultListModel listModel = (DefaultListModel) list.getModel();
+        DefaultListModel<String> listModel = (DefaultListModel<String>) list.getModel();
 
-        for (int i = 0; i < files.length; i++) {
-            String fileName = files[i].getName2();
+        for (SqPack_File file : files) {
+            String fileName = file.getName2();
 
-            if (fileName != null)
-                listModel.addElement(String.format("%s (%08X)", fileName, files[i].getOffset()));
-            else
-                listModel.addElement(String.format("%08X (%08X)", files[i].id, files[i].getOffset()));
+            if (fileName != null) {
+                listModel.addElement(String.format("%s (%08X)", fileName, file.getOffset()));
+            } else {
+                listModel.addElement(String.format("%08X (%08X)", file.id, file.getOffset()));
+            }
         }
 
         list.setSelectedIndex(0);
@@ -611,27 +550,15 @@ class FileInjectorWindow extends JFrame {
     private void createBackup() throws IOException {
         // Create backup
         Utils.getGlobalLogger().info("Creating backup.");
-        copyFile(edittingIndexFile, backup);
-        editMusicFile = new SqPack_IndexFile(edittingIndexFile.getCanonicalPath(), true);
+        copyFile(editingIndexFile, backup);
+        editMusicFile = new SqPack_IndexFile(editingIndexFile.getCanonicalPath(), true);
         originalMusicFile = new SqPack_IndexFile(backup.getCanonicalPath(), true);
         SqPack_File[] originalFiles = originalMusicFile.getPackFolders()[0].getFiles();
         editedFiles = editMusicFile.getPackFolders()[0].getFiles();
 
-        Arrays.sort(editMusicFile.getPackFolders()[0].getFiles(), new Comparator<SqPack_File>() {
+        Arrays.sort(editMusicFile.getPackFolders()[0].getFiles(), Comparator.comparing(SqPack_File::getName2));
 
-            @Override
-            public int compare(SqPack_File o1, SqPack_File o2) {
-                return o1.getName2().compareTo(o2.getName2());
-            }
-        });
-
-        Arrays.sort(originalMusicFile.getPackFolders()[0].getFiles(), new Comparator<SqPack_File>() {
-
-            @Override
-            public int compare(SqPack_File o1, SqPack_File o2) {
-                return o1.getName2().compareTo(o2.getName2());
-            }
-        });
+        Arrays.sort(originalMusicFile.getPackFolders()[0].getFiles(), Comparator.comparing(SqPack_File::getName2));
 
         loadDropDown(lstOriginal, originalFiles, 0);
         loadDropDown(lstSet, originalFiles, 0);
@@ -644,17 +571,18 @@ class FileInjectorWindow extends JFrame {
 
         //Init this since the list listener doesn't fire
         txtSetTo.setText(String.format(Strings.MUSICSWAPPER_CURRENTOFFSET, editedFiles[0].getOffset()));
-        if (editedFiles[0].getOffset() != originalMusicFile.getPackFolders()[0].getFiles()[0].dataOffset)
+        if (editedFiles[0].getOffset() != originalMusicFile.getPackFolders()[0].getFiles()[0].dataOffset) {
             txtSetTo.setForeground(Color.RED);
-        else
+        } else {
             txtSetTo.setForeground(Color.decode("#006400"));
+        }
     }
 
     private void restoreFromBackup() {
         // Create backup
         Utils.getGlobalLogger().info("Restoring...");
 
-        if (!edittingIndexFile.delete()) {
+        if (!editingIndexFile.delete()) {
             JOptionPane.showMessageDialog(FileInjectorWindow.this,
                     Strings.ERROR_CANNOT_OPEN_INDEX,
                     Strings.DIALOG_TITLE_ERROR,
@@ -663,13 +591,18 @@ class FileInjectorWindow extends JFrame {
         }
         if (customDatPath != null) {
             File generatedDatFile = new File(customDatPath);
-            if (generatedDatFile.exists())
+            if (generatedDatFile.exists()) {
+                //noinspection ResultOfMethodCallIgnored
                 generatedDatFile.delete();
+            }
             File generatedDatFileList = new File(customDatPath + ".lst");
-            if (generatedDatFileList.exists())
+            if (generatedDatFileList.exists()) {
+                //noinspection ResultOfMethodCallIgnored
                 generatedDatFileList.delete();
+            }
         }
-        backup.renameTo(edittingIndexFile);
+        //noinspection ResultOfMethodCallIgnored
+        backup.renameTo(editingIndexFile);
 
         lblBackup.setText("Backup does not exist.");
         btnBackup.setEnabled(true);
@@ -678,7 +611,7 @@ class FileInjectorWindow extends JFrame {
         setSwapperEnabled(false);
 
         datWasGenerated = false;
-        ((DefaultListModel) lstCustomMusic.getModel()).clear();
+        ((DefaultListModel<String>) lstCustomMusic.getModel()).clear();
         customPaths.clear();
         customIndexes.clear();
     }
@@ -689,8 +622,8 @@ class FileInjectorWindow extends JFrame {
         lstSet.clearSelection();
 
         if (!isEnabled) {
-            ((DefaultListModel) lstOriginal.getModel()).clear();
-            ((DefaultListModel) lstSet.getModel()).clear();
+            ((DefaultListModel<String>) lstOriginal.getModel()).clear();
+            ((DefaultListModel<String>) lstSet.getModel()).clear();
             txtSetTo.setText(Strings.MUSICSWAPPER_CURRENTSETTO);
             txtSetTo.setForeground(Color.decode("#000000"));
         }
@@ -716,60 +649,50 @@ class FileInjectorWindow extends JFrame {
     private static void copyFile(File sourceFile, File destFile)
             throws IOException {
         if (!destFile.exists()) {
+            //noinspection ResultOfMethodCallIgnored
             destFile.createNewFile();
         }
 
-        FileChannel source = null;
-        FileChannel destination = null;
-
-        try {
-            source = new FileInputStream(sourceFile).getChannel();
-            destination = new FileOutputStream(destFile).getChannel();
+        try (FileChannel source = new FileInputStream(sourceFile).getChannel(); FileChannel destination = new FileOutputStream(destFile).getChannel()) {
             destination.transferFrom(source, 0, source.size());
-        } finally {
-            if (source != null) {
-                source.close();
-            }
-            if (destination != null) {
-                destination.close();
-            }
         }
     }
 
     private void swapMusic(int which, int to) {
 
-        if (which == -1 || to == -1)
+        if (which == -1 || to == -1) {
             return;
+        }
 
-        long tooffset = 0;
+        long toOffset;
 
         SqPack_File toBeChanged = originalMusicFile.getPackFolders()[0].getFiles()[which];
 
-        //This is the index of the file, not the alphaed
+        //これはファイルのインデックスであり、アルファ版ではありません
         int fileIndex = originalPositionTable.get(toBeChanged.id);
 
         if (lstCustomMusic.getModel().getSize() == 0) {
             SqPack_File toThisFile = originalMusicFile.getPackFolders()[0].getFiles()[to - lstCustomMusic.getModel().getSize()];
             editedFiles[which] = new SqPack_File(toBeChanged.getId(), toBeChanged.getId2(),
                     toThisFile.getOffset(), true);
-            tooffset = toThisFile.getOffset();
+            toOffset = toThisFile.getOffset();
         } else {
             if (to >= lstCustomMusic.getModel().getSize() + 1) {
                 SqPack_File toThisFile = originalMusicFile.getPackFolders()[0].getFiles()[to - (lstCustomMusic.getModel().getSize() + 1)];
                 editedFiles[which] = new SqPack_File(toBeChanged.getId(), toBeChanged.getId2(),
                         toThisFile.getOffset(), true);
-                tooffset = toThisFile.getOffset();
+                toOffset = toThisFile.getOffset();
             } else {
                 editedFiles[which] = new SqPack_File(toBeChanged.getId(), toBeChanged.getId2(),
                         customIndexes.get(to), true);
-                tooffset = customIndexes.get(to);
+                toOffset = customIndexes.get(to);
             }
         }
 
         try {
             // This segment copied from SqPack_IndexFile
-            LERandomAccessFile lref = new LERandomAccessFile(edittingIndexFile.getCanonicalPath(), "rw");
-            RandomAccessFile bref = new RandomAccessFile(edittingIndexFile.getCanonicalPath(), "rw");
+            LERandomAccessFile lref = new LERandomAccessFile(editingIndexFile.getCanonicalPath(), "rw");
+            RandomAccessFile bref = new RandomAccessFile(editingIndexFile.getCanonicalPath(), "rw");
 
             byte[] buffer = new byte[6];
             byte[] bigBuffer = new byte[6];
@@ -784,8 +707,9 @@ class FileInjectorWindow extends JFrame {
                 Utils.getGlobalLogger().error("SqPack magic was incorrect.");
 
                 StringBuilder s = new StringBuilder();
-                for (int i = 0; i < 6; i++)
+                for (int i = 0; i < 6; i++) {
                     s.append(String.format("%X", buffer[i]));
+                }
                 String strMagic = new String(buffer);
                 Utils.getGlobalLogger().debug("Magic was 0x{} // {}", s.toString(), strMagic);
                 return;
@@ -795,6 +719,7 @@ class FileInjectorWindow extends JFrame {
             lref.seek(0x0c);
             bref.seek(0x0c);
             int headerLength = lref.readInt();
+            @SuppressWarnings("unused")
             int bHeaderLength = bref.readInt();
 
             lref.readInt(); // Unknown
@@ -810,16 +735,19 @@ class FileInjectorWindow extends JFrame {
                 return;
             }
 
-            if (type == 2)
+            if (type == 2) {
                 endian = ByteOrder.LITTLE_ENDIAN;
-            else
+            } else {
                 endian = ByteOrder.BIG_ENDIAN;
+            }
 
-            EARandomAccessFile ref = new EARandomAccessFile(edittingIndexFile.getCanonicalPath(), "rw", endian);
+            EARandomAccessFile ref = new EARandomAccessFile(editingIndexFile.getCanonicalPath(), "rw", endian);
             ref.seek(headerLength);
+            @SuppressWarnings("unused")
             int segHeaderLengthres = ref.readInt();
 
             //Read it in
+            @SuppressWarnings("unused")
             int firstVal = ref.readInt();
             int offset = ref.readInt();
             int size = ref.readInt();
@@ -828,19 +756,21 @@ class FileInjectorWindow extends JFrame {
             for (int i = 0; i < size; i++) {
                 if (i == fileIndex) {
                     ref.skipBytes(8);
-                    ref.writeInt((int) tooffset);
+                    ref.writeInt((int) toOffset);
                     break;
-                } else
+                } else {
                     ref.skipBytes(16);
+                }
             }
 
             ref.close();
 
-            txtSetTo.setText(String.format(Strings.MUSICSWAPPER_CURRENTOFFSET, tooffset));
-            if (toBeChanged.getOffset() != tooffset)
+            txtSetTo.setText(String.format(Strings.MUSICSWAPPER_CURRENTOFFSET, toOffset));
+            if (toBeChanged.getOffset() != toOffset) {
                 txtSetTo.setForeground(Color.RED);
-            else
+            } else {
                 txtSetTo.setForeground(Color.decode("#006400"));
+            }
 
             Utils.getGlobalLogger().info("Data changed!");
         } catch (FileNotFoundException e) {
@@ -864,9 +794,8 @@ class FileInjectorWindow extends JFrame {
 
         try {
 
-            String json = null;
-            BufferedReader br = new BufferedReader(new FileReader(edittingIndexFile.getParent() + "\\" + originalMusicFile.getName().replace(".index", ".dat") + currentDatIndex + ".lst"));
-            try {
+            String json;
+            try (BufferedReader br = new BufferedReader(new FileReader(editingIndexFile.getParent() + "\\" + originalMusicFile.getName().replace(".index", ".dat") + currentDatIndex + ".lst"))) {
                 StringBuilder sb = new StringBuilder();
                 String line = br.readLine();
 
@@ -876,8 +805,6 @@ class FileInjectorWindow extends JFrame {
                     line = br.readLine();
                 }
                 json = sb.toString();
-            } finally {
-                br.close();
             }
             toLoad = gson.fromJson(json, CustomDatPOJO.class);
         } catch (FileNotFoundException e) {
@@ -886,17 +813,19 @@ class FileInjectorWindow extends JFrame {
             Utils.getGlobalLogger().error(e);
         }
 
-        customDatPath = toLoad.datPath;
+        customDatPath = Objects.requireNonNull(toLoad).datPath;
         customPaths = toLoad.musicPaths;
         customIndexes = toLoad.musicOffsets;
 
-        for (int i = 0; i < customPaths.size(); i++)
-            ((DefaultListModel) lstCustomMusic.getModel()).addElement(customPaths.get(i));
+        for (String customPath : customPaths) {
+            ((DefaultListModel<String>) lstCustomMusic.getModel()).addElement(customPath);
+        }
 
         //Put new songs into list
-        ((DefaultListModel) lstSet.getModel()).add(0, "-----------");
-        for (int i = lstCustomMusic.getModel().getSize() - 1; i >= 0; i--)
-            ((DefaultListModel) lstSet.getModel()).add(0, ((DefaultListModel) lstCustomMusic.getModel()).elementAt(i));
+        ((DefaultListModel<String>) lstSet.getModel()).add(0, "-----------");
+        for (int i = lstCustomMusic.getModel().getSize() - 1; i >= 0; i--) {
+            ((DefaultListModel<String>) lstSet.getModel()).add(0, ((DefaultListModel<String>) lstCustomMusic.getModel()).elementAt(i));
+        }
 
         btnGenerateDat.setEnabled(false);
         datWasGenerated = true;
@@ -926,28 +855,25 @@ class FileInjectorWindow extends JFrame {
             setOpaque(true);
         }
 
+        @SuppressWarnings("ConstantConditions")
         @Override
         public Component getListCellRendererComponent(JList list,
                                                       Object value, int index, boolean isSelected,
                                                       boolean cellHasFocus) {
             setText(value.toString());
 
-            Color background;
-            Color foreground;
-
             int lastVal = (int) ((editedFiles[index].dataOffset) & 0xF);
 
-            boolean flagAsInvalid = false;
-            if (!customIndexes.contains(editedFiles[index].dataOffset) && lastVal == (currentDatIndex + 1))
-                flagAsInvalid = true;
+            boolean flagAsInvalid = !customIndexes.contains(editedFiles[index].dataOffset) && lastVal == (currentDatIndex + 1);
 
             if (isSelected) {
                 if (flagAsInvalid) {
                     Component defaultComponent = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                     setForeground(Color.RED);
                     setBackground(defaultComponent.getBackground());
-                } else
+                } else {
                     return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                }
             } else {
                 if (flagAsInvalid) {
                     setBackground(Color.RED);
@@ -961,9 +887,9 @@ class FileInjectorWindow extends JFrame {
         }
     }
 
-    private class CustomDatPOJO {
+    private static class CustomDatPOJO {
         String datPath;
-        ArrayList musicPaths;
+        ArrayList<String> musicPaths;
         ArrayList<Long> musicOffsets;
     }
 }

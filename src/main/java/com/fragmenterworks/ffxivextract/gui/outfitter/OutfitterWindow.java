@@ -10,6 +10,7 @@ import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile;
 import javax.swing.*;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Objects;
 
 public class OutfitterWindow extends JFrame {
 
@@ -18,13 +19,12 @@ public class OutfitterWindow extends JFrame {
     private final String sqPackPath;
     private SqPack_IndexFile exdIndexFile;
     private SqPack_IndexFile modelIndexFile;
-    private EXDF_View itemView;
 
     public OutfitterWindow(JFrame parent, String sqPackPath) {
 
         this.setTitle(Strings.DIALOG_TITLE_OUTFITTER);
         URL imageURL = getClass().getResource("/frameicon.png");
-        ImageIcon image = new ImageIcon(imageURL);
+        ImageIcon image = new ImageIcon(Objects.requireNonNull(imageURL));
         this.setIconImage(image.getImage());
         setSize(800, 600);
 
@@ -33,10 +33,12 @@ public class OutfitterWindow extends JFrame {
 
     }
 
+    @SuppressWarnings("unused")
     public SqPack_IndexFile getExdIndexFile() {
         return exdIndexFile;
     }
 
+    @SuppressWarnings("unused")
     public SqPack_IndexFile getModelIndexFile() {
         return modelIndexFile;
     }
@@ -75,7 +77,7 @@ public class OutfitterWindow extends JFrame {
                 modelIndexFile = new SqPack_IndexFile(getSqpackPath() + "\\game\\sqpack\\ffxiv\\040000.win32.index", true);
                 dialog.nextFile(2, "Loading initial models...");
                 EXHF_File exhfFile = new EXHF_File(exdIndexFile.extractFile("exd/item.exh"));
-                itemView = new EXDF_View(exdIndexFile, "exd/item.exh", exhfFile);
+                EXDF_View itemView = new EXDF_View(exdIndexFile, "exd/item.exh", exhfFile);
                 getContentPane().add(new Outfitter(modelIndexFile, itemView));
             } catch (IOException e1) {
                 Utils.getGlobalLogger().error(e1);

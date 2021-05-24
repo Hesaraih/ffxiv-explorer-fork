@@ -15,10 +15,12 @@ import java.net.URL;
 import java.sql.SQLException;
 import java.util.Objects;
 
+@SuppressWarnings("CommentedOutCode")
 public class Path_to_Hash_Window extends JFrame {
 
     private final JTextField edtFullPath;
     private final JTextArea txtOutput;
+    private final JButton btnCalculate;
     /**
      * ファイルパスの照合結果状態 2:ファイルがある 1:パスは合ってる 0:ファイル名もパスもなし
      */
@@ -49,7 +51,8 @@ public class Path_to_Hash_Window extends JFrame {
         panel_1.add(scrollPane);
 
         txtOutput = new JTextArea(Strings.PATHTOHASH_INTRO);
-        txtOutput.setFont(new Font("ＭＳ ゴシック", Font.PLAIN, 12));
+        //txtOutput.setFont(new Font("ＭＳ ゴシック", Font.PLAIN, 12)); //<-これ使うと開くのが遅くなる
+        txtOutput.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         scrollPane.setViewportView(txtOutput);
         txtOutput.setRows(2);
         txtOutput.setEditable(false);
@@ -73,10 +76,11 @@ public class Path_to_Hash_Window extends JFrame {
         JPanel panel_3 = new JPanel();
         contentPane.add(panel_3, BorderLayout.SOUTH);
 
-        JButton btnCalculate = new JButton(Strings.PATHTOHASH_BUTTON_HASHTHIS);
+        btnCalculate = new JButton(Strings.PATHTOHASH_BUTTON_HASHTHIS);
         panel_3.add(btnCalculate);
 
         edtFullPath.getDocument().addDocumentListener(new DocumentListener() {
+            //テキストボックスの内容変更時の動作
             @Override
             public void insertUpdate(DocumentEvent e) {
                 calcHash();
@@ -104,8 +108,6 @@ public class Path_to_Hash_Window extends JFrame {
         //計算ボタンを押したときの動作
         String path = edtFullPath.getText();
 
-
-
         HashDatabase.beginConnection();
         try {
             HashDatabase.setAutoCommit(false);
@@ -115,10 +117,11 @@ public class Path_to_Hash_Window extends JFrame {
         boolean result = false;
         if (pathCheck == 2){
             //ファイルパスとファイル名を強制的に追加
-            result = HashDatabase.addPathToDB(edtFullPath.getText(), currentIndex.getName(), HashDatabase.globalConnection,true);
+            result = HashDatabase.addPathToDB(path, currentIndex.getName(), HashDatabase.globalConnection,true);
         }else if (pathCheck == 1){
             //ファイルパスのみ追加
-            result = HashDatabase.addFolderToDB(edtFullPath.getText(), currentIndex.getName());
+            String folder = path.substring(0, path.lastIndexOf('/'));
+            result = HashDatabase.addFolderToDB(folder, currentIndex.getName(),true);
         }
 
         if (result) {
@@ -149,7 +152,7 @@ public class Path_to_Hash_Window extends JFrame {
         //パスのテキストボックスの文字列を変更したときの動作
         String path = edtFullPath.getText();
 
-        if (!path.contains("/"))
+        if (path == null || !path.contains("/"))
         {
             txtOutput.setText(Strings.PATHTOHASH_ERROR_INVALID);
             return;
@@ -168,15 +171,19 @@ public class Path_to_Hash_Window extends JFrame {
 
         String base = "";
         Border border = BorderFactory.createLineBorder(Color.RED, 2);
+        btnCalculate.setEnabled(false); //強制登録用のボタン無効化
 
         try {
             pathCheck = currentIndex.existsFile2(path);
             if (pathCheck == 2){
                 HashDatabase.addPathToDB(edtFullPath.getText(), currentIndex.getName());
                 border = BorderFactory.createLineBorder(Color.GREEN, 2);
+                btnCalculate.setEnabled(true); //強制登録用のボタン有効化
             }else if (pathCheck == 1){
                 border = BorderFactory.createLineBorder(Color.ORANGE, 2);
+                btnCalculate.setEnabled(true); //強制登録用のボタン有効化
             }
+            //変更前：
 //            if (currentIndex.extractFile(path) != null) {
 //                HashDatabase.addPathToDB(edtFullPath.getText(), currentIndex.getName());
 //                border = BorderFactory.createLineBorder(Color.GREEN, 2);
@@ -191,9 +198,6 @@ public class Path_to_Hash_Window extends JFrame {
                 Strings.PATHTOHASH_FOLDER_HASH + String.format("0x%08X (%11d)", folderHash, folderHash) + "\n"+
                 Strings.PATHTOHASH_FILE_HASH + String.format("0x%08X (%11d)", fileHash, fileHash) + "\n" +
                 Strings.PATHTOHASH_FULL_HASH + String.format("0x%08X (%11d)", fullHash, fullHash));
-//                Strings.PATHTOHASH_FOLDER_HASH + String.format("0x%08X (%s)", folderHash, Long.toString(folderHash & 0xFFFFFFFFL)) + "\n"+
-//                Strings.PATHTOHASH_FILE_HASH + String.format("0x%08X (%s)", fileHash, Long.toString(fileHash & 0xFFFFFFFFL)) + "\n" +
-//                Strings.PATHTOHASH_FULL_HASH + String.format("0x%08X (%s)", fullHash, Long.toString(fullHash & 0xFFFFFFFFL)));
     }
 
 }

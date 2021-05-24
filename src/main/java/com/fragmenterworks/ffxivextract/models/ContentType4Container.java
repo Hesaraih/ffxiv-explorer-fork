@@ -5,12 +5,9 @@ import com.fragmenterworks.ffxivextract.models.SqPack_DatFile.TextureBlocks;
 @SuppressWarnings("unused")
 class ContentType4Container {
 
-    private final TextureBlocks[] blocks;
-    private final long[] blockOffsets;
-
     public ContentType4Container(int blockCount) {
-        blocks = new TextureBlocks[blockCount];
-        blockOffsets = new long[blockCount];
+        TextureBlocks[] blocks = new TextureBlocks[blockCount];
+        long[] blockOffsets = new long[blockCount];
     }
 
 

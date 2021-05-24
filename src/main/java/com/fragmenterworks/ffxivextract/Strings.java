@@ -1,5 +1,6 @@
 package com.fragmenterworks.ffxivextract;
 
+@SuppressWarnings({"unused", "SpellCheckingInspection"})
 public class Strings {
 
     //Dialog Titles
@@ -39,7 +40,7 @@ public class Strings {
     public static final String PATHTOHASH_FOLDER_HASH = "フォルダ ハッシュ値: ";
     public static final String PATHTOHASH_FILE_HASH = "ファイル ハッシュ値: ";
     public static final String PATHTOHASH_FULL_HASH = "フルパス ハッシュ値: ";
-    public static final String PATHTOHASH_BUTTON_HASHTHIS = "計算";
+    public static final String PATHTOHASH_BUTTON_HASHTHIS = "Hash値を強制登録";
     public static final String PATHTOHASH_BUTTON_CLOSE = "閉じる";
     public static final String PATHTOHASH_INTRO = "「folder/subfolder/file.ext」のような有効なパスを入力し\n計算ボタンを押してください。";
     public static final String PATHTOHASH_ERROR_INVALID = "有効なパスではありません。";

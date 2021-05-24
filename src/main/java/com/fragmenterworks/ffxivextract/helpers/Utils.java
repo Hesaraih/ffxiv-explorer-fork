@@ -21,7 +21,7 @@ public class Utils {
      * Source: http://www.fox-toolkit.org/ftp/fasthalffloatconversion.pdf
      *
      * @param half shortとしての半精度浮動小数点値
-     * @return 半分の浮動小数点値
+     * @return 半精度浮動小数点値
      */
     public static float convertHalfToFloat(short half) {
         switch ((int) half) {
@@ -44,7 +44,7 @@ public class Utils {
     @SuppressWarnings("unused")
     public static short convertFloatToHalf(float flt) {
         if (Float.isNaN(flt)) {
-            throw new UnsupportedOperationException("Not a Numberからハーフへの変換はサポートされていません!");
+            throw new UnsupportedOperationException("Not a Numberから半精度浮動小数点への変換はサポートされていません!");
         } else if (flt == Float.POSITIVE_INFINITY) {
             return (short) 0x7c00;
         } else if (flt == Float.NEGATIVE_INFINITY) {
@@ -54,7 +54,7 @@ public class Utils {
         } else if (flt == -0f) {
             return (short) 0x8000;
         } else if (flt > 65504f) {
-            // 半精度でサポートされる最大値
+            // 半精度浮動小数点でサポートされる最大値
             return 0x7bff;
         } else if (flt < -65504f) {
             return (short) (0x7bff | 0x8000);
@@ -80,10 +80,10 @@ public class Utils {
         if (toReturn.contains("%")) {
             toReturn = toReturn.replaceAll("%s", "[\\\\w]+"); //accepts 0-9 A-Z a-z _
 
-            while (toReturn.matches(".*%([0-9]+)[d]{1}.*")) {
-                String digitStr = toReturn.replaceFirst(".*%([0-9]+)[d]{1}.*", "$1");
+            while (toReturn.matches(".*%([0-9]+)[d].*")) {
+                String digitStr = toReturn.replaceFirst(".*%([0-9]+)[d].*", "$1");
                 int numDigits = Integer.parseInt(digitStr);
-                toReturn = toReturn.replaceFirst("(.*)(%[0-9]+[d]{1})(.*)", "$1[0-9]{" + numDigits + "}$3");
+                toReturn = toReturn.replaceFirst("(.*)(%[0-9]+[d])(.*)", "$1[0-9]{" + numDigits + "}$3");
             }
         }
 
@@ -96,6 +96,7 @@ public class Utils {
 
         //ファイルをバイトの配列に変換
         fileInputStream = new FileInputStream(file);
+        //noinspection ResultOfMethodCallIgnored
         fileInputStream.read(bFile);
         fileInputStream.close();
 

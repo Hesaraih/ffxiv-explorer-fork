@@ -13,7 +13,7 @@ public class PathSearcher extends JFrame {
     public PathSearcher() {
     }
 /*
-	static String folders[] = {
+	private static final String[] folders = {
 			"common/",
 			"bgcommon/",
 			"exd/",
@@ -34,16 +34,16 @@ public class PathSearcher extends JFrame {
             "bgcommon/"
     };
 
-    public static void doPathSearch(String path, String folder) throws IOException {
+    public static void doPathSearch(String pathToIndex, String folder) throws IOException {
         folders[0] = folder;
-        doPathSearch(path);
+        doPathSearch(pathToIndex);
     }
 
-    private static void doPathSearch(String path) throws IOException {
+    private static void doPathSearch(String pathToIndex) throws IOException {
 
-        Utils.getGlobalLogger().info("Opening {}...", path);
+        Utils.getGlobalLogger().info("{}を開いています...", pathToIndex);
 
-        SqPack_IndexFile currentIndexFile = new SqPack_IndexFile(path, true);
+        SqPack_IndexFile currentIndexFile = new SqPack_IndexFile(pathToIndex, true);
 
         int numFound = 0;
         int numFoundFolder = 0;
@@ -52,7 +52,7 @@ public class PathSearcher extends JFrame {
         int numNewFoundFolder = 0;
 
         for (String folder : folders) {
-            Utils.getGlobalLogger().info("Searching for folder {}...", folder);
+            Utils.getGlobalLogger().info("フォルダ{}を検索しています...", folder);
 
             HashDatabase.beginConnection();
             try {
@@ -88,7 +88,6 @@ public class PathSearcher extends JFrame {
                                         if (data[i2 - 1] == 'g' && data[i2 - 2] == 'b' || data[i2 - 1] == '/') {
                                             break;
                                         }
-
                                         //Look for end
                                         int endString = 0;
                                         for (int endSearch = i2; endSearch < data.length - folder.length(); endSearch++) {
@@ -97,29 +96,18 @@ public class PathSearcher extends JFrame {
                                                 break;
                                             }
                                         }
-
                                         //Hack for last file
                                         if (endString == 0) {
                                             endString = data.length - 1;
                                         }
-
-                                        //Get full path
+                                        //Get full pathToIndex
                                         String fullpath = new String(data, i2, endString - i2);
 
                                         //Add to list
-                                        //if (HashDatabase.getFolder(f.getId()) == null)
-                                        //{
                                         Utils.getGlobalLogger().info("NEW => {}", fullpath);
                                         numNewFound++;
                                         numNewFoundFolder++;
                                         HashDatabase.addPathToDB(fullpath, currentIndexFile.getName());
-                                        //}
-                                        //else
-                                        //{
-                                        //	numFound++;
-                                        //	numFoundFolder++;
-                                        //}
-
                                     }
                                 } else {
                                     break;
@@ -133,7 +121,7 @@ public class PathSearcher extends JFrame {
                 }
 
             }
-            Utils.getGlobalLogger().info("Found {} paths, {} were new.", numFoundFolder, numNewFoundFolder);
+            Utils.getGlobalLogger().info("パスを{}個発見し、うち{}は新しいものでした。", numFoundFolder, numNewFoundFolder);
             numFoundFolder = 0;
             numNewFoundFolder = 0;
             try {
@@ -143,7 +131,7 @@ public class PathSearcher extends JFrame {
             }
             HashDatabase.closeConnection();
         }
-        Utils.getGlobalLogger().info("Found {} paths, {} were new.", numFound, numNewFound);
+        Utils.getGlobalLogger().info("ファイルを{}個発見し、うち{}は新しいものでした。", numFound, numNewFound);
     }
 
     @SuppressWarnings("unused")
