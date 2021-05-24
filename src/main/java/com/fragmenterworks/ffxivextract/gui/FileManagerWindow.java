@@ -857,8 +857,8 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
                 Utils.getGlobalLogger().error(e);
             }
         } else if (data.length >= 4 && checkMagic(data, "XFVA")) {
-            AVFX_File avfxFile = new AVFX_File(data, currentIndexFile.getEndian());
-			avfxFile.printOut();
+            AVFX_File avfxFile = new AVFX_File(currentIndexFile, data, currentIndexFile.getEndian());
+            avfxFile.regHash();
         } else if (data.length >= 4 && contentType == 2 && file.getName().endsWith("mtrl")) {
             //魚拓や絵画などのmdlファイルがないものでもmtrlファイル情報からtexをDB登録できるようにした
             new Material(HashDatabase.getFolder(file.getId2()), currentIndexFile, data, currentIndexFile.getEndian());
@@ -906,13 +906,20 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
         } else if (data.length >= 4 && checkMagic(data, "SGB1")) {
             try {
                 @SuppressWarnings("unused")
-                SGB_File sgbFile = new SGB_File(data, currentIndexFile.getEndian());
+                SGB_File sgbFile = new SGB_File(currentIndexFile, data, currentIndexFile.getEndian());
             } catch (IOException e) {
                 Utils.getGlobalLogger().error(e);
             }
+        } else if (data.length >= 4 && checkMagic(data, "TMLB")) {
+            try {
+                @SuppressWarnings("unused")
+                TMB_File tmbFile = new TMB_File(currentIndexFile, data, currentIndexFile.getEndian());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         } else if (data.length >= 4 && checkMagic(data, "uldh")) {
             try {
-                ULD_View uldView = new ULD_View(new ULD_File(data, currentIndexFile.getEndian()));
+                ULD_View uldView = new ULD_View(new ULD_File(currentIndexFile, data, currentIndexFile.getEndian()));
                 tabs.addTab("ULDレンダラー", uldView);
             } catch (Exception e) {
                 Utils.getGlobalLogger().error(e);
@@ -923,6 +930,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
             tabs.addTab("CMP Viewer", cmpView);
         }
 
+        //条件なし
         hexView.setBytes(data);
         //if (contentType != 3)
         tabs.addTab("Raw Hex", hexView);
