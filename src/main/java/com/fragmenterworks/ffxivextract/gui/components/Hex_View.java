@@ -13,6 +13,7 @@ public class Hex_View extends JScrollPane {
     private final String[] byteToChar = new String[256];
 
     public Hex_View(int columnCount) {
+        //1行あたりの列数
         this.columnCount = columnCount;
 
         txtHexData = new JTable(new HexTableModel());
@@ -30,6 +31,7 @@ public class Hex_View extends JScrollPane {
             byteToChar[i] = "" + (char) i;
         }
 
+        //見出し列の幅
         txtHexData.getColumnModel().getColumn(0).setMinWidth(70);
 
         DefaultTableCellRenderer cellRender = new DefaultTableCellRenderer() {
@@ -48,7 +50,12 @@ public class Hex_View extends JScrollPane {
                 } else {
                     setHorizontalAlignment(JLabel.CENTER);
                 }
-                setText((value == null) ? "" : value.toString());
+
+                if (value == null) {
+                    setText("");
+                } else {
+                    setText(value.toString());
+                }
 
                 if (column == 0) {
                     setBorder(BorderFactory.createMatteBorder(0, 0, 1, 2,
@@ -76,28 +83,26 @@ public class Hex_View extends JScrollPane {
         };
 
         txtHexData.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        txtHexData.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         getViewport().add(txtHexData);
 
         for (int column = 0; column < txtHexData.getColumnCount(); column++) {
             TableColumn tableColumn = txtHexData.getColumnModel().getColumn(column);
             int preferredWidth = tableColumn.getMinWidth();
-            int maxWidth = tableColumn.getMaxWidth();
 
             for (int row = 0; row < txtHexData.getRowCount(); row++) {
                 TableCellRenderer cellRenderer = txtHexData.getCellRenderer(row, column);
                 Component c = txtHexData.prepareRenderer(cellRenderer, row, column);
                 int width = c.getPreferredSize().width + txtHexData.getIntercellSpacing().width;
                 preferredWidth = Math.max(preferredWidth, width);
-
-                //  We've exceeded the maximum width, no need to check other rows
-
-                if (preferredWidth >= maxWidth) {
-                    preferredWidth = maxWidth;
-                    break;
-                }
             }
-
-            tableColumn.setPreferredWidth(preferredWidth);
+            if (column == 0) {
+                tableColumn.setPreferredWidth(70); //アドレス表示列の幅(指定しないと15)
+            }else if (column <= 16){
+                tableColumn.setPreferredWidth(17); //byte値表示列の幅(指定しないと15)
+            }else{
+                tableColumn.setPreferredWidth(12);  //キャラクタ表示列の幅(指定しないと15)
+            }
         }
 
         txtHexData.setTableHeader(null);
@@ -146,13 +151,18 @@ public class Hex_View extends JScrollPane {
 
         @Override
         public String getColumnName(int column) {
-            return "";
+            if (column == 0){
+                return "アドレス";
+            }else{
+                return String.format("%X: ", (column - 1) % 16);
+            }
         }
 
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
             if (columnIndex == 0) {
-                return String.format("%x: ", columnCount * rowIndex);
+                //見出し列
+                return String.format("%08X: ", columnCount * rowIndex);
             } else if (columnIndex >= 1 && columnIndex <= columnCount) {
                 if (((rowIndex * columnCount) + columnIndex - 1) > bytes.length - 1) {
                     return null;
