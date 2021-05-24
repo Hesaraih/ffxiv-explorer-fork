@@ -1,11 +1,12 @@
 package com.fragmenterworks.ffxivextract.models;
 
 import com.fragmenterworks.ffxivextract.Constants;
-import com.fragmenterworks.ffxivextract.helpers.FileTools;
 import com.fragmenterworks.ffxivextract.helpers.SparseArray;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.models.uldStuff.*;
+import com.fragmenterworks.ffxivextract.storage.HashDatabase;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
@@ -18,6 +19,10 @@ import java.util.Arrays;
  * @author Roze
  */
 public class ULD_File extends Game_File {
+
+    //他のファイルを見つけるために使用されます
+    @SuppressWarnings({"FieldCanBeLocal", "unused"})
+    private final SqPack_IndexFile currentIndex;
 
     /**
      * グラフィカルノード パーサ(構文解析器)の一覧
@@ -46,7 +51,7 @@ public class ULD_File extends Game_File {
     }
 
     /**
-     * The parsed ULDH Chunk
+     * ULD ヘッダー解析
      */
     public ULDH uldHeader;
 
@@ -55,10 +60,11 @@ public class ULD_File extends Game_File {
      *
      * @param data 使用するデータプール
      */
-    public ULD_File(final byte[] data, ByteOrder endian) {
+    public ULD_File(SqPack_IndexFile index, final byte[] data, ByteOrder endian) {
         super(endian);
         ByteBuffer bb = ByteBuffer.wrap(data);
         bb.order(endian);
+        currentIndex = index;
         uldHeader = new ULDH(bb);
     }
 
@@ -130,10 +136,17 @@ public class ULD_File extends Game_File {
      * @param args Program arguments.
      */
     public static void main(String[] args) {
-        byte[] data = FileTools.getRaw(Constants.datPath + "\\game\\sqpack\\ffxiv", "ui/uld/botanistgame.uld");
+        SqPack_IndexFile index;
+        try {
+            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\060000.win32.index", true);
+            byte[] data = index.extractFile("ui/uld/botanistgame.uld");
 
-        @SuppressWarnings("unused")
-        ULD_File uld = new ULD_File(data, ByteOrder.LITTLE_ENDIAN);
+            @SuppressWarnings("unused")
+            ULD_File uld = new ULD_File(index, data, ByteOrder.LITTLE_ENDIAN);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -150,7 +163,7 @@ public class ULD_File extends Game_File {
     }
 
     /**
-     * ULDH Chunk
+     * ULD ヘッダー チャンク
      */
     public static class ULDH {
         public final ATKH[] atkhs = new ATKH[2];
@@ -159,9 +172,9 @@ public class ULD_File extends Game_File {
         private final int atkh1offset;
 
         /**
-         * Initializes this ULDH Chunk from the given data pool
+         * 指定されたデータプールからこのULDヘッダーチャンクを初期化します
          *
-         * @param data The data pool to use
+         * @param data データプール
          */
         ULDH(ByteBuffer data) {
             String sig = getString(data, 8);
@@ -183,16 +196,15 @@ public class ULD_File extends Game_File {
 
         @Override
         public String toString() {
-            return "ULDH{" +
-                    "atkh0offset=" + atkh0offset +
-                    ", atkh1offset=" + atkh1offset +
-                    ", atkhs=" + Arrays.toString(atkhs) +
-                    "}\n";
+            return String.format("ULDH{atkh0offset=%d, atkh1offset=%d, atkhs=%s}\n",
+                    atkh0offset,
+                    atkh1offset,
+                    Arrays.toString(atkhs));
         }
     }
 
     /**
-     * ULD ATKH Chunk
+     * ULD ATKヘッダー チャンク
      */
     public static class ATKH {
         public ASHD ashd;
@@ -236,23 +248,21 @@ public class ULD_File extends Game_File {
                     wdhd = new WDHD(data);
                 }
             }
-            //String signature =
         }
 
         @Override
         public String toString() {
-            return "ATKH{" +
-                    "ashd=" + (ashd != null ? ashd : "null") +
-                    ", tphd=" + (tphd != null ? tphd : "null") +
-                    ", cohd=" + (cohd != null ? cohd : "null") +
-                    ", tlhd=" + (tlhd != null ? tlhd : "null") +
-                    ", wdhd=" + (wdhd != null ? wdhd : "null") +
-                    "}\n";
+            return String.format("ATKH{ashd=%s, tphd=%s, cohd=%s, tlhd=%s, wdhd=%s}\n",
+                    ashd != null ? ashd : "null",
+                    tphd != null ? tphd : "null",
+                    cohd != null ? cohd : "null",
+                    tlhd != null ? tlhd : "null",
+                    wdhd != null ? wdhd : "null");
         }
     }
 
     /**
-     * ASHD Chunk
+     * ASHデータ チャンク
      */
     public static class ASHD {
         public final SparseArray<String> paths = new SparseArray<>();
@@ -261,21 +271,76 @@ public class ULD_File extends Game_File {
          * @param data The data pool to use
          */
         ASHD(ByteBuffer data) {
+            boolean multiFlag = false;
+            String[] multi = {"en/","fr/","de/", "ja/"};
             String signature = getString(data, 8);
             if (signature.equals("ashd0100")) {
                 int count = data.getInt() & 0xFFFF;
                 data.getInt();  //Align?
                 for (int i = 0; i < count; i++) {
                     int index = data.getInt();
-                    String path = getString(data, 48).trim();
+                    String path = getString(data, 0x30).trim();
                     paths.append(index, path);
+
+                    //ファイル登録
+                    String archive = HashDatabase.getArchiveID(path);
+                    HashDatabase.addPathToDB(path, archive);
+                }
+            }else if (signature.equals("ashd0101")) {
+                //ashdのバージョンが上がった？
+                int count = data.getInt() & 0xFFFF;
+                data.getInt();  //Align?
+                for (int i = 0; i < count; i++) {
+                    int index2 = data.getInt();
+                    int index = data.getInt();
+                    String path = getString(data, 0x2c).trim();
+                    int iconID = data.getInt();
+                    //ファイルパスがiconIDの時、ファイルパスを生成
+                    if (!path.contains(".")){
+                        String iconPath = "";
+                        String iconPath2 = "";
+                        int pathNum = (iconID / 1000) * 1000;
+                        if (iconID < 20000 || (iconID >= 60000 && iconID < 120000) || (iconID >= 130000 && iconID < 150000)){
+                            iconPath = String.format("ui/icon/%06d/%06d.tex",pathNum, iconID);
+                            iconPath2 = String.format("ui/icon/%06d/%06d_hr1.tex",pathNum, iconID); //高画質用
+                        }else if (iconID < 60000){
+                            iconPath = String.format("ui/icon/%06d/%s%06d.tex",pathNum, "hq/", iconID);
+                            iconPath2 = String.format("ui/icon/%06d/%s%06d_hr1.tex",pathNum, "hq/", iconID); //高画質用
+                        }else{
+                            if ((iconID % 1000) == 0){multiFlag = true;}
+                            if (multiFlag){
+                                for (String lang :multi) {
+                                    //multi配列中の「ja」を最後に配置しループ終わりが日本語となるようにした
+                                    iconPath = String.format("ui/icon/%06d/%s%06d.tex",pathNum, lang, iconID);
+                                    iconPath2 = String.format("ui/icon/%06d/%s%06d_hr1.tex",pathNum, lang, iconID); //高画質用
+
+                                    //ui/icon登録
+                                    HashDatabase.addPathToDB(iconPath, "060000");
+                                    HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
+
+                                    multiFlag = false;
+                                }
+                            }else{
+                                iconPath = String.format("ui/icon/%06d/ja/%06d.tex",pathNum, iconID);
+                                iconPath2 = String.format("ui/icon/%06d/ja/%06d_hr1.tex",pathNum, iconID); //高画質用
+                            }
+                        }
+                        HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
+                        //高画質表示したい時は以下でiconPath2をpathに代入
+                        path = iconPath;
+                    }
+                    paths.append(index, path);
+
+                    //ファイル登録
+                    String archive = HashDatabase.getArchiveID(path);
+                    HashDatabase.addPathToDB(path, archive);
                 }
             }
         }
     }
 
     /**
-     * TPHD Chunk
+     * TPHデータ チャンク
      */
     public static class TPHD {
         public final SparseArray<ImageSet> imageSets = new SparseArray<>();
@@ -299,14 +364,12 @@ public class ULD_File extends Game_File {
 
         @Override
         public String toString() {
-            return "TPHD{" +
-                    "imageSets=" + imageSets +
-                    "}\n";
+            return String.format("TPHD{imageSets=%s}\n", imageSets);
         }
     }
 
     /**
-     * TLHD Chunk
+     * TLHデータ チャンク
      */
     public static class TLHD {
         final SparseArray<TLHDSet> entries = new SparseArray<>();
@@ -330,14 +393,12 @@ public class ULD_File extends Game_File {
 
         @Override
         public String toString() {
-            return "TLHD{" +
-                    "entries=" + entries +
-                    "}\n";
+            return String.format("TLHD{entries=%s}\n", entries);
         }
     }
 
     /**
-     * COHD Chunk
+     * COHデータ チャンク
      */
     public static class COHD {
         final SparseArray<COHDEntry> entries = new SparseArray<>();
@@ -365,14 +426,12 @@ public class ULD_File extends Game_File {
 
         @Override
         public String toString() {
-            return "COHD{" +
-                    "entries=" + entries +
-                    "}\n";
+            return String.format("COHD{entries=%s}\n", entries);
         }
     }
 
     /**
-     * WDHD Chunk
+     * WDHデータ チャンク
      */
     public static class WDHD {
         final SparseArray<WDHDEntry> entries = new SparseArray<>();
@@ -400,16 +459,13 @@ public class ULD_File extends Game_File {
 
         @Override
         public String toString() {
-            return "WDHD{" +
-                    "entries=" + entries +
-                    '}';
+            return String.format("WDHD{entries=%s}", entries);
         }
     }
 
     @Override
     public String toString() {
-        return "ULD_File{" +
-                "uldHeader=" + (uldHeader != null ? uldHeader : "null") +
-                "}\n";
+        return String.format("ULD_File{uldHeader=%s}\n",
+                uldHeader != null ? uldHeader : "null");
     }
 }

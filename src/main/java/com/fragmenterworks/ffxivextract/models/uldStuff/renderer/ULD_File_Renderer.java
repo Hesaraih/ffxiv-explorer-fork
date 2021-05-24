@@ -4,10 +4,7 @@ import com.fragmenterworks.ffxivextract.Constants;
 import com.fragmenterworks.ffxivextract.helpers.FileTools;
 import com.fragmenterworks.ffxivextract.helpers.SparseArray;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
-import com.fragmenterworks.ffxivextract.models.IGraphicsElement;
-import com.fragmenterworks.ffxivextract.models.TextureRegion;
-import com.fragmenterworks.ffxivextract.models.TextureSet;
-import com.fragmenterworks.ffxivextract.models.ULD_File;
+import com.fragmenterworks.ffxivextract.models.*;
 import com.fragmenterworks.ffxivextract.models.uldStuff.*;
 
 import javax.swing.*;
@@ -16,6 +13,7 @@ import java.awt.event.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
@@ -130,33 +128,40 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
      * @param args プログラム引数
      */
     public static void main(String[] args) {
-        String sqPakPath = Constants.datPath + "\\game\\sqpack\\ffxiv";
-        byte[] data = FileTools.getRaw(sqPakPath, "ui/uld/creditstaff.uld");
+        SqPack_IndexFile index;
+        try {
+            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\060000.win32.index", true);
+            String sqPakPath = Constants.datPath + "\\game\\sqpack\\ffxiv";
+            //byte[] data = FileTools.getRaw(sqPakPath, "ui/uld/creditstaff.uld");
+            byte[] data = index.extractFile("ui/uld/creditstaff.uld");
 
-        ULD_File uld = new ULD_File(data, ByteOrder.LITTLE_ENDIAN);
+            ULD_File uld = new ULD_File(index, data, ByteOrder.LITTLE_ENDIAN);
 
-        Utils.getGlobalLogger().trace(uld);
-        ULD_File_Renderer renderer = new ULD_File_Renderer(sqPakPath, uld);
-        JFrame jf = new JFrame();
-        JPanel content = new JPanel();
-        jf.setContentPane(content);
-        content.setLayout(new BorderLayout());
-        JLabel lblPic = new JLabel();
-        lblPic.setIcon(new ImageIcon(renderer.getImage(0, 0)));
-        lblPic.addMouseListener(renderer);
-        lblPic.addMouseMotionListener(renderer);
-        lblPic.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(final MouseEvent e) {
-                renderer.getImage(0, 0);
-                lblPic.repaint();
-            }
-        });
+            Utils.getGlobalLogger().trace(uld);
+            ULD_File_Renderer renderer = new ULD_File_Renderer(sqPakPath, uld);
+            JFrame jf = new JFrame();
+            JPanel content = new JPanel();
+            jf.setContentPane(content);
+            content.setLayout(new BorderLayout());
+            JLabel lblPic = new JLabel();
+            lblPic.setIcon(new ImageIcon(renderer.getImage(0, 0)));
+            lblPic.addMouseListener(renderer);
+            lblPic.addMouseMotionListener(renderer);
+            lblPic.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(final MouseEvent e) {
+                    renderer.getImage(0, 0);
+                    lblPic.repaint();
+                }
+            });
 
-        content.add(lblPic, BorderLayout.CENTER);
-        jf.pack();
-        //FrameUtilities.centerFrame(jf);
-        jf.setVisible(true);
+            content.add(lblPic, BorderLayout.CENTER);
+            jf.pack();
+            //FrameUtilities.centerFrame(jf);
+            jf.setVisible(true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @SuppressWarnings("unused")
