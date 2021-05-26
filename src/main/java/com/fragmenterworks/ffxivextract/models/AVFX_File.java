@@ -1,6 +1,6 @@
 package com.fragmenterworks.ffxivextract.models;
 
-import com.fragmenterworks.ffxivextract.Constants;
+import com.fragmenterworks.ffxivextract.helpers.FileTools;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.storage.HashDatabase;
 
@@ -113,6 +113,8 @@ public class AVFX_File extends Game_File {
             Utils.getGlobalLogger().error(e1);
         }
 
+        boolean folderCheck = true;
+
         for (AVFX_Packet ap : packets){
             String apTag = new StringBuffer(new String(ap.tag)).reverse().toString().trim();
             if (apTag.equals("Tex")){
@@ -125,7 +127,7 @@ public class AVFX_File extends Game_File {
                     }else {
                         try {
                             if (index == null || !index.getName().equals(archive)) {
-                                index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\" + archive + ".win32.index", true);
+                                index = new SqPack_IndexFile(FileTools.ArchiveID2IndexFilePath(archive), true);
                             }
                             pathCheck = index.existsFile2(fullPath);
                         } catch (IOException e) {
@@ -148,6 +150,74 @@ public class AVFX_File extends Game_File {
                 }else{
                     HashDatabase.addPathToDB(fullPath, archive);
                 }
+
+                if (folderCheck){
+                    //自ファイル名を推測して登録する
+                    String folder = fullPath.substring(0, fullPath.lastIndexOf('/')).replace("/texture", "/eff");
+                    if (folder.startsWith("vfx/")){
+                        String[] pathParts = fullPath.split("/");
+
+                        switch (pathParts[1]) {
+                            case "cut":
+                                for (int i = 1; i < 50; i++) {
+                                    //vfx/cut/anvwil/anvwil00510/eff/anvwil00510_01a.avfx
+                                    String avfxPath = String.format("%s/%s_%02da.avfx", folder, pathParts[3], i);
+                                    int pathCheck = currentIndex.existsFile2(avfxPath);
+                                    if (pathCheck == 2) {
+                                        HashDatabase.addPathToDB(avfxPath, archive);
+                                    }
+                                }
+                                break;
+                            case "action": {
+                                String[] actionSign = new String[]{"c", "t"};
+                                for (int i = 0; i < 9; i++) {
+                                    for (String sign1 : actionSign) {
+                                        //vfx/action/ab_2kt010/eff/ab_2kt010c0t.avfx
+                                        String avfxPath = String.format("%s/%s%s%dt.avfx", folder, pathParts[2], sign1, i);
+                                        int pathCheck = currentIndex.existsFile2(avfxPath);
+                                        if (pathCheck == 2) {
+                                            HashDatabase.addPathToDB(avfxPath, archive);
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+                            case "temporary": {
+                                String[] tempSign = new String[]{"c", "t"};
+                                String[] tempSign2 = new String[]{"w", "a1", "p", "m1"};
+                                for (int i = 0; i < 3; i++) {
+                                    for (String sign1 : tempSign) {
+                                        for (String sign2 : tempSign2) {
+                                            //vfx/temporary/abl_myc016/eff/abl_myc016_c0w.avfx
+                                            String avfxPath = String.format("%s/%s_%s%d%s.avfx", folder, pathParts[2], sign1, i, sign2);
+                                            int pathCheck = currentIndex.existsFile2(avfxPath);
+                                            if (pathCheck == 2) {
+                                                HashDatabase.addPathToDB(avfxPath, archive);
+                                            }else{
+                                                avfxPath = String.format("%s/%s%s%d%s.avfx", folder, pathParts[2], sign1, i, sign2);
+                                                pathCheck = currentIndex.existsFile2(avfxPath);
+                                                if (pathCheck == 2) {
+                                                    HashDatabase.addPathToDB(avfxPath, archive);
+                                                }
+                                            }
+
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+                            default:
+                                //パスのみ登録
+                                HashDatabase.addFolderToDB(folder, archive);
+                                break;
+                        }
+
+                    }else{
+                        //パスのみ登録
+                        HashDatabase.addFolderToDB(folder, archive);
+                    }
+                    folderCheck = false;
+                }
             }
         }
 
@@ -158,6 +228,7 @@ public class AVFX_File extends Game_File {
         }
         HashDatabase.closeConnection();
     }
+
     public void printOut() {
         packets.forEach(ap -> Utils.getGlobalLogger().trace(ap));
     }

@@ -1,6 +1,7 @@
 package com.fragmenterworks.ffxivextract.models;
 
 import com.fragmenterworks.ffxivextract.Constants;
+import com.fragmenterworks.ffxivextract.helpers.FileTools;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.storage.HashDatabase;
 
@@ -114,7 +115,7 @@ public class SGB_File extends Game_File {
                     }else{
                         try {
                             if (sp_IndexFile == null || !sp_IndexFile.getName().equals(archive)) {
-                                sp_IndexFile = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\" + archive + ".win32.index", true);
+                                sp_IndexFile = new SqPack_IndexFile(FileTools.ArchiveID2IndexFilePath(archive), true);
                             }
                             temp_IndexFile = sp_IndexFile;
                         } catch (IOException e) {
@@ -154,12 +155,12 @@ public class SGB_File extends Game_File {
                 }else if (modelString.contains("/")) {
                     if (sgbPath.startsWith(modelString)){
                         //同じディレクトリのsgbファイルがあるようなら自ファイルも登録してみる
-                        String fullPath = sgbPath + "/" + SGB_FileName;
+                        String fullPath = sgbPath + "/" + SGB_FileName + ".sgb";
                         String archive = HashDatabase.getArchiveID(fullPath);
                         HashDatabase.addPathToDB(fullPath, archive);
                     }else{
                         //なければ適当な既知のパス名でsgbのファイル名だけ登録してみる
-                        String fullPath = "bgcommon/world/evt/shared/for_bg/" + SGB_FileName;
+                        String fullPath = "bgcommon/world/evt/shared/for_bg/" + SGB_FileName + ".sgb";
                         String archive = HashDatabase.getArchiveID(modelString);
                         HashDatabase.addPathToDB(fullPath, archive);
                     }

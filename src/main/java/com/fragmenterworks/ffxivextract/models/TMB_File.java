@@ -4,39 +4,16 @@ import com.fragmenterworks.ffxivextract.Constants;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.storage.HashDatabase;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class TMB_File extends Game_File {
     //avfxファイルに似てる
-    @SuppressWarnings("unused")
-    public String entryName;
-    @SuppressWarnings("unused")
-    public String modelName;
-    @SuppressWarnings("unused")
-    public String collisionName;
 
     //他のファイルを見つけるために使用されます
-    private SqPack_IndexFile currentIndex; //現在表示中または呼び出し元のIndexファイル
+    private final SqPack_IndexFile currentIndex; //現在表示中または呼び出し元のIndexファイル
     private SqPack_IndexFile sp_IndexFile; //上記以外のIndexファイル
-    private SqPack_IndexFile temp_IndexFile; //作業用
-
-    @SuppressWarnings("unused")
-    public TMB_File(String path, ByteOrder endian) throws IOException {
-        super(endian);
-        File file = new File(path);
-        byte[] data;
-        try (FileInputStream fis = new FileInputStream(file)) {
-            data = new byte[(int) file.length()];
-            while (fis.read(data) != -1) {
-                Utils.getGlobalLogger().debug("TMB読み取り");
-            }
-        }
-        loadTMB(data);
-    }
 
     /**
      * コンストラクタ
@@ -90,19 +67,16 @@ public class TMB_File extends Game_File {
                 //4byteデータ *n個 (ない場合もある)
                 bb.getShort();
             } else if (jumpID >= chunkMax - 1){
-                if (jumpID == chunkMax - 1) {
-                    //2byte ID  chunkMax - 2 個くらい
-                    //IDのスキップがある場合それより少ない
-                    break;
-                }else{
+                if (jumpID != chunkMax - 1) {
                     //chunkMax - 1 のIDが抜けていた場合
                     bb.position(nowPosition);
-                    break;
                 }
+                break;
             }
         }
 
-        temp_IndexFile = currentIndex;
+        //作業用
+        SqPack_IndexFile temp_IndexFile = currentIndex;
         //文字列
         while (bb.position() < bb.capacity()){
             StringBuilder modelStringBld;
