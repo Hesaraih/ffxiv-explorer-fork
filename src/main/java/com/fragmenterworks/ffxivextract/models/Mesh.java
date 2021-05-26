@@ -22,7 +22,7 @@ public class Mesh {
     private final int vertElementIndex;
 
     public Mesh(ByteBuffer bb, int elementIndex) {
-        numVerts = bb.getShort(); //SaintCoinachではbb.getInt()で処理し次行なし
+        numVerts = bb.getShort() & 0xFFFF; //SaintCoinachではbb.getInt()で処理し次行なし
         bb.getShort();
         numIndex = bb.getInt();
 
@@ -35,12 +35,14 @@ public class Mesh {
 
         //FFXIVはすでにAuxバッファ（およびその他）のオフセットを保存しているようです。Saint Coinach参考...
         vertexBufferOffsets = new int[3]; //C#では[MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
-        for (int x = 0; x < vertexBufferOffsets.length; x++)
+        for (int x = 0; x < vertexBufferOffsets.length; x++) {
             vertexBufferOffsets[x] = bb.getInt();
+        }
 
         vertexSizes = new int[3];
-        for (int x = 0; x < vertexSizes.length; x++)
+        for (int x = 0; x < vertexSizes.length; x++) {
             vertexSizes[x] = bb.get() & 0xFF;
+        }
 
         numBuffers = bb.get() & 0xFF;
 
@@ -48,8 +50,9 @@ public class Mesh {
 
         vertBuffers = new ByteBuffer[numBuffers];
 
-        for (int i = 0; i < numBuffers; i++)
+        for (int i = 0; i < numBuffers; i++) {
             vertBuffers[i] = Buffers.newDirectByteBuffer(numVerts * vertexSizes[i]);
+        }
         indexBuffer = Buffers.newDirectByteBuffer(numIndex * 2);
 
         Utils.getGlobalLogger().trace("Num parts: {}\n\tNum verts: {}\n\tNum indices: {}\n\tVertex offset: {}\n\tIndex offset: {}",
