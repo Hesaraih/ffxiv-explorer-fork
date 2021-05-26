@@ -66,6 +66,22 @@ public class FileTools {
         return getRaw((String) null, path);
     }
 
+    /**
+     * ArchiveIDからIndexFileのフルパスを生成
+     * @param ArchiveID ArchiveID(例:030100)
+     * @return IndexFileフルパス
+     */
+    public static String ArchiveID2IndexFilePath(String ArchiveID) {
+        String exID = ArchiveID.substring(3,4);
+        String exPath;
+        if ("0".equals(exID)) {
+            exPath = "ffxiv";
+        } else {
+            exPath = "ex" + exID;
+        }
+
+        return String.format("%s\\game\\sqpack\\%s\\%s.win32.index", Constants.datPath, exPath, ArchiveID);
+    }
 
     public static byte[] getRaw(String sqPakPath, String path) {
         if (sqPakPath == null) {
