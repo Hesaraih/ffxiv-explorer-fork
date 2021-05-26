@@ -466,13 +466,18 @@ public class Model extends Game_File {
                     continue;
                 }
 
-                //Fix the body model it's pointing to
+                //参照先ボディモデルのパスを修正
                 if (materialFolderPath.contains("/obj/body/b")) {
-                    String[] splitFileString = fileString.split("_");
-                    String weaponIdString = splitFileString[1].substring(0, 5);
-                    String weaponBodyString = splitFileString[1].substring(5);
-                    String[] splitString = materialFolderPath.split("/");
-                    materialFolderPath = splitString[0] + "/" + splitString[1] + "/" + weaponIdString + "/" + splitString[3] + "/" + splitString[4] + "/" + weaponBodyString + "/" + splitString[6] + "/" + splitString[7];
+                    if (fileString.contains("_")) {
+                        String[] splitFileString = fileString.split("_");
+                        String weaponIdString = splitFileString[1].substring(0, 5);
+                        String weaponBodyString = splitFileString[1].substring(5);
+                        String[] splitString = materialFolderPath.split("/");
+                        materialFolderPath = splitString[0] + "/" + splitString[1] + "/" + weaponIdString + "/" + splitString[3] + "/" + splitString[4] + "/" + weaponBodyString + "/" + splitString[6] + "/" + splitString[7];
+                    }else{
+                        String[] splitString = materialFolderPath.split("/");
+                        fileString = String.format("mt_%s%s_a.mtrl", splitString[2], splitString[5]);
+                    }
                 }
 
                 try {
@@ -610,7 +615,8 @@ public class Model extends Game_File {
                 if (mesh.partTableCount != 0 && atrMasks.length != 0) {
                     long fullMask = 0;
                     for (int m = 0; m < meshPartTable[partNum + mesh.partTableOffset].attributeMasks.size(); m++) {
-                        fullMask |= meshPartTable[partNum + mesh.partTableOffset].attributeMasks.get(m);//(meshPartTable[mesh.partOffset+partNum].attributes << m);
+                        fullMask |= meshPartTable[partNum + mesh.partTableOffset].attributeMasks.get(m);
+                        //(meshPartTable[mesh.partOffset+partNum].attributes << m);
                     }
 
                     if (imcFile == null) {
