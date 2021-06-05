@@ -19,6 +19,7 @@ public class EXHF_File extends Game_File {
     private EXDF_Dataset[] datasetTable;
     private EXDF_Page[] pageTable;
     private int[] langTable;
+    public short Variant = 1;
     private int datasetChunkSize = 0;
     private int numEntries = 0;
     private int trueNumEntries = 0;
@@ -58,13 +59,13 @@ public class EXHF_File extends Game_File {
             }
 
             datasetChunkSize = buffer.getShort();
-            int numDataSetTable = buffer.getShort();
+            int numDataSetTable = buffer.getShort();  //データ列数
             int numPageTable = buffer.getShort();
             int numLangTable = buffer.getShort();
-            buffer.getShort();
-            buffer.getShort();
-            buffer.getShort();
-            numEntries = buffer.getInt();
+            buffer.getShort();          //0x400A
+            Variant = buffer.getShort();          //0x01,0x02 階層数
+            buffer.getShort();          //0x00
+            numEntries = buffer.getInt();   //subIndexを含めたデータエントリー数
             buffer.getInt();
             buffer.position(0x20);
 
@@ -79,7 +80,7 @@ public class EXHF_File extends Game_File {
             //ページテーブル
             for (int i = 0; i < numPageTable; i++) {
                 pageTable[i] = new EXDF_Page(buffer.getInt(), buffer.getInt());
-                trueNumEntries += pageTable[i].numEntries;
+                trueNumEntries += pageTable[i].numEntries; //subIndexを含めないIndex数
             }
 
             //言語テーブル

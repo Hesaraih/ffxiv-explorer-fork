@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class EXDF_View extends JScrollPane implements ItemListener {
 
@@ -334,23 +335,21 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
         cmbLanguage.removeAllItems();
         if (exhFile.getNumLanguages() != 0 && exhFile.getLanguageTable()[0] != 0x0) {
+            //多言語データファイルの場合
             for (int i = 0; i < numLanguages; i++) {
                 cmbLanguage.addItem(EXHF_File.languageNames[exhFile.getLanguageTable()[i]]);
             }
             cmbLanguage.addItemListener(this);
-            if (Constants.defaultLanguage > exhFile.getNumLanguages() - 1) {
-                cmbLanguage.setSelectedIndex(0);
-            } else {
-                cmbLanguage.setSelectedIndex(Constants.defaultLanguage);
-            }
         } else {
+            //通常データファイルの場合
             cmbLanguage.setModel(new DefaultComboBoxModel<>(new String[]{"N/A"}));
             cmbLanguage.setEnabled(false);
-            if (Constants.defaultLanguage > exhFile.getNumLanguages() - 1) {
-                cmbLanguage.setSelectedIndex(0);
-            } else {
-                cmbLanguage.setSelectedIndex(Constants.defaultLanguage);
-            }
+        }
+
+        if (Constants.defaultLanguage > exhFile.getNumLanguages() - 1) {
+            cmbLanguage.setSelectedIndex(0);
+        } else {
+            cmbLanguage.setSelectedIndex(Constants.defaultLanguage);
         }
 
         if (this.sortByOffset)
@@ -400,10 +399,30 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
         final EXHF_File exhFile;
         final EXDF_File[] exdFiles;
+        HashMap<Integer, Double> index2;
 
         EXDTableModel(EXHF_File exh, EXDF_File[] exd) {
             this.exhFile = exh;
             this.exdFiles = exd;
+            this.index2 = new HashMap<>(); //エントリーIDとIndex,SubIndexを紐付けるためのHashMap
+
+            if(exhFile.Variant == 2) {
+                //TODO:本当はもっと単純にエントリーIDとIndex,SubIndexの組を引けるかも
+                int virtualIndex = 0;
+                for (int i = 0; i < exhFile.getTrueNumEntries(); i++) {
+                    //サブインデックス付きexdファイルは他言語版はないものと仮定
+                    int subIndexNum = exdFile[0].getEntry(i, 0, exhFile.Variant).subIndexNum;
+                    if (subIndexNum >= 10) {
+                        //デバッグ用
+                        Utils.getGlobalLogger().debug("exdファイルのサブインデックスが10を越えているためメソッドの修正が必要です");
+                    }
+
+                    for (int j = 0; j < subIndexNum; j++) {
+                        index2.put(virtualIndex, i + ((double) j / 10));
+                        virtualIndex++;
+                    }
+                }
+            }
         }
 
         @Override
@@ -413,16 +432,23 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
         @Override
         public int getRowCount() {
-            return Math.min(exhFile.getTrueNumEntries(), exhFile.getNumEntries());
+            //swingでテーブルを作成する時に自動的にここの値を参照するため正確なデータエントリー数を
+            // 返さないとエラーが続発するので注意
+            if(exhFile.Variant == 1){
+                return Math.min(exhFile.getTrueNumEntries(), exhFile.getNumEntries());
+            }else{
+                return exhFile.getNumEntries();
+            }
         }
 
+        //列見出し作成
         @Override
         public String getColumnName(int column) {
             if (column == 0) {
                 return "Index";
             } else {
-                String columnType = "[" + resolveTypeToString(exhFile.getDatasetTable()[column - 1].type) + "]";
-                String offset = String.format("[0x%s]", String.format("%x", exhFile.getDatasetTable()[column - 1].offset).toUpperCase());
+                String columnType = resolveTypeToString(exhFile.getDatasetTable()[column - 1].type);
+                String offset = String.format("[%s]", String.format("%x", exhFile.getDatasetTable()[column - 1].offset).toUpperCase());
                 String mainTitle = columnNames.get(column - 1, columnType);
 
                 return String.format("%d %s %s", column - 1, mainTitle, offset);
@@ -431,6 +457,23 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
+
+            if(exhFile.Variant == 1) {
+                return getValueAt(rowIndex, 0, columnIndex);
+            }else{
+                double rowIndexDouble = index2.get(rowIndex);
+
+                return getValueAt(rowIndexDouble, columnIndex);
+            }
+        }
+
+        public Object getValueAt(double rowIndexDouble, int columnIndex) {
+            int rowIndex = (int) rowIndexDouble;
+            int subIndex = (int)(rowIndexDouble * 10) % 10;
+            return getValueAt(rowIndex, subIndex, columnIndex);
+        }
+
+        public Object getValueAt(int rowIndex, int subIndex, int columnIndex) {
             try {
                 int page = 0;
 
@@ -483,14 +526,17 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
                 EXDF_Entry entry;
                 if (langOverride != -1) {
-                    entry = exdFiles[(numLanguages * page) + langOverride].getEntry(rowIndex - totalRealEntries);
+                    entry = exdFiles[(numLanguages * page) + langOverride].getEntry(rowIndex - totalRealEntries, subIndex, exhFile.Variant);
                 } else {
-                    entry = exdFiles[(numLanguages * page) + cmbLanguage.getSelectedIndex()].getEntry(rowIndex - totalRealEntries);
+                    entry = exdFiles[(numLanguages * page) + cmbLanguage.getSelectedIndex()].getEntry(rowIndex - totalRealEntries, subIndex, exhFile.Variant);
                 }
 
                 //Index
                 if (columnIndex == 0) {
-                    return entry.getIndex();
+                    if (exhFile.Variant == 1) {
+                        return entry.getIndex();
+                    }
+                    return entry.indexID2;
                 }
 
                 //Data
@@ -585,34 +631,34 @@ public class EXDF_View extends JScrollPane implements ItemListener {
     private String resolveTypeToString(int type) {
         //バイトブールの特殊なケース
         if (type >= 0x19) {
-            return "BBOOL";
+            return "Bool";
         }
 
         switch (type) {
             case 0x0b: // QUAD
-                return "QUAD";
+                return "Quad";
             case 0x09: // FLOAT
                 //case 0x08:
-                return "FLOAT";
+                return "Float";
             case 0x07: // UINT
-                return "UINT";
+                return "UInt";
             case 0x06: // INT
-                return "INT";
+                return "Int";
             case 0x05: // USHORT
-                return "USHORT";
+                return "UShort";
             case 0x04: // SHORT
-                return "SHORT";
+                return "Short";
             case 0x03: // UBYTE
-                return "UBYTE";
+                return "UByte";
             case 0x02: // BYTE
-                return "BYTE";
+                return "Byte";
             case 0x01: // BOOL
-                return "BOOL";
+                return "Bool";
             case 0x00: // STRING; データセット部の終わりからオフセットするポイント。 0x0まで読む
                 //return new String(entry.getString(exhFile.getDatasetChunkSize(), dataset.offset));
-                return "STRING";
+                return "String";
             default:
-                return "UNK";
+                return "unknown";
         }
     }
 
@@ -710,7 +756,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
         OutputStreamWriter out = new OutputStreamWriter(new FileOutputStream(path), StandardCharsets.UTF_8);
 
-        //Write columns
+        //見出し行作成
         for (int col = 0; col < table.getColumnCount(); col++) {
             out.write(table.getColumnName(col));
             if (col != table.getColumnCount() - 1) {
@@ -720,7 +766,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
         out.write("\r\n");
 
-        //Write data
+        //データ行書き込み
         for (int row = 0; row < table.getRowCount(); row++) {
             for (int col = 0; col < table.getColumnCount(); col++) {
                 Object value = table.getValueAt(row, col);

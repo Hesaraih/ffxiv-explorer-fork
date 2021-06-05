@@ -57,16 +57,19 @@ public class EXDF_File extends Game_File {
             buffer.position(0x20);
 
             entryOffsets = new EXDF_Offset[offsetTableSize / 8];
-            for (int i = 0; i < offsetTableSize / 8; i++)
+            //データのオフセットテーブルはIndex(int),Offset(int)の8byteで構成されているためデータ数は
+            //テーブルサイズを8で割った物となる
+            for (int i = 0; i < offsetTableSize / 8; i++) {
                 entryOffsets[i] = new EXDF_Offset(buffer.getInt(), buffer.getInt());
+            }
 
         } catch (BufferUnderflowException | BufferOverflowException flowException) {
             Utils.getGlobalLogger().error(flowException);
         }
     }
 
-    public EXDF_Entry getEntry(int index) {
-        return new EXDF_Entry(data, entryOffsets[index].index, entryOffsets[index].offset);
+    public EXDF_Entry getEntry(int index, int subIndex, short variant) {
+        return new EXDF_Entry(data, entryOffsets[index].index, subIndex, entryOffsets[index].offset, variant);
     }
 
     @SuppressWarnings("unused")
@@ -101,17 +104,33 @@ public class EXDF_File extends Game_File {
     public static class EXDF_Entry {
 
         final int index;
+        public double indexID2 = 0.0;
+        public int subIndexNum = 0;
         final int offset;
         private final byte[] dataChunk;
 
-        EXDF_Entry(byte[] data, int index, int offset) {
+        EXDF_Entry(byte[] data, int index, int subIndex, int offset ,short variant) {
             this.index = index;
             this.offset = offset;
             ByteBuffer buffer = ByteBuffer.wrap(data);
             buffer.position(offset);
-            int size = buffer.getInt();
+            int size = buffer.getInt(); //データ部のサイズ
+            if (variant == 2) {
+                //exhのVariantが2の時
+                subIndexNum = buffer.getShort(); //subデータ数
+                int tmpPos = buffer.position();
+                if (subIndexNum > 0){
+                    int subSize = size / subIndexNum;
+                    if (subIndex >= subIndexNum){
+                        subIndex = subIndexNum - 1; //バッファあふれ防止
+                    }
+                    buffer.position(tmpPos + subSize * subIndex);
+                    size = subSize - 2;
+                    indexID2 = index + ((double)subIndex / 10);
+                }
+            }
             dataChunk = new byte[size];
-            buffer.getShort();
+            buffer.getShort(); //IndexID または SubID
             buffer.get(dataChunk);
         }
 
