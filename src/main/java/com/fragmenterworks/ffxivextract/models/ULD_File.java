@@ -22,7 +22,9 @@ public class ULD_File extends Game_File {
 
     //他のファイルを見つけるために使用されます
     @SuppressWarnings({"FieldCanBeLocal", "unused"})
-    private final SqPack_IndexFile currentIndex;
+    private static SqPack_IndexFile currentIndex;
+
+    public SqPack_IndexFile spIndex = currentIndex;
 
     /**
      * グラフィカルノード パーサ(構文解析器)の一覧
@@ -65,6 +67,7 @@ public class ULD_File extends Game_File {
         ByteBuffer bb = ByteBuffer.wrap(data);
         bb.order(endian);
         currentIndex = index;
+        spIndex = index;
         uldHeader = new ULDH(bb);
     }
 
@@ -167,7 +170,6 @@ public class ULD_File extends Game_File {
      */
     public static class ULDH {
         public final ATKH[] atkhs = new ATKH[2];
-
         private final int atkh0offset;
         private final int atkh1offset;
 
@@ -266,6 +268,7 @@ public class ULD_File extends Game_File {
      */
     public static class ASHD {
         public final SparseArray<String> paths = new SparseArray<>();
+        public String ashd_Ver = "1.00";
 
         /**
          * @param data The data pool to use
@@ -284,17 +287,23 @@ public class ULD_File extends Game_File {
 
                     //ファイル登録
                     String archive = HashDatabase.getArchiveID(path);
-                    HashDatabase.addPathToDB(path, archive);
+                    if (!archive.equals("*")) {
+                        if (currentIndex.existsFile2(path) == 2) {
+                            HashDatabase.addPathToDB(path, archive);
+                        }
+                    }
                 }
             }else if (signature.equals("ashd0101")) {
+                ashd_Ver = "1.01";
                 //ashdのバージョンが上がった？
-                int count = data.getInt() & 0xFFFF;
+                int count = data.getInt() & 0xFFFF; //ファイル数
                 data.getInt();  //Align?
                 for (int i = 0; i < count; i++) {
-                    int index2 = data.getInt();
+                    //ファイルブロックは0x38byte (index:4byte,filePath:0x2Cbyte,iconID:4byte,不明:4byte)
                     int index = data.getInt();
                     String path = getString(data, 0x2c).trim();
                     int iconID = data.getInt();
+                    data.getInt(); //不明 通常0、時々3が入っている
                     //ファイルパスがiconIDの時、ファイルパスを生成
                     if (!path.contains(".")){
                         String iconPath = "";
@@ -315,8 +324,10 @@ public class ULD_File extends Game_File {
                                     iconPath2 = String.format("ui/icon/%06d/%s%06d_hr1.tex",pathNum, lang, iconID); //高画質用
 
                                     //ui/icon登録
-                                    HashDatabase.addPathToDB(iconPath, "060000");
-                                    HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
+                                    if (currentIndex.existsFile2(iconPath) == 2) {
+                                        HashDatabase.addPathToDB(iconPath, "060000");
+                                        HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
+                                    }
 
                                     multiFlag = false;
                                 }
@@ -325,15 +336,23 @@ public class ULD_File extends Game_File {
                                 iconPath2 = String.format("ui/icon/%06d/ja/%06d_hr1.tex",pathNum, iconID); //高画質用
                             }
                         }
-                        HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
+                        if (currentIndex.existsFile2(iconPath) == 2) {
+                            HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
+                        }
                         //高画質表示したい時は以下でiconPath2をpathに代入
                         path = iconPath;
                     }
-                    paths.append(index, path);
+                    if (path.contains(".")) {
+                        paths.append(index, path);
+                    }
 
                     //ファイル登録
                     String archive = HashDatabase.getArchiveID(path);
-                    HashDatabase.addPathToDB(path, archive);
+                    if (!archive.equals("*")) {
+                        if (currentIndex.existsFile2(path) == 2) {
+                            HashDatabase.addPathToDB(path, archive);
+                        }
+                    }
                 }
             }
         }

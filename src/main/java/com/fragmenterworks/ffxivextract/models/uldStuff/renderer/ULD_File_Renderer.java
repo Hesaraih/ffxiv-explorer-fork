@@ -2,6 +2,7 @@ package com.fragmenterworks.ffxivextract.models.uldStuff.renderer;
 
 import com.fragmenterworks.ffxivextract.Constants;
 import com.fragmenterworks.ffxivextract.helpers.FileTools;
+import com.fragmenterworks.ffxivextract.helpers.ImageDecoding;
 import com.fragmenterworks.ffxivextract.helpers.SparseArray;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.models.*;
@@ -28,8 +29,12 @@ import java.util.*;
  */
 public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
 
+    //他のファイルを見つけるために使用されます
+    @SuppressWarnings({"FieldCanBeLocal", "unused"})
+    private static SqPack_IndexFile currentIndex;
+
     private final static Map<Integer, Class<? extends GraphicsElement<? extends GraphicsNode>>> graphicsTypes = new HashMap<>();
-    private final static Map<Integer, Class<? extends UIComponent<? extends COHDEntryType>>> uiComponentTypes = new HashMap<>();
+    private final static Map<Integer, Class<? extends UIComponent<?>>> uiComponentTypes = new HashMap<>();
 
     static {
         graphicsTypes.put(1, GraphicsContainer.class);
@@ -37,6 +42,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         graphicsTypes.put(3, GraphicsTextBox.class);
         graphicsTypes.put(4, GraphicsMultiImage.class);
 
+        uiComponentTypes.put(0, NullUIComponent.class);
         uiComponentTypes.put(1, NullUIComponent.class);
         uiComponentTypes.put(2, CoFrame.class);
         uiComponentTypes.put(3, NullUIComponent.class);
@@ -59,6 +65,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         uiComponentTypes.put(20, NullUIComponent.class);
         uiComponentTypes.put(21, NullUIComponent.class);
         uiComponentTypes.put(22, NullUIComponent.class);
+        uiComponentTypes.put(23, NullUIComponent.class);
     }
 
     final private Map<Integer, BufferedImage> images = new HashMap<>();
@@ -86,11 +93,18 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             this.width = 0;
             this.height = 0;
         }
-
+        if(uld_file.spIndex == null){
+            try {
+                currentIndex = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\060000.win32.index", true);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }else {
+            currentIndex = uld_file.spIndex;
+        }
         initTextures(sqDatPath, uld_file.uldHeader.atkhs[0]);
         initTextureRegions(uld_file.uldHeader.atkhs[0]);
         initGraphics(uld_file);
-        //for()
     }
 
     private static GraphicsElement<? extends GraphicsNode> createElementByType(ULD_File_Renderer renderer, final GraphicsElement<? extends GraphicsNode> parent, int type, final SparseArray<COHDEntry> components) {
@@ -174,6 +188,8 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException ignored) {
 
             }
+        }else{
+            Utils.getGlobalLogger().info(String.format("未知のType「%d」があります", type));
         }
         return null;
     }
@@ -191,9 +207,13 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                     element.load(renderer, node, nodes, elements, components);
                     if (element instanceof GraphicsComponent) {
                         if (((GraphicsComponent) element).component != null) {
-                            COHDEntry cohd = components.get(node.type);
-                            //noinspection unchecked
-                            ((GraphicsComponent) element).component.load(renderer, element, cohd, components, cohd.typeData);
+                            if (components != null) {
+                                COHDEntry cohd = components.get(node.type);
+                                //noinspection unchecked
+                                ((GraphicsComponent) element).component.load(renderer, element, cohd, components, cohd.typeData);
+                            }else{
+                                Utils.getGlobalLogger().info("SparseArray<COHDEntry> componentsがnull");
+                            }
                         }
                     }
                     return element;
@@ -213,6 +233,9 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         for (int i = 0; i < entries.size(); i++) {
             int key = entries.keyAt(i);
             WDHDEntry cohd = entries.get(key);
+            if (uld_file.uldHeader.atkhs[0].cohd == null){
+                continue;
+            }
             GraphicsElement<? extends GraphicsNode> node = createElementByIndex(this, null, 1, cohd.nodes, new HashMap<>(), uld_file.uldHeader.atkhs[0].cohd.getEntries());
             if (node != null) {
                 graphics.put(cohd.index, node);
@@ -226,6 +249,10 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
      * @param atkh 対象のTPHDチャンクを保持するATKHチャンク
      */
     private void initTextureRegions(final ULD_File.ATKH atkh) {
+        if (atkh.tphd == null){
+            return;
+        }
+
         SparseArray<ImageSet> imageSets = atkh.tphd.imageSets;
         for (int i = 0; i < imageSets.size(); i++) {
             @SuppressWarnings("unused")
@@ -244,26 +271,49 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
      * ASHDチャンクに記述されているすべてのテクスチャを初期化してロードします
      *
      * @param sqDatPath datファイルのソースパス
-     * @param atkh      対象のASHDチャンクを保持するATKHチャンク
+     * @param atkh      ASHDチャンクを持っているATKHチャンク
      */
     private void initTextures(final String sqDatPath, final ULD_File.ATKH atkh) {
+        if (atkh.ashd == null){
+            return;
+        }
+
         SparseArray<String> paths = atkh.ashd.paths;
-        for (int i = 0; i < paths.size(); i++) {
-            int key = paths.keyAt(i);
-            String path = paths.valueAt(i);
-            if (path.length() == 2) {
-                ByteBuffer bb = ByteBuffer.wrap(path.getBytes());
-                //noinspection ResultOfMethodCallIgnored
-                bb.order();
-                BufferedImage img = FileTools.getIcon(sqDatPath, (int) bb.getShort() & 0xFFFF);
-                if (img != null) {
-                    images.put(key, img);
+        if (atkh.ashd.ashd_Ver.equals("1.00")) {
+            for (int i = 0; i < paths.size(); i++) {
+                int key = paths.keyAt(i);
+                String path = paths.valueAt(i);
+                if (path.length() == 2) {
+                    ByteBuffer bb = ByteBuffer.wrap(path.getBytes());
+                    //noinspection ResultOfMethodCallIgnored
+                    bb.order();
+                    BufferedImage img = FileTools.getIcon(sqDatPath, (int) bb.getShort() & 0xFFFF);
+                    if (img != null) {
+                        images.put(key, img);
+                    }
+                }
+                BufferedImage texture = FileTools.getTexture(sqDatPath, path);
+                //ImageDebug.addImage(texture)
+                images.put(key, texture);
+            }
+        }else{
+            //ashd_Verが1.01以上
+            for (int i = 0; i < paths.size(); i++) {
+                int key = paths.keyAt(i);
+                String path = paths.valueAt(i);
+                try {
+                    byte[] data = currentIndex.extractFile(path);
+                    Texture_File tex = new Texture_File(data, currentIndex.getEndian());
+                    BufferedImage texture = tex.decode(0, null);
+                    images.put(key, texture);
+                } catch (IOException | ImageDecoding.ImageDecodingException e) {
+                    Utils.getGlobalLogger().info("テクスチャ読み込み時にエラーが発生");
+                    e.printStackTrace();
                 }
             }
-            BufferedImage texture = FileTools.getTexture(sqDatPath, path);
-            //ImageDebug.addImage(texture);
-            images.put(key, texture);
         }
+
+
     }
 
     private BufferedImage bi = null;
@@ -276,9 +326,24 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         if (height != 0) {
             this.height = height;
         }
+        if (graphics.size()==0){
+            if (bi == null) {
+                if (this.width <= 0){
+                    this.width = 32;
+                }
+                if (this.height <= 0){
+                    this.height = 32;
+                }
+                bi = new BufferedImage(this.width, this.height, BufferedImage.TYPE_4BYTE_ABGR);
+                biGraphics = bi.createGraphics();
+                biGraphics.setColor(Color.LIGHT_GRAY);
+                return bi;
+            }
+        }
+
         List<GraphicsElement<? extends GraphicsNode>> values = new ArrayList<>(graphics.values());
-        Collections.reverse(values);
-        Rectangle bounds = new Rectangle();
+        Collections.reverse(values); //List「values」を逆順にする
+        Rectangle bounds = new Rectangle(); //矩形オブジェクト作成
         for (GraphicsElement<? extends GraphicsNode> g : values) {
             g.getMaxBounds(bounds, 0, 0, g.width, g.height);
         }
@@ -296,12 +361,12 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             biGraphics = bi.createGraphics();
             AffineTransform tx = new AffineTransform();
             tx.translate(containerLeft, containerTop);
-            biGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            biGraphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-            biGraphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            biGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); //アンチエイリアス
+            biGraphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON); //テキスト・アンチエイリアス
+            biGraphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR); //補間
             biGraphics.setTransform(tx);
         }
-        biGraphics.setColor(Color.black);
+        biGraphics.setColor(Color.LIGHT_GRAY);
         //biGraphics.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR));
         biGraphics.fillRect(-containerLeft, -containerTop, bi.getWidth(), bi.getHeight());
         biGraphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
@@ -456,6 +521,16 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             this.index = index;
         }
 
+        /**
+         * loadのスーパーメソッド
+         * COHDEntry型によってオーバーロードされます
+         * @param renderer レンダラー
+         * @param parent 親コンポーネント
+         * @param entry COHDEntry
+         * @param components COHDEntry配列
+         * @param typeData COHDEntryタイプ
+         */
+        //@Override
         void load(final ULD_File_Renderer renderer, final GraphicsElement<? extends GraphicsNode> parent, COHDEntry entry, final SparseArray<COHDEntry> components, final T typeData) {
             graphics = createElementByIndex(renderer, null, 1, entry.nodes, new HashMap<>(), components);
             type = entry.type;
@@ -463,11 +538,11 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             this.parent = parent;
             if (graphics != null) {
                 graphics.parent = parent;
-                LinkedList<GraphicsElement<?>> containers = new LinkedList<>();
+                LinkedList<GraphicsElement<? extends GraphicsNode>> containers = new LinkedList<>();
                 containers.add(graphics);
                 while (containers.size() > 0) {
-                    GraphicsElement<?> container = containers.pollFirst();
-                    GraphicsElement<?> ge = container.lastChild;
+                    GraphicsElement<? extends GraphicsNode> container = containers.pollFirst();
+                    GraphicsElement<? extends GraphicsNode> ge = container.lastChild;
                     while (ge != null) {
                         if (ge.lastChild != null) {
                             containers.add(ge);
@@ -479,7 +554,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             }
         }
 
-        public GraphicsElement<?> getElement(int nodeIndex) {
+        public GraphicsElement<? extends GraphicsNode> getElement(int nodeIndex) {
             return (nodeIndex == 0 ? null : elementList.get(nodeIndex));
         }
 
@@ -675,6 +750,10 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             if (entry.layer != 0) {
                 renderer.addNodeByAccessor(entry.layer, this);
             }
+            if(width < 0 || height < 0){
+                Utils.getGlobalLogger().trace("幅か高さが負の値を取っています");
+            }
+
         }
 
         public void save(T entry) {
@@ -724,6 +803,14 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             return new String(str);
         }
 
+        /**
+         *
+         * @param bounds (戻り値)矩形オブジェクトの最大値
+         * @param offsetX X(横)方向オフセット
+         * @param offsetY Y(縦)方向オフセット
+         * @param width 幅
+         * @param height 高さ
+         */
         @SuppressWarnings("unused")
         public void getMaxBounds(Rectangle bounds, int offsetX, int offsetY, int width, int height) {
             if (bounds.x > offsetX + left) {
@@ -744,10 +831,16 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                 if (child.lastChild != null) {
                     child.lastChild.getMaxBounds(bounds, offsetX + left, offsetY + top, this.width, this.height);
                 }
-                child = (child.previousItem);
+                child = child.previousItem;
             }
         }
 
+        /**
+         * paint(基本)
+         * @param g Graphics2D
+         * @param width 幅
+         * @param height 高さ
+         */
         @Override
         public void paint(final Graphics2D g, final int width, final int height) {
             if (!visible) {
@@ -772,7 +865,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                 } finally {
                     g1.dispose();
                 }
-                child = (child.previousItem);
+                child = child.previousItem;
             }
         }
     }
@@ -807,13 +900,13 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                 case 5:
                 case 4:
                 case 3: {
-                    font = new Font("ＭＳ Ｐ明朝", Font.PLAIN, fontSize);
+                    font = new Font(Font.SERIF, Font.PLAIN, fontSize);
                     //font = FontTable.getFont(FontTable.JUPITER_FONT);
                     break;
                 }
                 case 0:
                 case 1: {
-                    font = new Font("ＭＳ Ｐゴシック", Font.PLAIN, fontSize);
+                    font = new Font(Font.MONOSPACED, Font.PLAIN, fontSize);
                     //font = FontTable.getFont(FontTable.AXIS_FONT);
                     break;
                 }
@@ -826,6 +919,12 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             super.save(entry);
         }
 
+        /**
+         * TextBox描画
+         * @param g Graphics2D
+         * @param width 幅
+         * @param height 高さ
+         */
         @Override
         public void paint(final Graphics2D g, final int width, final int height) {
             super.paint(g, width, height);
@@ -837,7 +936,6 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                 g.setColor(foreground);
                 g.drawString(Integer.toString(nodeIndex), 0, g.getFontMetrics().getHeight());
                 g.setFont(old);
-                //font.drawString(g, Integer.toString(nodeIndex), 0, 0, foreground, fontSize);
             }
         }
     }
@@ -981,7 +1079,6 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
     }
 
     public static class GraphicsImage extends GraphicsElement<GraphicsNode> {
-
         int fillMode = 0;
         boolean flipX = false;
         boolean flipY = false;
@@ -1100,7 +1197,13 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         @Override
         public void paint(final Graphics2D g, final int width, final int height) {
             applyGraphicsTransform(g);
-            component.paint(g, width, height);
+            if (component != null) {
+                //componentの型によってOverrideされたpaintメソッドが呼び出されるためnullは不可
+                component.paint(g, width, height);
+            }else{
+                //この辺でエラーが発生していた
+                Utils.getGlobalLogger().trace("componentがありません");
+            }
         }
 
         @Override
@@ -1207,17 +1310,32 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             }
             if (txtTitle != null) {
                 txtTitle.width = parent.width - (originalWidth - (titlebarX + txtTitle.width));
+                if(txtTitle.width < 0){
+                    Utils.getGlobalLogger().trace("幅が負の値を取っています");
+                }
             }
 
             graphics.width = parent.width - (originalWidth - graphics.width);
             graphics.height = parent.height - (originalHeight - graphics.height);
+            if(graphics.width < 0 || graphics.height < 0){
+                Utils.getGlobalLogger().trace("幅か高さが負の値を取っています");
+            }
+
             if (node9 != null) {
                 node9.width = parent.width - (originalWidth - node9.width);
-                node9.height = parent.height - (originalHeight - node9.height);
+                if (parent.height > originalHeight - node9.height) {
+                    node9.height = parent.height - (originalHeight - node9.height);
+                }
+                if(node9.width < 0 || node9.height < 0){
+                    Utils.getGlobalLogger().trace("幅か高さが負の値を取っています");
+                }
             }
             if (node10 != null) {
                 node10.width = parent.width - (originalWidth - node10.width);
                 node10.height = parent.height - (originalHeight - node10.height);
+                if(node10.width < 0 || node10.height < 0){
+                    Utils.getGlobalLogger().trace("幅か高さが負の値を取っています");
+                }
             }
 
             if (btnClose != null) {
@@ -1286,6 +1404,9 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
 
             graphics.width = all.width;
             graphics.height = all.height;
+            if(graphics.width < 0 || graphics.height < 0){
+                Utils.getGlobalLogger().trace("幅か高さが負の値を取っています");
+            }
 
             if (elemScrollbar != null) {
                 elemScrollbar.left = all.width - (originalWidth - elemScrollbar.left);
@@ -1399,6 +1520,9 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         public void load(final ULD_File_Renderer renderer, final GraphicsElement<? extends GraphicsNode> parent, final COHDEntry entry, final SparseArray<COHDEntry> components, final COHDEntryType_Slider typeData) {
             super.load(renderer, parent, entry, components, typeData);
             geFill = getElement(typeData.refFill);
+            if (geFill == null){
+                Utils.getGlobalLogger().trace("geFillがnull");
+            }
             @SuppressWarnings("unused")
             GraphicsElement<? extends GraphicsNode> geValueBox = getElement(typeData.refValueBox);
             refTrackNode = getElement(typeData.refTrack);
@@ -1460,8 +1584,10 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
             this.value = Math.min(Math.max(value, minimum), maximum);
             float percent = (float)value / (maximum - minimum + 1);
             int f = (int) ((float) parent.height * (1 - percent));
-            geFill.top = f;
-            geFill.height = parent.height - f;
+            if (geFill != null){
+                geFill.top = f;
+                geFill.height = parent.height - f;
+            }
             geKnob.top = f;
         }
     }

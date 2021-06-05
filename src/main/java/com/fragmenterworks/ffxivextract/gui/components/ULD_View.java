@@ -1,10 +1,12 @@
 package com.fragmenterworks.ffxivextract.gui.components;
 
 import com.fragmenterworks.ffxivextract.Constants;
-import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.models.IGraphicsElement;
+import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile;
 import com.fragmenterworks.ffxivextract.models.TextureSet;
 import com.fragmenterworks.ffxivextract.models.ULD_File;
+import com.fragmenterworks.ffxivextract.models.uldStuff.COHDEntryType;
+import com.fragmenterworks.ffxivextract.models.uldStuff.GraphicsNode;
 import com.fragmenterworks.ffxivextract.models.uldStuff.renderer.ULD_File_Renderer;
 
 import javax.swing.*;
@@ -23,9 +25,15 @@ import java.util.Map;
 @SuppressWarnings("unused")
 public class ULD_View extends JPanel {
 
+    //他のファイルを見つけるために使用されます
+    @SuppressWarnings({"FieldCanBeLocal", "unused"})
+    public SqPack_IndexFile currentIndex;
 
-    private final static Map<Integer, Class<? extends ULD_File_Renderer.GraphicsElement>> graphicsTypes = new HashMap<>();
-    private final static Map<Integer, Class<? extends ULD_File_Renderer.UIComponent>> uiComponentTypes = new HashMap<>();
+
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
+    private final static Map<Integer, Class<? extends ULD_File_Renderer.GraphicsElement<GraphicsNode>>> graphicsTypes = new HashMap<>();
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
+    private final static Map<Integer, Class<? extends ULD_File_Renderer.UIComponent<? extends COHDEntryType>>> uiComponentTypes = new HashMap<>();
 
     static {
         graphicsTypes.put(1, ULD_File_Renderer.GraphicsContainer.class);
@@ -33,6 +41,7 @@ public class ULD_View extends JPanel {
         graphicsTypes.put(3, ULD_File_Renderer.GraphicsTextBox.class);
         graphicsTypes.put(4, ULD_File_Renderer.GraphicsMultiImage.class);
 
+        uiComponentTypes.put(0, ULD_File_Renderer.NullUIComponent.class);
         uiComponentTypes.put(1, ULD_File_Renderer.NullUIComponent.class);
         uiComponentTypes.put(2, ULD_File_Renderer.CoFrame.class);
         uiComponentTypes.put(3, ULD_File_Renderer.NullUIComponent.class);
@@ -55,11 +64,12 @@ public class ULD_View extends JPanel {
         uiComponentTypes.put(20, ULD_File_Renderer.NullUIComponent.class);
         uiComponentTypes.put(21, ULD_File_Renderer.NullUIComponent.class);
         uiComponentTypes.put(22, ULD_File_Renderer.NullUIComponent.class);
+        uiComponentTypes.put(23, ULD_File_Renderer.NullUIComponent.class);
     }
 
     final private Map<Integer, BufferedImage> images = new HashMap<>();
     final private Map<Integer, TextureSet> textureSets = new HashMap<>();
-    final private Map<Integer, ULD_File_Renderer.GraphicsElement> graphics = new HashMap<>();
+    final private Map<Integer, ULD_File_Renderer.GraphicsElement<GraphicsNode>> graphics = new HashMap<>();
     final private Map<Integer, IGraphicsElement> nodesByAccessor = new HashMap<>();
 
     private int width;
@@ -83,8 +93,9 @@ public class ULD_View extends JPanel {
         add(pnlFileList, BorderLayout.CENTER);
         pnlFileList.setLayout(new BoxLayout(pnlFileList, BoxLayout.X_AXIS));
 
-        //JScrollPane scrollPane = new JScrollPane();
-        //pnlFileList.add(scrollPane);
+        currentIndex = uldFile.spIndex;
+        //JScrollPane scrollPane = new JScrollPane()
+        //pnlFileList.add(scrollPane)
 
         try {
             ULD_File_Renderer renderer = new ULD_File_Renderer(Constants.datPath + "\\game\\sqpack\\ffxiv", uldFile);
@@ -107,7 +118,7 @@ public class ULD_View extends JPanel {
             lblPic.setVisible(true);
 
         } catch (Exception e) {
-            Utils.getGlobalLogger().error(e);
+            //Utils.getGlobalLogger().error(e);
 
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw);
