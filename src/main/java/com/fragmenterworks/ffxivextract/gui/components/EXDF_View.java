@@ -10,6 +10,9 @@ import com.fragmenterworks.ffxivextract.models.EXHF_File;
 import com.fragmenterworks.ffxivextract.models.EXHF_File.EXDF_Dataset;
 import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile;
 import com.fragmenterworks.ffxivextract.storage.HashDatabase;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
@@ -53,6 +56,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
     private int langOverride = -1;
     private boolean showAsHex = false;
     private boolean sortByOffset = false;
+
 
     private final SparseArray<String> columnNames = new SparseArray<>();
 
@@ -329,7 +333,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         table.setModel(new EXDTableModel(exhFile, exdFile));
 
         lblExhName.setText(exhName);
-        lblExhNumEntries.setText("" + exhFile.getNumEntries() + ((exhFile.getNumEntries() == exhFile.getTrueNumEntries() ? "" : " (Page Sum: " + exhFile.getTrueNumEntries() + ")")));
+        lblExhNumEntries.setText("" + exhFile.getNumEntries() + ((exhFile.getNumEntries() == exhFile.getTrueNumEntries() ? "" : " (ページ数: " + exhFile.getTrueNumEntries() + ")")));
         lblExhNumLanguages.setText("" + (exhFile.getLanguageTable()[0] == 0x0 ? 0 : exhFile.getNumLanguages()));
         lblExhNumPages.setText("" + exhFile.getNumPages());
 
@@ -399,7 +403,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
         final EXHF_File exhFile;
         final EXDF_File[] exdFiles;
-        HashMap<Integer, Double> index2;
+        HashMap<Integer, String> index2;
 
         EXDTableModel(EXHF_File exh, EXDF_File[] exd) {
             this.exhFile = exh;
@@ -409,16 +413,14 @@ public class EXDF_View extends JScrollPane implements ItemListener {
             if(exhFile.Variant == 2) {
                 //TODO:本当はもっと単純にエントリーIDとIndex,SubIndexの組を引けるかも
                 int virtualIndex = 0;
-                for (int i = 0; i < exhFile.getTrueNumEntries(); i++) {
+                for (int i = 0; i < exdFile[0].getNumEntries(); i++) {
+
                     //サブインデックス付きexdファイルは他言語版はないものと仮定
                     int subIndexNum = exdFile[0].getEntry(i, 0, exhFile.Variant).subIndexNum;
-                    if (subIndexNum >= 10) {
-                        //デバッグ用
-                        Utils.getGlobalLogger().debug("exdファイルのサブインデックスが10を越えているためメソッドの修正が必要です");
-                    }
 
                     for (int j = 0; j < subIndexNum; j++) {
-                        index2.put(virtualIndex, i + ((double) j / 10));
+                        //MainIndex,SubIndex(例:1,12)のような文字列としてIndex辞書を作成
+                        index2.put(virtualIndex, i + "," + j);
                         virtualIndex++;
                     }
                 }
@@ -437,7 +439,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
             if(exhFile.Variant == 1){
                 return Math.min(exhFile.getTrueNumEntries(), exhFile.getNumEntries());
             }else{
-                return exhFile.getNumEntries();
+                return  exhFile.getNumEntries();
             }
         }
 
@@ -445,7 +447,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         @Override
         public String getColumnName(int column) {
             if (column == 0) {
-                return "Index";
+                return "Key";
             } else {
                 String columnType = resolveTypeToString(exhFile.getDatasetTable()[column - 1].type);
                 String offset = String.format("[%s]", String.format("%x", exhFile.getDatasetTable()[column - 1].offset).toUpperCase());
@@ -461,16 +463,11 @@ public class EXDF_View extends JScrollPane implements ItemListener {
             if(exhFile.Variant == 1) {
                 return getValueAt(rowIndex, 0, columnIndex);
             }else{
-                double rowIndexDouble = index2.get(rowIndex);
-
-                return getValueAt(rowIndexDouble, columnIndex);
+                String[] indexPair = index2.get(rowIndex).split(",");
+                int rowIndex2 = Integer.parseInt(indexPair[0]);
+                int subIndex = Integer.parseInt(indexPair[1]);
+                return getValueAt(rowIndex2, subIndex, columnIndex);
             }
-        }
-
-        public Object getValueAt(double rowIndexDouble, int columnIndex) {
-            int rowIndex = (int) rowIndexDouble;
-            int subIndex = (int)(rowIndexDouble * 10) % 10;
-            return getValueAt(rowIndex, subIndex, columnIndex);
         }
 
         public Object getValueAt(int rowIndex, int subIndex, int columnIndex) {
@@ -553,9 +550,15 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                         case 0x09: // FLOAT
                             //case 0x08:
                             return entry.getFloat(dataset.offset);
-                        case 0x07: // UINT
+                        case 0x07: // UINT or Dual
                             if (showAsHex) {
                                 return String.format("%02X ", (long) entry.getInt(dataset.offset));
+                            }
+                            if ((exhName.equals("ENpcDressUpDress.exh") && columnIndex > 40)
+                                    || (exhName.equals("NpcEquip.exh") && columnIndex >= 4)
+                                    || (exhName.equals("BenchmarkOverrideEquipment.exh") && columnIndex >= 10)){
+                                int[] dual = entry.getDual(dataset.offset);
+                                return dual[1] + ", " + dual[0];
                             }
                             return (long) entry.getInt(dataset.offset);
                         case 0x06: // INT
@@ -800,17 +803,109 @@ public class EXDF_View extends JScrollPane implements ItemListener {
     }
 
     private void loadColumnNames(String exhName) {
+        Gson gson = new Gson();
 
         String path = Constants.EXH_NAMES_PATH + exhName.replace("exh", "lst");
         if (!Files.exists(Paths.get(path))) {
+            String jsonPath = "./Definitions/" + exhName.replace("exh", "json");
+            if (!Files.exists(Paths.get(jsonPath))){
+                return;
+            }
+            try {
+                JsonObject json = gson.fromJson(new String(Files.readAllBytes(Paths.get(jsonPath))), JsonObject.class);
+                Utils.getGlobalLogger().info("{}から列名を読み込んでいます", jsonPath);
+
+                int index = 0;
+                String name;
+                for (JsonElement element : json.get("definitions").getAsJsonArray()) {
+                    if (element.getAsJsonObject().has("index")){
+                        index = element.getAsJsonObject().get("index").getAsInt();
+                    }
+
+                    if (element.getAsJsonObject().has("type")){
+                        String type = element.getAsJsonObject().get("type").getAsString();
+                        //↑getAsString()の代わりにtoString()を使うと「"」が余計に入るので注意
+                        int count = element.getAsJsonObject().get("count").getAsInt();
+                        if (type.equals("repeat")){
+                            if (element.getAsJsonObject().get("definition").getAsJsonObject().has("type")){
+                                String type2 = element.getAsJsonObject().get("definition").getAsJsonObject().get("type").getAsString();
+                                if (type2.equals("group")){
+                                    SparseArray<String> groupName = new SparseArray<>();
+                                    SparseArray<String> repeatGroupName = new SparseArray<>();
+                                    int key = 0;
+                                    for (JsonElement element2 : element.getAsJsonObject().get("definition").getAsJsonObject().get("members").getAsJsonArray()) {
+                                        //members[]内
+                                        if(element2.getAsJsonObject().has("type")) {
+                                            String type3 = element2.getAsJsonObject().get("type").getAsString();
+                                            if (type3.equals("repeat")) {
+                                                int count2 = element2.getAsJsonObject().get("count").getAsInt();
+                                                String name2 = element2.getAsJsonObject().get("definition").getAsJsonObject().get("name").getAsString();
+
+                                                repeatGroupName.put(key, count2 + "," + name2);
+                                                key++;
+                                            }
+                                        }else {
+                                            groupName.put(key, element2.getAsJsonObject().get("name").getAsString());
+                                            key++;
+                                        }
+                                    }
+                                    if (groupName.size() > 0) {
+                                        for (int i = 0; i < count; i++){
+                                            for (int j = 0; j < key; j++) {
+                                                columnNames.put(index + i * key + j, groupName.get(j) +"[" + i + "]");
+                                            }
+                                        }
+                                    }else if (repeatGroupName.size() > 0) {
+                                        int indexPlus = 0;
+                                        for (int i = 0; i < count; i++) {
+                                            int maxKey = repeatGroupName.size();
+                                            for (int k = 0; k < maxKey; k++) {
+                                                String[] repeatName = repeatGroupName.get(k).split(",");
+                                                int count2 = Integer.parseInt(repeatName[0]);
+                                                String name2 = repeatName[1];
+
+                                                for (int j = 0; j < count2; j++) {
+                                                    columnNames.put(index + indexPlus, name2 + "[" + i + "]" + "[" + j + "]");
+                                                    indexPlus++;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                continue;
+                            }
+
+                            name = element.getAsJsonObject().get("definition").getAsJsonObject().get("name").getAsString();
+                            for (int i = 0; i < count; i++){
+                                columnNames.put(index + i, name +"[" + i + "]");
+                            }
+                            continue;
+                        }
+                    }
+                    name = element.getAsJsonObject().get("name").getAsString();
+                    columnNames.put(index, name);
+                }
+
+                File file = new File(path);
+                FileWriter filewriter = new FileWriter(file, false); //上書きモード
+                for (int id = 0; id < columnNames.size(); id++){
+                    int key = columnNames.keyAt(id);
+                    String line = key + ":" + columnNames.get(key) + "\r\n";
+                    filewriter.write(line);
+                }
+                filewriter.close();
+            } catch (IOException e) {
+                Utils.getGlobalLogger().error(e);
+            }
+
             return;
         }
-        Utils.getGlobalLogger().info("Loading column names from {}", path);
+        Utils.getGlobalLogger().info("{}から列名を読み込んでいます", path);
 
         try {
             BufferedReader br = new BufferedReader(new FileReader(path));
             for (String line; (line = br.readLine()) != null; ) {
-                //Skip comments and whitespace
+                //コメントと空白はスキップ
                 if (line.startsWith("#") || line.isEmpty()) {
                     continue;
                 }
@@ -821,6 +916,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                     }
 
                     if (split[1].isEmpty()) {
+                        //:の後に文字がない場合スキップ
                         continue;
                     }
                     columnNames.put(Integer.parseInt(split[0]), split[1]);

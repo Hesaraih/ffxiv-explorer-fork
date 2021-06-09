@@ -69,7 +69,14 @@ public class EXDF_File extends Game_File {
     }
 
     public EXDF_Entry getEntry(int index, int subIndex, short variant) {
-        return new EXDF_Entry(data, entryOffsets[index].index, subIndex, entryOffsets[index].offset, variant);
+        if (entryOffsets.length > index) {
+            return new EXDF_Entry(data, entryOffsets[index].index, subIndex, entryOffsets[index].offset, variant);
+        }else{
+            //Indexに欠番があるとentryOffsetsの数がindex総数より不足する
+            Utils.getGlobalLogger().error("インデックス番号が不正です");
+
+            return new EXDF_Entry(data, entryOffsets[0].index, subIndex, entryOffsets[0].offset, variant);
+        }
     }
 
     @SuppressWarnings("unused")
@@ -104,7 +111,7 @@ public class EXDF_File extends Game_File {
     public static class EXDF_Entry {
 
         final int index;
-        public double indexID2 = 0.0;
+        public String indexID2 = "0.0";
         public int subIndexNum = 0;
         final int offset;
         private final byte[] dataChunk;
@@ -126,11 +133,16 @@ public class EXDF_File extends Game_File {
                     }
                     buffer.position(tmpPos + subSize * subIndex);
                     size = subSize - 2;
-                    indexID2 = index + ((double)subIndex / 10);
                 }
             }
             dataChunk = new byte[size];
-            buffer.getShort(); //IndexID または SubID
+            int subIndexID = buffer.getShort(); //IndexID または SubID
+            if (variant == 2) {
+                //SubIDがあるexdファイルのキーはメインIndex:整数部、SubIndex:小数部として表記する
+                //SaintCoinachの表記に合わせた
+                indexID2 = index + "." + subIndexID;
+            }
+
             buffer.get(dataChunk);
         }
 
@@ -162,6 +174,17 @@ public class EXDF_File extends Game_File {
             quad[3] = buffer.getShort();
 
             return quad;
+        }
+
+        public int[] getDual(short offset) {
+            ByteBuffer buffer = ByteBuffer.wrap(dataChunk);
+            buffer.position(offset);
+
+            int[] dual = new int[2];
+            dual[0] = buffer.getShort();
+            dual[1] = buffer.getShort();
+
+            return dual;
         }
 
         public boolean getByteBool(int datatype, int offset) {
