@@ -1,0 +1,14 @@
+0:Level
+1:MinLevel
+2:MaxLevel
+3:Emote
+4:MinTime
+5:MaxTime
+6:PlaceName
+7:Icon{List}
+8:Icon{Discovered}
+9:Name
+10:Impression
+11:Description
+12:Icon{Undiscovered}
+13:IsInitial

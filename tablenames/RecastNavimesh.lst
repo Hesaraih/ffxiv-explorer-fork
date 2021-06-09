@@ -1,0 +1,14 @@
+1:Tile{Size}
+2:Cell{Size}
+3:Cell{Height}
+4:Agent{Height}
+5:Agent{Radius}
+6:Agent{MaxClimb}
+7:Agent{MaxSlope}
+9:Region{MinSize}
+10:Region{MergedSize}
+12:MaxEdgeLength
+13:MaxEdgeError
+14:VertsPerPoly
+15:DetailMesh{SampleDistance}
+16:DetailMesh{MaxSampleError}

@@ -1,0 +1,14 @@
+1:Reward{Currency}[0]
+2:Quantity{Low}[0]
+3:Quantity{Mid}[0]
+4:Quantity{High}[0]
+5:Reward{Currency}[1]
+6:Quantity{Low}[1]
+7:Quantity{Mid}[1]
+8:Quantity{High}[1]
+10:Satisfaction{Low}
+11:Satisfaction{Mid}
+12:Satisfaction{High}
+13:Gil{Low}
+14:Gil{Mid}
+15:Gil{High}

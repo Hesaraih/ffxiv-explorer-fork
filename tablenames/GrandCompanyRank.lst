@@ -1,0 +1,10 @@
+0:Tier
+1:Order
+2:MaxSeals
+3:RequiredSeals
+4:Icon{Maelstrom}
+5:Icon{Serpents}
+6:Icon{Flames}
+7:Quest{Maelstrom}
+8:Quest{Serpents}
+9:Quest{Flames}

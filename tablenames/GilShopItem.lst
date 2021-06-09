@@ -1,0 +1,6 @@
+0:Item
+3:Quest{Required}[0]
+4:Quest{Required}[1]
+5:Achievement{Required}
+7:State{Required}
+8:Patch

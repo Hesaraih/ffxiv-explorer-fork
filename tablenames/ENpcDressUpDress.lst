@@ -1,0 +1,16 @@
+7:ENpc
+9:Behavior
+37:Model{MainHand}
+38:Dye{MainHand}
+39:Model{OffHand}
+40:Dye{OffHand}
+41:Model{Head}
+42:Dye{Head}
+43:Model{Body}
+44:Dye{Body}
+45:Model{Hands}
+46:Dye{Hands}
+47:Model{Legs}
+48:Dye{Legs}
+49:Model{Feet}
+50:Dye{Feet}

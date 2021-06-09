@@ -1,0 +1,16 @@
+0:Type
+1:Priority
+2:Pause
+3:Stance
+4:Slot
+5:LookAtMode
+6:Key
+7:ActionTimelineIDMode
+8:WeaponTimeline
+9:LoadType
+10:StartAttach
+11:ResidentPap
+12:Resident
+13:KillUpper
+14:IsMotionCanceledByMoving
+16:IsLoop

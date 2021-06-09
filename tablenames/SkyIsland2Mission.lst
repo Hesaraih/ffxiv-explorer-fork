@@ -1,0 +1,12 @@
+0:Item{1}
+1:Item{2}
+2:PlaceName
+4:Objective{1}
+5:PopRange[0]
+6:RequiredAmount{1}
+9:Objective2
+10:PopRange[1]
+11:RequiredAmount{2}
+14:Objective3
+15:PopRange[2]
+20:Image

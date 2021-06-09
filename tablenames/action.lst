@@ -1,7 +1,42 @@
 0:Name
-1:Description
 2:Icon
-3:Category (ActionCategory)
-4:Start Timeline (ActionTimeline)
-5:
-6:End Timeline (ActionTimeline)
+3:ActionCategory
+5:Animation{Start}
+6:VFX
+7:Animation{End}
+8:ActionTimeline{Hit}
+10:ClassJob
+11:BehaviourType
+12:ClassJobLevel
+13:IsRoleAction
+14:Range
+15:CanTargetSelf
+16:CanTargetParty
+17:CanTargetFriendly
+18:CanTargetHostile
+21:TargetArea
+25:CanTargetDead
+27:CastType
+28:EffectRange
+29:XAxisModifier
+31:PrimaryCost{Type}
+32:PrimaryCost{Value}
+33:SecondaryCost{Type}
+34:SecondaryCost{Value}
+35:Action{Combo}
+36:PreservesCombo
+37:Cast<100ms>
+38:Recast<100ms>
+39:CooldownGroup
+40:AdditionalCooldownGroup
+41:MaxCharges
+42:AttackType
+43:Aspect
+44:ActionProcStatus
+46:Status{GainSelf}
+47:UnlockLink
+48:ClassJobCategory
+51:AffectsPosition
+52:Omen
+53:IsPvP
+65:IsPlayerAction

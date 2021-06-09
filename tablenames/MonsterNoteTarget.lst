@@ -1,0 +1,9 @@
+0:BNpcName
+1:Icon
+2:Town
+3:PlaceName{Zone}[0]
+4:PlaceName{Location}[0]
+5:PlaceName{Zone}[1]
+6:PlaceName{Location}[1]
+7:PlaceName{Zone}[2]
+8:PlaceName{Location}[2]

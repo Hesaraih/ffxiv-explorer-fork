@@ -1,0 +1,11 @@
+0:Name
+2:ModelKey
+3:Animation{Start}
+4:Animation{End}
+5:Animation{Idle}
+6:Animation{Play01}
+7:Animation{Play02}
+8:StopAnimation
+9:Instrument
+10:Order
+11:Transient

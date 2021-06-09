@@ -1,0 +1,10 @@
+0:Idle
+1:MoveForward
+2:MoveBack
+3:MoveLeft
+4:MoveRight
+5:MoveUp
+6:MoveDown
+7:MoveTurnLeft
+8:MoveTurnRight
+9:Extra

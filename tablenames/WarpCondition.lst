@@ -1,0 +1,8 @@
+0:Gil
+1:CompleteParam
+2:RequiredQuest{1}
+3:RequiredQuest{2}
+4:DRequiredQuest{3}
+5:RequiredQuest{4}
+6:QuestReward
+7:Class{Level}

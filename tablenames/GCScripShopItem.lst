@@ -1,0 +1,4 @@
+0:Item
+1:Required{GrandCompanyRank}
+2:Cost{GCSeals}
+3:SortKey

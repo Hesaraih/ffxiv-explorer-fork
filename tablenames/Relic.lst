@@ -1,0 +1,16 @@
+0:Item{Atma}
+1:Item{Animus}
+2:Icon
+3:Materia[0]
+4:NoteMain[0]
+5:NoteSub[0]
+6:NoteSelection{1}[0]
+7:Materia[1]
+8:NoteMain[1]
+9:NoteSub[1]
+10:NoteSelection[1]
+11:Materia[2]
+12:NoteMain[2]
+13:NoteSub[2]
+14:Materia[3]
+15:NoteSelection[3]

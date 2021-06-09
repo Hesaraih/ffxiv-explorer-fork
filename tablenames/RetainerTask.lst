@@ -1,0 +1,12 @@
+0:IsRandom
+1:ClassJobCategory
+2:RetainerLevel
+4:RetainerTaskParameter
+5:VentureCost
+6:MaxTime{min}
+7:Experience
+8:RequiredItemLevel
+9:ConditionParam[0]
+10:ConditionParam[1]
+11:RequiredGathering
+13:Task

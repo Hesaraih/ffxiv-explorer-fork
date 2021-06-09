@@ -1,97 +1,84 @@
-0:Name Lower
-1:
-2:Name Plural
-3:
-4:Starts With Vowel
-5:
-6:
-7:
-8:Item Description
-9:Name Upper
-10:Icon Id
-11:Item Level
-12:Required Level
-13:PvP Rank
-14:Stack Size
-15:
-16:Stain Index
-17:ItemUICategory Index
-18:ItemSearchCategory Index
-19:Rarity
-20:Is HQ
-21:
-22:Is Dyeable
-23:Is Crest
-24:
-25:Materia Count
-26:
-27:EquipSlotCategory Index
-28:Model Primary
-29:Model Secondary
-30:
-31:BaseParam Index 1
-32:Param Value 1
-33:BaseParam Index 2
-34:Param Value 2
-35:BaseParam Index 3
-36:Param Value 3
-37:BaseParam Index 4
-38:Param Value 4
-39:BaseParam Index 5
-40:Param Value 5
-41:BaseParam Index 6
-42:Param Value 6
-43:ItemSpecialBonus Index
-44:BaseParam Prime HQ Index 1
-45:Prime HQ Addition 1
-46:BaseParam Prime HQ Index 2
-47:Prime HQ Addition 2
-48:BaseParam HQ Index 1
-49:Stat HQ Addition 1
-50:BaseParam HQ Index 2
-51:Stat HQ Addition 2
-52:BaseParam HQ Index 3
-53:Stat HQ Addition 3
-54:BaseParam HQ Index 4
-55:Stat HQ Addition 4
-
-56:ClassJob Index (Repairer Requirement)
-57:Item Index (Repair Item Requirement)
-58:ClassJob Index (Usage Requirement)
-59:
-60:Physical Damage
-61:Magical Damage
-62:Delay (Miliseconds)
-63:
-64:Block Rate
-65:Block
-66:Physical Defense
-67:Magical Defense
-69:Cooldown (Seconds)
-70:ItemAction Index
-71:Is Not Disposable
-72:Is Unique
-73:Is Untradeable
-74:
-75:Vendor Price A
-76:Vendor Price B
-77:Vendor Price C
-78:Can _ Equip
-79:Can _ Equip
-80:Can _ Equip
-81:Can _ Equip
-82:Can _ Equip
-83:Can _ Equip
-84:Can Males Equip
-85:Can Females Equip
-86:ClassJobCategory Index
-87:
-88:GrandCompany Index
-89:
-90:ItemSeries Index
-91:BaseparamModifier Index
-92:Is PvP
-93:Item Index (Glamoured Item)
-94:Desynthesize Index
-95:Is Collectable
-96:Atherial Reduction Index
+0:Singular
+1:Adjective
+2:Plural
+3:PossessivePronoun
+4:StartsWithVowel
+6:Pronoun
+7:Article
+8:Description
+9:Name
+10:Icon
+11:Level{Item}
+12:Rarity
+13:FilterGroup
+14:AdditionalData
+15:ItemUICategory
+16:ItemSearchCategory
+17:EquipSlotCategory
+18:ItemSortCategory
+20:StackSize
+21:IsUnique
+22:IsUntradable
+23:IsIndisposable
+24:Lot
+25:Price{Mid}
+26:Price{Low}
+27:CanBeHq
+28:IsDyeable
+29:IsCrestWorthy
+30:ItemAction
+32:Cooldown<s>
+33:ClassJob{Repair}
+34:Item{Repair}
+35:Item{Glamour}
+36:Desynth
+37:IsCollectable
+38:AlwaysCollectable
+39:AetherialReduce
+40:Level{Equip}
+42:EquipRestriction
+43:ClassJobCategory
+44:GrandCompany
+45:ItemSeries
+46:BaseParamModifier
+47:Model{Main}
+48:Model{Sub}
+49:ClassJob{Use}
+51:Damage{Phys}
+52:Damage{Mag}
+53:Delay<ms>
+55:BlockRate
+56:Block
+57:Defense{Phys}
+58:Defense{Mag}
+59:BaseParam[0]
+60:BaseParamValue[0]
+61:BaseParam[1]
+62:BaseParamValue[1]
+63:BaseParam[2]
+64:BaseParamValue[2]
+65:BaseParam[3]
+66:BaseParamValue[3]
+67:BaseParam[4]
+68:BaseParamValue[4]
+69:BaseParam[5]
+70:BaseParamValue[5]
+71:ItemSpecialBonus
+72:ItemSpecialBonus{Param}
+73:BaseParam{Special}[0]
+74:BaseParamValue{Special}[0]
+75:BaseParam{Special}[1]
+76:BaseParamValue{Special}[1]
+77:BaseParam{Special}[2]
+78:BaseParamValue{Special}[2]
+79:BaseParam{Special}[3]
+80:BaseParamValue{Special}[3]
+81:BaseParam{Special}[4]
+82:BaseParamValue{Special}[4]
+83:BaseParam{Special}[5]
+84:BaseParamValue{Special}[5]
+85:MaterializeType
+86:MateriaSlotCount
+87:IsAdvancedMeldingPermitted
+88:IsPvP
+90:IsGlamourous

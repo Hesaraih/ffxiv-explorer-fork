@@ -1,0 +1,11 @@
+0:Slot
+1:OverRay
+4:Idle
+5:Attribute[0]
+6:AttributeFlag[0]
+7:Attribute[1]
+8:AttributeFlag[1]
+9:Attribute[2]
+10:AttributeFlag[2]
+11:Scale
+13:LoopTimeline

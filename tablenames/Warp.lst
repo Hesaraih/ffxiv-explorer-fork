@@ -1,0 +1,12 @@
+0:PopRange
+1:TerritoryType
+2:ConditionSuccessEvent
+3:ConditionFailEvent
+4:ConfirmEvent
+5:WarpCondition
+6:WarpLogic
+7:StartCutscene
+8:EndCutscene
+9:CanSkipCutscene
+10:Name
+11:Question

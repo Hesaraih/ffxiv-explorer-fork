@@ -1,0 +1,5 @@
+0:Type
+1:Quest
+2:EventItem
+3:Order{Start}
+4:Order{Amount}

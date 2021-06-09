@@ -1,0 +1,8 @@
+0:Base
+1:QuestRequirement{2}
+2:QuestRequirement{1}
+3:BaseEquip
+4:SoundEffect{4}
+5:SoundEffect{3}
+6:SoundEffect{2}
+7:SoundEffect{1}

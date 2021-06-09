@@ -1,0 +1,12 @@
+0:Type
+1:TimeLimit
+2:MapIcon
+3:Name
+4:TextData{Start}
+5:TextData{End}
+6:StartCutscene
+7:LGBEventRange
+8:LGBPopRange
+9:ContentFinderCondition
+10:AdditionalData
+16:EndCutscene

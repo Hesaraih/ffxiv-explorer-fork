@@ -1,15 +1,31 @@
-0:Name
-1:
-2:Name Plural
-3:
-4:
-5:
-6:
-7:
-8:Item Description
-9:Guide Desc.
-10:Guide Quote
-11:
-31:Summon Sound
-32:Summon Sound 2
-33:Bye Sound
+0:Singular
+1:Adjective
+2:Plural
+3:PossessivePronoun
+4:StartsWithVowel
+6:Pronoun
+7:Article
+8:ModelChara
+10:FlyingCondition
+14:IsFlying
+16:MountCustomize
+17:RideBGM
+21:ExitMoveDist
+22:ExitMoveSpeed
+24:IsEmote
+25:EquipHead
+26:EquipBody
+27:EquipLeg
+28:EquipFoot
+29:Order
+30:Icon
+31:UIPriority
+32:RadiusRate
+33:BaseMotionSpeed_Run
+34:BaseMotionSpeed_Walk
+36:ExtraSeats
+37:MountAction
+38:IsAirborne
+39:ExHotbarEnableConfig
+40:UseEP
+42:IsImmobile

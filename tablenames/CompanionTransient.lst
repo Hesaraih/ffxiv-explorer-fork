@@ -1,0 +1,14 @@
+0:Description
+1:Description{Enhanced}
+2:Tooltip
+3:SpecialAction{Name}
+4:SpecialAction{Description}
+5:Attack
+6:Defense
+7:Speed
+8:HasAreaAttack
+9:Strength{Gate}
+10:Strength{Eye}
+11:Strength{Shield}
+12:Strength{Arcana}
+13:MinionSkillType

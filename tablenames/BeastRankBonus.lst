@@ -1,0 +1,17 @@
+0:Neutral
+1:Recognized
+2:Friendly
+3:Trusted
+4:Respected
+5:Honored
+6:Sworn
+7:Allied/Bloodsworn
+8:Item
+9:Item{Quantity}[0]
+10:Item{Quantity}[1]
+11:Item{Quantity}[2]
+12:Item{Quantity}[3]
+13:Item{Quantity}[4]
+14:Item{Quantity}[5]
+15:Item{Quantity}[6]
+16:Item{Quantity}[7]
