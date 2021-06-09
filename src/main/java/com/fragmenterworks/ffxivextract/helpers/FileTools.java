@@ -49,7 +49,7 @@ public class FileTools {
             sqPakPath = Constants.datPath;
         }
         String iconPath = String.format("ui/icon/%06d/%06d.tex", iconID - (iconID % 1000), iconID);
-        Utils.getGlobalLogger().debug("IconPath: {}, iconID: {}", iconPath, iconID);
+        Utils.getGlobalLogger().info("IconPath: {}, iconID: {}", iconPath, iconID);
         return getTexture(sqPakPath, iconPath);
     }
 

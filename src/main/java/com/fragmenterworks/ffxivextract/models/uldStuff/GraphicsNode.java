@@ -48,8 +48,10 @@ public class GraphicsNode {
         last = data.getInt();
         data.position(offset + 0x14);
         type = data.getInt();
-        if (type < 1001 && type != 1 && type != 2 && type != 3 && type != 4 && type != 8)
-            Utils.getGlobalLogger().trace("GraphicsNode type {} @ {}", type, (data.position() - 4));
+        if (type < 1001 && type != 1 && type != 2 && type != 3 && type != 4 && type != 8) {
+            //TODO:GraphicsNodeTypeData_5の解析とクラス追加
+            Utils.getGlobalLogger().info(String.format("未知のGraphicsNode type「%s」があります。(アドレス:0x%08X)", type, (data.position() - 4)));
+        }
         data.position(offset + 0x18);
         size = data.getInt();
         data.position(offset + 0x2c);

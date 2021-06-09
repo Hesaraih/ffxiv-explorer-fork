@@ -856,6 +856,13 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
             } catch (IOException e) {
                 Utils.getGlobalLogger().error(e);
             }
+        } else if (data.length >= 4 && checkMagic(data, "CUTB")) {
+            try {
+                @SuppressWarnings("unused")
+                CUTB_File cutbFile = new CUTB_File(currentIndexFile, data, currentIndexFile.getEndian());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         } else if (data.length >= 4 && checkMagic(data, "XFVA")) {
             AVFX_File avfxFile = new AVFX_File(currentIndexFile, data, currentIndexFile.getEndian());
             avfxFile.regHash();
@@ -1008,9 +1015,9 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
         if (retunval == JFileChooser.APPROVE_OPTION) {
             lastSaveLocation = fileChooser.getSelectedFile();
             if (lastSaveLocation.getParentFile().mkdirs()){
-                Utils.getGlobalLogger().debug("フォルダ作成に成功");
+                Utils.getGlobalLogger().trace("フォルダ作成に成功");
             }else{
-                Utils.getGlobalLogger().debug("フォルダが既にあるか、作成に失敗した");
+                Utils.getGlobalLogger().trace("フォルダが既にあるか、作成に失敗した");
             }
             Loading_Dialog loadingDialog = new Loading_Dialog(FileManagerWindow.this, files.size());
             loadingDialog.setTitle("抽出中...");
@@ -1246,7 +1253,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
 
                                     File mkDirPath = new File(path);
                                     if (mkDirPath.getParentFile().mkdirs()) {
-                                        Utils.getGlobalLogger().debug("フォルダ作成に成功");
+                                        Utils.getGlobalLogger().trace("フォルダ作成に成功");
                                     }
                                     tempView.saveCSV(path + EXHF_File.languageCodes[tempView.getExhFile().getLanguageTable()[l]] + ".csv", l);
                                 }
@@ -1269,7 +1276,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
 
                                 File mkDirPath = new File(path);
                                 if (mkDirPath.getParentFile().mkdirs()) {
-                                    Utils.getGlobalLogger().debug("フォルダ作成に成功");
+                                    Utils.getGlobalLogger().trace("フォルダ作成に成功");
                                 }
                                 WavefrontObjectWriter.writeObj(path, model, currentIndexFile.getEndian());
                                 continue;
@@ -1309,7 +1316,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
 
                                         mkDirPath = new File(path);
                                         if (mkDirPath.getParentFile().mkdirs()) {
-                                            Utils.getGlobalLogger().debug("フォルダ作成に成功");
+                                            Utils.getGlobalLogger().trace("フォルダ作成に成功");
                                         }
                                         EARandomAccessFile out = new EARandomAccessFile(path + j + extension, "rw", ByteOrder.LITTLE_ENDIAN);
                                         out.write(dataToSave, 0, dataToSave.length);
@@ -1331,7 +1338,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
 
                                         mkDirPath = new File(path);
                                         if (mkDirPath.getParentFile().mkdirs()) {
-                                            Utils.getGlobalLogger().debug("フォルダ作成に成功");
+                                            Utils.getGlobalLogger().trace("フォルダ作成に成功");
                                         }
                                         EARandomAccessFile out = new EARandomAccessFile(path + j + extension, "rw", ByteOrder.LITTLE_ENDIAN);
                                         out.write(dataToSave, 0, dataToSave.length);
@@ -1381,7 +1388,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
 
                                     mkDirPath = new File(path);
                                     if (mkDirPath.getParentFile().mkdirs()) {
-                                        Utils.getGlobalLogger().debug("フォルダ作成に成功");
+                                        Utils.getGlobalLogger().trace("フォルダ作成に成功");
                                     }
                                     EARandomAccessFile out = new EARandomAccessFile(path + (file.getNumEntries() == 1 ? "" : "_" + s) + extension, "rw", ByteOrder.LITTLE_ENDIAN);
                                     out.write(dataToSave, 0, dataToSave.length);
@@ -1425,7 +1432,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
 
                     File mkDirPath = new File(path);
                     if (mkDirPath.getParentFile().mkdirs()){
-                        Utils.getGlobalLogger().debug("フォルダ作成に成功");
+                        Utils.getGlobalLogger().trace("フォルダ作成に成功");
                     }
                     EARandomAccessFile out = new EARandomAccessFile(path + extension, "rw", ByteOrder.LITTLE_ENDIAN);
                     out.write(dataToSave, 0, dataToSave.length);

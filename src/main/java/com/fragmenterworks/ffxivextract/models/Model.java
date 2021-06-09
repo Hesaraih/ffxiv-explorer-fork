@@ -32,9 +32,9 @@ public class Model extends Game_File {
     private final IMC_File imcFile;
     private final DX9VertexElement[][] vertexElements;
     private final String[] stringArray;
-    private final short numAtrStrings;
-    private final short numBoneStrings;
-    private final short numMaterialStrings;
+    private final short AttributeCount;
+    private final short BoneCount;
+    private final short MaterialCount;
     private short numShpStrings;
     private final MeshPart[] meshPartTable;
 
@@ -126,42 +126,42 @@ public class Model extends Game_File {
             end++;
         }
 
-        //Counts
-        bb.getInt();
+        //ModelDefinitionHeader
+        bb.getInt(); //Unknown1
         @SuppressWarnings("unused")
-        short numMeshes = bb.getShort();
-        numAtrStrings = bb.getShort();
-        short numParts = bb.getShort();
-        numMaterialStrings = bb.getShort();
-        numBoneStrings = bb.getShort();
-        int unknownCount4 = bb.getShort(); //numShpStrings?
-        int unknownCount5 = bb.getShort();
-        int unknownCount6 = bb.getShort();
-        int unknownCount7 = bb.getShort();
+        short MeshCount = bb.getShort();
+        AttributeCount = bb.getShort();
+        short PartCount = bb.getShort();
+        MaterialCount = bb.getShort();
+        BoneCount = bb.getShort();
+        int UnknownStruct4Count = bb.getShort();    // 3 in hsl //numShpStrings?
+        int UnknownStruct5Count = bb.getShort();    // 4 in hsl
+        int UnknownStruct6Count = bb.getShort();    // 5 in hsl
+        int UnknownStruct7Count = bb.getShort();    // 6 in hsl
         @SuppressWarnings("unused")
-        int unknownCount8 = bb.getShort();
+        int Unknown2 = bb.getShort();
         //From Rogueadyn's Code
-        int unknownCount1 = bb.getShort();
-        int unknownCount2 = bb.get() & 0xFF;
-        bb.get();
-        bb.position(bb.position() + 10);
-        int unknownCount3 = bb.getShort();
-        bb.position(bb.position() + 16);
+        int UnknownStruct1Count = bb.getShort();    // 0 in hsl
+        int UnknownStruct2Count = bb.get() & 0xFF;  // 1 in hsl
+        bb.get(); //Unknown3
+        bb.position(bb.position() + 10); //ushort[] Unknown4 × 5
+        int UnknownStruct3Count = bb.getShort();    // 7 in hsl
+        bb.position(bb.position() + 16); //ushort[] Unknown5 × 8
 
-        meshPartTable = new MeshPart[numParts];
-        boneLists = new BoneList[unknownCount4];
-        atrMasks = new long[numAtrStrings];
-        String[] atrStrings = new String[numAtrStrings];
-        boneStrings = new String[numBoneStrings];
+        meshPartTable = new MeshPart[PartCount];
+        boneLists = new BoneList[UnknownStruct4Count];
+        atrMasks = new long[AttributeCount];
+        String[] atrStrings = new String[AttributeCount];
+        boneStrings = new String[BoneCount];
 
-        System.arraycopy(stringArray, 0, atrStrings, 0, numAtrStrings);
-        System.arraycopy(stringArray, numAtrStrings, boneStrings, 0, numBoneStrings);
+        System.arraycopy(stringArray, 0, atrStrings, 0, AttributeCount);
+        System.arraycopy(stringArray, AttributeCount, boneStrings, 0, BoneCount);
 
         for (int i = 0; i < atrStrings.length; i++) {
             atrMasks[i] = getMaskFromAtrName(atrStrings[i]);
         }
 
-        materials = new Material[numMaterialStrings];
+        materials = new Material[MaterialCount];
 
         StringBuilder s = new StringBuilder();
         for (String str : stringArray) {
@@ -170,7 +170,7 @@ public class Model extends Game_File {
         }
 
         Utils.getGlobalLogger().trace("Attr strings: {}\nMaterial strings: {}\nBone strings: {}\nStrings:\n{}",
-                numAtrStrings, numMaterialStrings, numBoneStrings, s.toString());
+                AttributeCount, MaterialCount, BoneCount, s.toString());
 
         imcFile = loadImcFile();
 
@@ -179,37 +179,69 @@ public class Model extends Game_File {
         }
 
         //Skip Stuff
-        bb.position(bb.position() + (32 * unknownCount1));
+        bb.position(bb.position() + (32 * UnknownStruct1Count));
 
         //LOD Headers
         Utils.getGlobalLogger().trace("-----Level of Detail(LoD) Header Info-----");
         for (int i = 0; i < lodModels.length; i++) {
+            //ModelQuality  High: i=0, Medium: i=1, Low: i=2
             Utils.getGlobalLogger().trace(String.format("Level of Detail(LoD) Level %d:", i));
-            lodModels[i] = LoDSubModel.loadInfo(bb);
+            lodModels[i] = LoDSubModel.loadInfo(bb); //SaintCoinachではModelHeaders = buffer.ToStructures<ModelHeader>(ModelCount, ref offset)
         }
 
         //Load Mesh Info
         Utils.getGlobalLogger().trace("-----Level of Detail(LoD) Mesh Info-----");
 
         int vertElementNumber = 0;
+
+
+        Mesh[] MeshHeaders = new Mesh[MeshCount];
+        for (int j = 0; j < MeshCount; j++) {
+            Utils.getGlobalLogger().trace(String.format("メッシュ %d:", j));
+            MeshHeaders[j] = new Mesh(bb, vertElementNumber); //SaintCoinachではMeshHeaders = buffer.ToStructures<MeshHeader>(Header.MeshCount, ref offset)
+            vertElementNumber++;
+
+        }
+
+        int num = 0;
         for (int i = 0; i < lodModels.length; i++) {
+
             Utils.getGlobalLogger().trace(String.format("Level of Detail(LoD) %d:", i));
 
-            Mesh[] meshList = new Mesh[lodModels[i].numMeshes];
-            for (int j = 0; j < lodModels[i].numMeshes; j++) {
-                Utils.getGlobalLogger().trace(String.format("メッシュ %d:", j));
-                meshList[j] = new Mesh(bb, vertElementNumber);
-                vertElementNumber++;
+            //Mesh[] MeshHeaders = new Mesh[lodModels[i].MeshCount]
+            //for (int j = 0; j < lodModels[i].MeshCount; j++)
+            if (false) {
+                if (i == 0 && lodModels[i].MeshCount == 0) {
+                    MeshHeaders = new Mesh[lodModels[i].MeshCount];
+                    for (int j = 0; j < lodModels[i].MeshCount; j++) {
+                        Utils.getGlobalLogger().trace(String.format("メッシュ %d:", j));
+                        MeshHeaders[j] = new Mesh(bb, vertElementNumber); //SaintCoinachではMeshHeaders = buffer.ToStructures<MeshHeader>(Header.MeshCount, ref offset)
+                        vertElementNumber++;
 
+                    }
+                    lodModels[i].setMeshList(MeshHeaders);
+                }
             }
-            lodModels[i].setMeshList(meshList);
+            if (lodModels[i].MeshCount > 0) {
+
+                Mesh[] MeshHeaders2 = new Mesh[lodModels[i].MeshCount];
+                for (int j = 0; j < MeshHeaders2.length; j++ ){
+                    MeshHeaders2[j] = MeshHeaders[num];
+                    num++;
+                }
+
+
+                lodModels[i].setMeshList(MeshHeaders2);
+            }else if(i == 0){
+                num++;
+            }
         }
 
         //New stuff added from SaintCoinach
-        bb.position(bb.position() + (numAtrStrings * 4));
-        bb.position(bb.position() + (unknownCount2 * 20)); //Skip this data
+        bb.position(bb.position() + (AttributeCount * 4));
+        bb.position(bb.position() + (UnknownStruct2Count * 20)); //Skip this data
 
-        for (int i = 0; i < numParts; i++) {
+        for (int i = 0; i < PartCount; i++) {
             meshPartTable[i] = new MeshPart(bb);
         }
 
@@ -221,39 +253,41 @@ public class Model extends Game_File {
             }
         }
 
-        bb.position(bb.position() + (unknownCount3 * 12));//Skip this data
+        bb.position(bb.position() + (UnknownStruct3Count * 12));//Skip this data
 
-        bb.position(bb.position() + (numMaterialStrings * 4));
-        bb.position(bb.position() + (numBoneStrings * 4));
+        bb.position(bb.position() + (MaterialCount * 4));
+        bb.position(bb.position() + (BoneCount * 4));
 
-        for (int i = 0; i < unknownCount4; i++) {
+        for (int i = 0; i < UnknownStruct4Count; i++) {
             boneLists[i] = new BoneList(bb);
         }
 
-        bb.position(bb.position() + (unknownCount5 * 16));//Skip this data
-        bb.position(bb.position() + (unknownCount6 * 12));//Skip this data
-        bb.position(bb.position() + (unknownCount7 * 4));//Skip this data
+        bb.position(bb.position() + (UnknownStruct5Count * 16));//Skip this data
+        bb.position(bb.position() + (UnknownStruct6Count * 12));//Skip this data
+        bb.position(bb.position() + (UnknownStruct7Count * 4));//Skip this data
 
-        int boneIndexSize = bb.getInt();
+        int BoneIndicesSize = bb.getShort() & 0xFFFF;
+        bb.getShort();
         @SuppressWarnings("MismatchedReadAndWriteOfArray")
-        short[] boneIndices = new short[boneIndexSize / 2];
+        short[] boneIndices = new short[BoneIndicesSize / 2];
         for (int i = 0; i < boneIndices.length; i++) {
             boneIndices[i] = bb.getShort();
         }
 
         //Skip padding
-        int paddingToSkip = bb.get();
+        int paddingToSkip = bb.get() & 0xFF;
         bb.position(bb.position() + paddingToSkip);
 
         //Read in bounding boxes
         @SuppressWarnings("MismatchedReadAndWriteOfArray")
-        BoundingBox[] boundingBoxes = new BoundingBox[4];
-        for (int i = 0; i < boundingBoxes.length; i++) {
-            boundingBoxes[i] = new BoundingBox(bb);
+        BoundingBox[] BoundingBoxes = new BoundingBox[4];
+        for (int i = 0; i < BoundingBoxes.length; i++) {
+            BoundingBoxes[i] = new BoundingBox(bb);
         }
 
 
         //メッシュ情報からメッシュをロードします
+        //SaintCoinachではpublic Model GetModel(ModelQuality quality)
         for (LoDSubModel lodModel : lodModels) {
             lodModel.loadMeshes(bb);
         }
@@ -424,8 +458,8 @@ public class Model extends Game_File {
 
         String materialFolderPath;
 
-        if (!stringArray[numAtrStrings + numBoneStrings].startsWith("/") && !stringArray[numAtrStrings + numBoneStrings].contains("chara")) {
-            materialFolderPath = stringArray[numAtrStrings + numBoneStrings].substring(0, stringArray[numAtrStrings + numBoneStrings].lastIndexOf("/"));
+        if (!stringArray[AttributeCount + BoneCount].startsWith("/") && !stringArray[AttributeCount + BoneCount].contains("chara")) {
+            materialFolderPath = stringArray[AttributeCount + BoneCount].substring(0, stringArray[AttributeCount + BoneCount].lastIndexOf("/"));
         } else if (modelPath.contains("face")) {
             materialFolderPath = String.format("%smaterial", modelPath.substring(0, modelPath.indexOf("model")));
         } else if (modelPath.contains("hair")) {
@@ -445,14 +479,14 @@ public class Model extends Game_File {
         if (materialFolderPath.contains("body") && materialFolderPath.contains("human")) {
             bodyMaterialSpot = 0;
         } else {
-            for (int i = 0; i < numMaterialStrings; i++) {
+            for (int i = 0; i < MaterialCount; i++) {
                 String fileString;
 
                 try {
-                    if (stringArray[numAtrStrings + numBoneStrings + i].startsWith("/")) {
-                        fileString = stringArray[numAtrStrings + numBoneStrings + i].substring(1);
+                    if (stringArray[AttributeCount + BoneCount + i].startsWith("/")) {
+                        fileString = stringArray[AttributeCount + BoneCount + i].substring(1);
                     } else {
-                        fileString = stringArray[numAtrStrings + numBoneStrings + i].substring(stringArray[numAtrStrings + numBoneStrings + i].lastIndexOf("/") + 1);
+                        fileString = stringArray[AttributeCount + BoneCount + i].substring(stringArray[AttributeCount + BoneCount + i].lastIndexOf("/") + 1);
                     }
                 } catch (ArrayIndexOutOfBoundsException e) {
                     //Ion pls
@@ -521,7 +555,7 @@ public class Model extends Game_File {
         //body/b..../materialがあったら、ここでハッシュDBに登録
         if (bodyMaterialSpot != -1) {
             //chara/humanのみの処理？
-            String s = stringArray[numAtrStrings + numBoneStrings + bodyMaterialSpot].substring(1);
+            String s = stringArray[AttributeCount + BoneCount + bodyMaterialSpot].substring(1);
             String s1 = s.replace("mt_c", "").substring(0, 9);
             int chara = Integer.parseInt(s1.substring(0, 4));
             int body = Integer.parseInt(s1.substring(5, 9));
@@ -558,7 +592,7 @@ public class Model extends Game_File {
     }
 
     public int getNumMesh(int lodLevel) {
-        return lodModels[lodLevel].numMeshes;
+        return lodModels[lodLevel].MeshCount;
     }
 
     private int getNumMaterials() {
@@ -597,12 +631,12 @@ public class Model extends Game_File {
         for (int i = 0; i < getNumMesh(currentLoD); i++) {
 
             Mesh mesh = getMeshes(currentLoD)[i];
-            Material material = getMaterial(mesh.materialNumber);
+            Material material = getMaterial(mesh.MaterialIndex);
             Shader shader = material == null || !material.isShaderReady() ? defaultShader : material.getShader();
 
             if (numBones != -1) {
                 boneMatrixBuffer.position(0);
-                HavokNative.getBonesWithNames(boneMatrixBuffer, boneStrings, boneLists[mesh.boneListIndex].boneList, boneLists[mesh.boneListIndex].boneCount);
+                HavokNative.getBonesWithNames(boneMatrixBuffer, boneStrings, boneLists[mesh.BoneListIndex].boneList, boneLists[mesh.BoneListIndex].boneCount);
             }
 
             gl.glUseProgram(shader.getShaderProgramID());
@@ -611,11 +645,11 @@ public class Model extends Game_File {
                 boneMatrixBuffer.position(0);
             }
 
-            for (int partNum = 0; partNum < (mesh.partTableCount == 0 ? 1 : mesh.partTableCount); partNum++) {
-                if (mesh.partTableCount != 0 && atrMasks.length != 0) {
+            for (int partNum = 0; partNum < (mesh.PartCount == 0 ? 1 : mesh.PartCount); partNum++) {
+                if (mesh.PartCount != 0 && atrMasks.length != 0) {
                     long fullMask = 0;
-                    for (int m = 0; m < meshPartTable[partNum + mesh.partTableOffset].attributeMasks.size(); m++) {
-                        fullMask |= meshPartTable[partNum + mesh.partTableOffset].attributeMasks.get(m);
+                    for (int m = 0; m < meshPartTable[partNum + mesh.PartOffset].attributeMasks.size(); m++) {
+                        fullMask |= meshPartTable[partNum + mesh.PartOffset].attributeMasks.get(m);
                         //(meshPartTable[mesh.partOffset+partNum].attributes << m);
                     }
 
@@ -640,7 +674,7 @@ public class Model extends Game_File {
                     //バッファのオフセットとサイズを設定します
                     ByteBuffer origin = mesh.vertBuffers[element.stream].duplicate();
                     origin.position(element.offset);
-                    int size = mesh.vertexSizes[element.stream];
+                    int size = mesh.BytesPerVertexPerBuffer[element.stream];
 
                     //ポインタのセット
                     switch (element.usage) {
@@ -689,12 +723,12 @@ public class Model extends Game_File {
                 int indBufPos;
                 int numIndex;
 
-                if (mesh.partTableCount != 0) {
-                    indBufPos = (meshPartTable[mesh.partTableOffset + partNum].indexOffset * 2) - (mesh.indexBufferOffset * 2);
-                    numIndex = meshPartTable[mesh.partTableOffset + partNum].indexCount;
+                if (mesh.PartCount != 0) {
+                    indBufPos = (meshPartTable[mesh.PartOffset + partNum].indexOffset * 2) - (mesh.IndexBufferOffset * 2);
+                    numIndex = meshPartTable[mesh.PartOffset + partNum].indexCount;
                 } else {
                     indBufPos = 0;
-                    numIndex = mesh.numIndex;
+                    numIndex = mesh.IndexCount;
                 }
 
                 Utils.getGlobalLogger().trace("GL Error: {}", gl.glGetError());

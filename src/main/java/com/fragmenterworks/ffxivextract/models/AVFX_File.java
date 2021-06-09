@@ -7,7 +7,6 @@ import com.fragmenterworks.ffxivextract.storage.HashDatabase;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class AVFX_File extends Game_File {
@@ -100,18 +99,11 @@ public class AVFX_File extends Game_File {
 
     /**
      * AVFXファイル中のパス文字列をHashデータベースに登録する
-     * @param fileCheck true:ファイルチェックをする
+     * @param fileCheck true:ファイル存在チェックをする
      */
     public void regHash(boolean fileCheck) {
 
         SqPack_IndexFile index = null;
-
-        HashDatabase.beginConnection();
-        try {
-            HashDatabase.setAutoCommit(false);
-        } catch (SQLException e1) {
-            Utils.getGlobalLogger().error(e1);
-        }
 
         boolean folderCheck = true;
 
@@ -220,13 +212,6 @@ public class AVFX_File extends Game_File {
                 }
             }
         }
-
-        try {
-            HashDatabase.commit();
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-        HashDatabase.closeConnection();
     }
 
     public void printOut() {

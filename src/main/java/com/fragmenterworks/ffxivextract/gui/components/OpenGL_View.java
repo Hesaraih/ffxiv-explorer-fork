@@ -147,8 +147,8 @@ public class OpenGL_View extends JPanel {
 
                     if (model.getMeshes(currentLoD) != null) {
                         for (Mesh m : model.getMeshes(currentLoD)) {
-                            vertList.append("(").append(m.numVerts).append(") ");
-                            indicesList.append("(").append(m.numIndex).append(") ");
+                            vertList.append("(").append(m.VertexCount).append(") ");
+                            indicesList.append("(").append(m.IndexCount).append(") ");
                         }
                     }
 
@@ -318,8 +318,8 @@ public class OpenGL_View extends JPanel {
 
         if (model.getMeshes(currentLoD) != null) {
             for (Mesh m : model.getMeshes(currentLoD)) {
-                vertList.append("(").append(m.numVerts).append(") ");
-                indicesList.append("(").append(m.numIndex).append(") ");
+                vertList.append("(").append(m.VertexCount).append(") ");
+                indicesList.append("(").append(m.IndexCount).append(") ");
             }
         } else {
             vertList.append("なし");

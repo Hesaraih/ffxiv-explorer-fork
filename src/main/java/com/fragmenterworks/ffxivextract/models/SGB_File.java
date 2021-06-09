@@ -1,6 +1,5 @@
 package com.fragmenterworks.ffxivextract.models;
 
-import com.fragmenterworks.ffxivextract.Constants;
 import com.fragmenterworks.ffxivextract.helpers.FileTools;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.storage.HashDatabase;
@@ -25,6 +24,7 @@ public class SGB_File extends Game_File {
     //他のファイルを見つけるために使用されます
     private SqPack_IndexFile currentIndex; //現在表示中または呼び出し元のIndexファイル
     private SqPack_IndexFile sp_IndexFile; //上記以外のIndexファイル
+    @SuppressWarnings("FieldCanBeLocal")
     private SqPack_IndexFile temp_IndexFile; //作業用
 
     @SuppressWarnings("unused")
@@ -63,12 +63,16 @@ public class SGB_File extends Game_File {
         int fileSize = bb.getInt(); //ファイルサイズ
         bb.getInt(); //不明 0x01
         bb.get(signature2); //SCN1
-        bb.getInt(); //SCN1のヘッダ部サイズ 0x48固定？　アドレス: 0x10
+        int SCN1_Size = bb.getInt(); //SCN1のヘッダ部サイズ 0x48固定？　アドレス: 0x10
         int SharedOffset = bb.getInt(); //SCN1のデータ部サイズ？
         bb.getInt(); //不明 0x01
         int Offset1C = bb.getInt(); //何かのサイズ
         bb.getInt(); //何かのサイズ
         int StatesOffset = bb.getInt(); //0x0060からの実データサイズ？ 　アドレス: 0x28   ※0x60 + StatesOffset + 0x20でShared文字列
+
+        bb.position(0x000C + SCN1_Size);
+        bb.getInt(); //シグニチャ
+        int block_Size = bb.getInt();
 
         String signatureString = new String(signature).trim();
         String signatureString2 = new String(signature2).trim();
@@ -81,7 +85,8 @@ public class SGB_File extends Game_File {
             Utils.getGlobalLogger().debug("Magic was {}", signatureString2);
         }
 
-        bb.position(0x0060 + StatesOffset + 0x20);
+        //bb.position(0x0060 + StatesOffset + 0x20);
+        bb.position(0x000C + SCN1_Size + block_Size);
         int modelStrType = 0;
         String sgbPath = "";
         temp_IndexFile = currentIndex;
@@ -90,13 +95,19 @@ public class SGB_File extends Game_File {
             modelStringBld = new StringBuilder();
             while (bb.position() < bb.capacity()) {
                 byte c = bb.get();
-                if (c == 0) {
+                if (c < 0x20) {
                     if (modelStringBld.length() != 0) {
                         break;
                     }
                 } else {
                     modelStringBld.append((char) c);
                 }
+            }
+
+            if (modelStringBld.length() == 0) {
+                break;
+            }else if (modelStringBld.length() <= 5){
+                continue;
             }
 
             String modelString = modelStringBld.toString();

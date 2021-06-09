@@ -38,16 +38,24 @@ public class Texture_File extends Game_File {
 
         bb.position(0x1c);
 
-        for (int i = 0; i < numMipMaps; i++)
+        for (int i = 0; i < numMipMaps; i++) {
             mipmapOffsets[i] = bb.getInt();
+        }
     }
 
     public final BufferedImage decode(int index, final Map<String, Object> parameters) throws ImageDecodingException {
 
-        if (data == null)
+        if (data == null) {
             throw new NullPointerException("Data is null");
+        }
 
-        int mipMapDivide = (int) (index == 0 ? 1 : Math.pow(2, index));
+        int mipMapDivide;
+
+        if (index == 0) {
+            mipMapDivide = 1;
+        } else {
+            mipMapDivide = (int) Math.pow(2, index);
+        }
 
         switch (compressionType) {
             case 0x3420: {

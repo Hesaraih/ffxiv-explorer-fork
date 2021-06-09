@@ -9,76 +9,89 @@ import java.nio.ByteBuffer;
 
 public class Mesh {
 
-    private final int numBuffers;
+    private final int VertexBufferCount;
     public final ByteBuffer[] vertBuffers;
     public final ByteBuffer indexBuffer;
-    private final int[] vertexBufferOffsets;
-    final public int[] vertexSizes;
-    final public int indexBufferOffset;
-    final public int numVerts, numIndex;
-    final public int partTableOffset, partTableCount;
-    final public int boneListIndex;
-    final public int materialNumber;
+    private final int[] VertexOffsets;
+    final public int[] BytesPerVertexPerBuffer;
+    final public int IndexBufferOffset;
+    final public int VertexCount, IndexCount;
+    final public int PartOffset, PartCount;
+    final public int BoneListIndex;
+    final public int MaterialIndex;
     private final int vertElementIndex;
 
     public Mesh(ByteBuffer bb, int elementIndex) {
-        numVerts = bb.getShort() & 0xFFFF; //SaintCoinachではbb.getInt()で処理し次行なし
+        //MeshHeader
+        VertexCount = bb.getShort() & 0xFFFF; //SaintCoinachではbb.getInt()で処理し次行なし(VertexCount)
         bb.getShort();
-        numIndex = bb.getInt();
+        IndexCount = bb.getInt(); //IndexCount
 
-        materialNumber = bb.getShort();
-        partTableOffset = bb.getShort();
-        partTableCount = bb.getShort();
-        boneListIndex = bb.getShort();
+        MaterialIndex = bb.getShort();  //SaintCoinachではMaterialIndex
+        PartOffset = bb.getShort();
+        PartCount = bb.getShort();
+        BoneListIndex = bb.getShort();
 
-        indexBufferOffset = bb.getInt();
+        IndexBufferOffset = bb.getInt();
 
         //FFXIVはすでにAuxバッファ（およびその他）のオフセットを保存しているようです。Saint Coinach参考...
-        vertexBufferOffsets = new int[3]; //C#では[MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
-        for (int x = 0; x < vertexBufferOffsets.length; x++) {
-            vertexBufferOffsets[x] = bb.getInt();
+        VertexOffsets = new int[3]; //C#では[MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
+        for (int x = 0; x < VertexOffsets.length; x++) {
+            VertexOffsets[x] = bb.getInt();
         }
 
-        vertexSizes = new int[3];
-        for (int x = 0; x < vertexSizes.length; x++) {
-            vertexSizes[x] = bb.get() & 0xFF;
+        BytesPerVertexPerBuffer = new int[3]; //SaintCoinachではBytesPerVertexPerBuffer
+        for (int x = 0; x < BytesPerVertexPerBuffer.length; x++) {
+            BytesPerVertexPerBuffer[x] = bb.get() & 0xFF;
         }
 
-        numBuffers = bb.get() & 0xFF;
+        VertexBufferCount = bb.get() & 0xFF; //SaintCoinachではVertexBufferCount
 
         vertElementIndex = elementIndex;
 
-        vertBuffers = new ByteBuffer[numBuffers];
+        vertBuffers = new ByteBuffer[VertexBufferCount];
 
-        for (int i = 0; i < numBuffers; i++) {
-            vertBuffers[i] = Buffers.newDirectByteBuffer(numVerts * vertexSizes[i]);
+        for (int i = 0; i < VertexBufferCount; i++) {
+            vertBuffers[i] = Buffers.newDirectByteBuffer(VertexCount * BytesPerVertexPerBuffer[i]);
         }
-        indexBuffer = Buffers.newDirectByteBuffer(numIndex * 2);
+        indexBuffer = Buffers.newDirectByteBuffer(IndexCount * 2);
 
         Utils.getGlobalLogger().trace("Num parts: {}\n\tNum verts: {}\n\tNum indices: {}\n\tVertex offset: {}\n\tIndex offset: {}",
-                partTableCount, numVerts, numIndex, vertexBufferOffsets[0], indexBufferOffset);
+                PartCount, VertexCount, IndexCount, VertexOffsets[0], IndexBufferOffset);
     }
 
-    public void loadMeshes(ByteBuffer bb, int lodVertexOffset, int lodIndexOffset) throws BufferOverflowException, BufferUnderflowException {
+    public void loadMeshes(ByteBuffer bb, int lodVertexOffset, int lodIndexOffset, int VertexDataSize, int IndexDataSize) throws BufferOverflowException, BufferUnderflowException {
 
         ByteBuffer bbTemp;
 
         //Vert Table
-        for (int i = 0; i < numBuffers; i++) {
+        for (int i = 0; i < VertexBufferCount; i++) {
             //lodVertexOffset + vertexBufferOffsets[i]の値がbb.limit()を超え例外が発生している
-            if (bb.limit()>lodVertexOffset + vertexBufferOffsets[i]){
-                bb.position(lodVertexOffset + vertexBufferOffsets[i]);
+            bb.position(lodVertexOffset);
+            if (bb.limit() > lodVertexOffset + VertexOffsets[i]){
+                bb.position(lodVertexOffset + VertexOffsets[i]);
                 bbTemp = bb.duplicate();
-                bbTemp.limit(bbTemp.position() + ((vertexSizes[i] * numVerts)));
+                //bbTemp.limit(bbTemp.position() + VertexOffsets[i]);
+
+                if(lodVertexOffset + VertexDataSize >= bbTemp.position() + ((BytesPerVertexPerBuffer[i] * VertexCount))) {
+                    bbTemp.limit(bbTemp.position() + ((BytesPerVertexPerBuffer[i] * VertexCount)));
+                }else{
+                    bbTemp.limit(bbTemp.position());
+                }
 
                 vertBuffers[i].put(bbTemp);
             }
         }
         //Index Table
-        if (bb.limit()>lodIndexOffset + (indexBufferOffset * 2)){
-            bb.position(lodIndexOffset + (indexBufferOffset * 2));
+        if (bb.limit()>lodIndexOffset + (IndexBufferOffset * 2)){
+            bb.position(lodIndexOffset + (IndexBufferOffset * 2));
             bbTemp = bb.duplicate();
-            bbTemp.limit(bbTemp.position() + (2 * numIndex));
+            if(IndexDataSize >= (2 * IndexCount))
+            {
+                bbTemp.limit(bbTemp.position() + (2 * IndexCount));
+            }else{
+                bbTemp.limit(bbTemp.position() + IndexDataSize);
+            }
 
             indexBuffer.put(bbTemp);
         }

@@ -114,7 +114,7 @@ public class Path_to_Hash_Window extends JFrame {
         } catch (SQLException e1) {
             Utils.getGlobalLogger().error(e1);
         }
-        boolean result = false;
+        int result = 0;
         if (pathCheck == 2){
             //ファイルパスとファイル名を強制的に追加
             result = HashDatabase.addPathToDB(path, currentIndex.getName(), HashDatabase.globalConnection,true);
@@ -124,13 +124,27 @@ public class Path_to_Hash_Window extends JFrame {
             result = HashDatabase.addFolderToDB(folder, currentIndex.getName(),true);
         }
 
-        if (result) {
+        if (result == 1) {
             JOptionPane.showMessageDialog(this,
                     "データベースにパスを追加しました。",
                     "HashListデータベース",
                     JOptionPane.INFORMATION_MESSAGE);
-        }
-        else {
+        }else if(result == 2)  {
+            JOptionPane.showMessageDialog(this,
+                    "データベースのファイル名を変更しました。",
+                    "HashListデータベース",
+                    JOptionPane.INFORMATION_MESSAGE);
+        }else if(result == 3)  {
+            JOptionPane.showMessageDialog(this,
+                    "データベースのファイルパスを変更しました。",
+                    "HashListデータベース",
+                    JOptionPane.INFORMATION_MESSAGE);
+        }else if(result == 4)  {
+            JOptionPane.showMessageDialog(this,
+                    "パスはすでに登録済みです。",
+                    "HashListデータベース",
+                    JOptionPane.INFORMATION_MESSAGE);
+        }else if(result == 0)  {
             JOptionPane.showMessageDialog(this,
                     "データベースにパスを追加できませんでした。",
                     "HashListデータベース",

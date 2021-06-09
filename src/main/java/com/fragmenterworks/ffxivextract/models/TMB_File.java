@@ -39,7 +39,6 @@ public class TMB_File extends Game_File {
         String signatureString = getString(bb); //TMLB
         int fileSize = bb.getInt(); //ファイルサイズ
         int chunkMax = bb.getInt(); //データチャンク数
-
         if (!signatureString.equals("TMLB")) {
             Utils.getGlobalLogger().error("TMLB magic was incorrect.");
             Utils.getGlobalLogger().debug("Magic was {}", signatureString);
@@ -49,9 +48,18 @@ public class TMB_File extends Game_File {
             int chunkStartOffset = bb.position();
             String signatureString2 = getString(bb);  //TMDH等
             int chunkSize = bb.getInt(); //チャンクヘッダサイズ
-            bb.getInt(); //不明 何かのID TMAL以外
+            if (signatureString2.equals("TMAL")) {
+                int tmalOffset = bb.getInt(); //TMALオフセット
+                bb.getInt(); //チャンクID？
+                if (tmalOffset != 1) {
+                    bb.position(chunkStartOffset + tmalOffset);
+                    break;
+                }
+            }else {
+                bb.getInt(); //不明 チャンクID？ TMAL以外
+            }
             bb.getInt(); //不明 オフセット？
-            if (!signatureString.equals("TMAC")) {
+            if (signatureString2.equals("TMAC")) {
                 bb.getInt(); //不明
                 int tmacDataSize = bb.getInt(); //TMACデータ部サイズ？
                 bb.getInt(); //TMTRチャンク数
@@ -95,40 +103,43 @@ public class TMB_File extends Game_File {
             if (modelString.contains(".")) {
                 //tmbファイル中のパスを登録
                 String archive = HashDatabase.getArchiveID(modelString);
-                HashDatabase.addPathToDB(modelString, archive);
-                if (currentIndex.getName().equals(archive)){
-                    temp_IndexFile = currentIndex;
-                }else{
-                    try {
-                        if (sp_IndexFile == null || !sp_IndexFile.getName().equals(archive)) {
-                            sp_IndexFile = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\" + archive + ".win32.index", true);
+                if (!archive.equals("*")) {
+                    HashDatabase.addPathToDB(modelString, archive);
+                    if (currentIndex.getName().equals(archive)) {
+                        temp_IndexFile = currentIndex;
+                    } else {
+                        try {
+                            if (sp_IndexFile == null || !sp_IndexFile.getName().equals(archive)) {
+                                sp_IndexFile = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\" + archive + ".win32.index", true);
+                            }
+                            temp_IndexFile = sp_IndexFile;
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
-                        temp_IndexFile = sp_IndexFile;
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
 
-                }
-                if (modelString.endsWith(".mdl")) {
-                    //mdlファイル内のパスも解析
-                    try {
-                        byte[] data2 = temp_IndexFile.extractFile(modelString);
-                        Model tempModel = new Model(modelString, temp_IndexFile, data2, temp_IndexFile.getEndian());
-                        tempModel.loadVariant(1); //mdlファイルに関連するmtrlとtexの登録を試みる。
-                    } catch (Exception modelException) {
-                        modelException.printStackTrace();
                     }
-                }else if (modelString.endsWith(".avfx")) {
-                    try {
-                        //avfxファイル内のパスも解析
-                        byte[] data2 = temp_IndexFile.extractFile(modelString);
-                        AVFX_File avfxFile = new AVFX_File(temp_IndexFile, data2, temp_IndexFile.getEndian());
-                        avfxFile.regHash(true);
-                    } catch (Exception avfxException) {
-                        avfxException.printStackTrace();
+                    if (modelString.endsWith(".mdl")) {
+                        //mdlファイル内のパスも解析
+                        try {
+                            byte[] data2 = temp_IndexFile.extractFile(modelString);
+                            Model tempModel = new Model(modelString, temp_IndexFile, data2, temp_IndexFile.getEndian());
+                            tempModel.loadVariant(1); //mdlファイルに関連するmtrlとtexの登録を試みる。
+                        } catch (Exception modelException) {
+                            modelException.printStackTrace();
+                        }
+                    } else if (modelString.endsWith(".avfx")) {
+                        try {
+                            //avfxファイル内のパスも解析
+                            byte[] data2 = temp_IndexFile.extractFile(modelString);
+                            AVFX_File avfxFile = new AVFX_File(temp_IndexFile, data2, temp_IndexFile.getEndian());
+                            avfxFile.regHash(true);
+                        } catch (Exception avfxException) {
+                            avfxException.printStackTrace();
+                        }
                     }
+                }else{
+                    Utils.getGlobalLogger().error("TMBファイルの定義が間違っているかも");
                 }
-
             }
         }
     }

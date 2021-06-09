@@ -89,8 +89,8 @@ public class WavefrontObjectWriter {
         ByteBuffer vertBuffer = mesh.vertBuffers[vertElement.stream];
         vertBuffer.order(endian);
 
-        for (int i = 0; i < mesh.numVerts; i++) {
-            vertBuffer.position((i * mesh.vertexSizes[vertElement.stream]) + vertElement.offset);
+        for (int i = 0; i < mesh.VertexCount; i++) {
+            vertBuffer.position((i * mesh.BytesPerVertexPerBuffer[vertElement.stream]) + vertElement.offset);
 
             if (vertElement.datatype == 13 || vertElement.datatype == 14)
                 out.write(String.format("v %f %f %f \r\n", Utils.convertHalfToFloat(vertBuffer.getShort()), Utils.convertHalfToFloat(vertBuffer.getShort()), Utils.convertHalfToFloat(vertBuffer.getShort())));
@@ -107,8 +107,8 @@ public class WavefrontObjectWriter {
         ByteBuffer vertBuffer = mesh.vertBuffers[normalElement.stream];
         vertBuffer.order(endian);
 
-        for (int i = 0; i < mesh.numVerts; i++) {
-            vertBuffer.position((i * mesh.vertexSizes[normalElement.stream]) + normalElement.offset);
+        for (int i = 0; i < mesh.VertexCount; i++) {
+            vertBuffer.position((i * mesh.BytesPerVertexPerBuffer[normalElement.stream]) + normalElement.offset);
             out.write(String.format("vn %f %f %f \r\n", Utils.convertHalfToFloat(vertBuffer.getShort()), Utils.convertHalfToFloat(vertBuffer.getShort()), Utils.convertHalfToFloat(vertBuffer.getShort())));
         }
 
@@ -121,8 +121,8 @@ public class WavefrontObjectWriter {
         ByteBuffer vertBuffer = mesh.vertBuffers[texCoordElement.stream];
         vertBuffer.order(endian);
 
-        for (int i = 0; i < mesh.numVerts; i++) {
-            vertBuffer.position((i * mesh.vertexSizes[texCoordElement.stream]) + texCoordElement.offset);
+        for (int i = 0; i < mesh.VertexCount; i++) {
+            vertBuffer.position((i * mesh.BytesPerVertexPerBuffer[texCoordElement.stream]) + texCoordElement.offset);
             out.write(String.format("vt %f %f \r\n", Utils.convertHalfToFloat(vertBuffer.getShort()), Utils.convertHalfToFloat(vertBuffer.getShort()) * -1));
         }
 
@@ -136,7 +136,7 @@ public class WavefrontObjectWriter {
         indexBuffer.position(0);
         indexBuffer.order(endian);
 
-        for (int i = 0; i < mesh.numIndex; i += 3) {
+        for (int i = 0; i < mesh.IndexCount; i += 3) {
             int ind1 = indexBuffer.getShort() + 1;
             int ind2 = indexBuffer.getShort() + 1;
             int ind3 = indexBuffer.getShort() + 1;

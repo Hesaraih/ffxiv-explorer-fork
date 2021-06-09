@@ -62,8 +62,9 @@ public class Image_View extends JPanel {
         try {
             BufferedImage preview = currentTexture.decode(index, null);
             imgPreviewCanvas.setImage(preview);
-            if (currentTexture.compressionType == 0x2460)
+            if (currentTexture.compressionType == 0x2460) {
                 imgPreviewCanvas.setHighQualityRenderingEnabled(false);
+            }
         } catch (ImageDecodingException e) {
             Utils.getGlobalLogger().error(e);
         }

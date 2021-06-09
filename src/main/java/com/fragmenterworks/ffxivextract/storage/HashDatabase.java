@@ -102,20 +102,28 @@ public class HashDatabase {
      * hashlist.dbにフォルダパスのみ追加(カプセル化)
      * @param folderName フォルダ名
      * @param archive  Indexファイル名
+     * @return 登録結果 0:登録失敗 1:登録成功 2:ファイル名変更 3:ファイルパス変更 4:登録済みのため何もしない
      */
     @SuppressWarnings("unused")
-    public static void addFolderToDB(String folderName, String archive) {
-        addFolderToDB(folderName, archive, false);
+    public static int addFolderToDB(String folderName, String archive) {
+        return addFolderToDB(folderName, archive, false);
     }
 
-    public static boolean addFolderToDB(String folderName, String archive, boolean ForcedDB) {
+    /**
+     * フォルダパスのみ追加
+     * @param folderName フォルダ名
+     * @param archive   Indexファイル名
+     * @param ForcedDB 強制登録フラグ
+     * @return 登録結果 0:登録失敗 1:登録成功 2:ファイル名変更 3:ファイルパス変更 4:登録済みのため何もしない
+     */
+    public static int addFolderToDB(String folderName, String archive, boolean ForcedDB) {
         Connection conn;
         if (globalConnection == null) {
             try {
                 conn = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
             } catch (Exception e) {
                 Utils.getGlobalLogger().error(e);
-                return false;
+                return 0;
             }
         }else{
             conn = globalConnection;
@@ -128,16 +136,16 @@ public class HashDatabase {
      * dbに追加するために使用 パスとファイル名に分割し自動的にハッシュ
      * @param fullPath フルパス名
      * @param archive Indexファイル名
-     * @return 追加成功可否
+     * @return 登録結果 0:登録失敗 1:登録成功 2:ファイル名変更 3:ファイルパス変更 4:登録済みのため何もしない
      */
-    public static boolean addPathToDB(String fullPath, String archive) {
+    public static int addPathToDB(String fullPath, String archive) {
         Connection conn;
         if (globalConnection == null) {
             try {
                 conn = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
             } catch (Exception e) {
                 Utils.getGlobalLogger().error(e);
-                return false;
+                return 0;
             }
         }else{
             conn = globalConnection;
@@ -151,13 +159,13 @@ public class HashDatabase {
      * @param fullPath フルパス名
      * @param archive Indexファイル名
      * @param conn データベースのコネクタ
-     * @return 追加成功可否
+     * @return 登録結果 0:登録失敗 1:登録成功 2:ファイル名変更 3:ファイルパス変更 4:登録済みのため何もしない
      */
-    public static boolean addPathToDB(String fullPath, String archive, Connection conn) {
+    public static int addPathToDB(String fullPath, String archive, Connection conn) {
         return addPathToDB(fullPath, archive, conn,false);
     }
 
-    public static boolean addPathToDB(String fullPath, String archive, Connection conn, boolean ForcedDB) {
+    public static int addPathToDB(String fullPath, String archive, Connection conn, boolean ForcedDB) {
         return addPathToDB(fullPath, archive, conn, ForcedDB,false);
     }
 
@@ -168,13 +176,16 @@ public class HashDatabase {
      * @param archive Indexファイル名
      * @param conn データベースのコネクタ
      * @param ForcedDB 強制追加モード true:強制上書き追加、false:hashが一致していた場合追加しない
-     * @return 追加成功可否
+     * @return 登録結果 0:登録失敗 1:登録成功 2:ファイル名変更 3:ファイルパス変更 4:登録済みのため何もしない
      */
-    public static boolean addPathToDB(String fullPath, String archive, Connection conn, boolean ForcedDB, boolean IsFolder) {
+    public static int addPathToDB(String fullPath, String archive, Connection conn, boolean ForcedDB, boolean IsFolder) {
 
         String folder;
         String filename = "";
+        boolean IsFileOnly = false;
+        int result = 1;
         if (IsFolder){
+            //フォルダのみの処理
             if (fullPath.endsWith("/")) {
                 folder = fullPath.substring(0, fullPath.length() - 1);
             }else{
@@ -192,6 +203,11 @@ public class HashDatabase {
         String filename_L = filename.toLowerCase(); //hash値計算用
 
         int folderHash = computeCRC(folder_L.getBytes(), 0, folder_L.getBytes().length);
+        if (folder.startsWith("~")){
+            String hex = folder.replace("~","");
+            folderHash = Integer.decode(hex);
+            IsFileOnly = true;
+        }
         int fileHash = 0;
         if (!IsFolder) {
             fileHash = computeCRC(filename_L.getBytes(), 0, filename_L.getBytes().length);
@@ -213,7 +229,7 @@ public class HashDatabase {
         if (IsHashRegistered){
             String regFolder = folders.get((long) folderHash);
 
-            if (regFolder.equals(folder)){
+            if (regFolder.equals(folder) || IsFileOnly){
                 //同じパス名が登録済みのため処理終了、ファイル名は違うかもしれないがHashは一致
                 //ファイル名の上書き保存については強制登録を使用し明示的に実行したほうが安全なので自動化しない
                 //大文字小文字の置き換えのみ自動的に上書き
@@ -221,14 +237,14 @@ public class HashDatabase {
                     String regFile = files.get((long) fileHash);
                     if (regFile.equalsIgnoreCase(filename) && !regFile.equals(filename)){
                         //大文字・小文字が違う時のみ
-                        Utils.getGlobalLogger().debug("ファイル名を変更(上書き)します{} => {}", regFile, fullPath);
+                        Utils.getGlobalLogger().info("ファイル名を変更(上書き)します{} => {}", regFile, fullPath);
                     }else{
                         //ファイル名も完全一致している場合
-                        return true;
+                        return 2;
                     }
                 }else{
                     //フォルダパスのみの登録実行時に既に同じパスが存在している場合
-                    return true;
+                    return 4;
                 }
             }else {
                 //同じHash値なのにパスが異なる時
@@ -251,10 +267,12 @@ public class HashDatabase {
                 }
 
                 //パスのみ変更する。(同Hash値、異パス名は存在しないはず:存在してもどちらかが間違い)
-                Utils.getGlobalLogger().debug("パスを変更(上書き)します{} => {}", regFolder, fullPath);
+                Utils.getGlobalLogger().info("パスを変更(上書き)します{} => {}", regFolder, fullPath);
+                result = 3;
             }
         }else{
-            Utils.getGlobalLogger().debug("{}をエントリーに追加しています", fullPath);
+            Utils.getGlobalLogger().info("{}をエントリーに追加しています", fullPath);
+            result = 1;
         }
 
 
@@ -267,15 +285,17 @@ public class HashDatabase {
                 conn = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
             } catch (Exception e) {
                 Utils.getGlobalLogger().error(e);
-                return false;
+                return 0;
             }
         }
 
         try {
             Statement statement = conn.createStatement();
             statement.setQueryTimeout(30); //タイムアウトを30秒に設定
-            statement.executeUpdate(String.format("insert or ignore into folders values(%d, '%s', 0, '%s', '%s')", folderHash, folder, archive, Constants.DB_VERSION_CODE));
-            statement.executeUpdate(String.format("UPDATE  folders set path = '%s' where hash = %d and archive = '%s'", folder, folderHash, archive));
+            if (!IsFileOnly) {
+                statement.executeUpdate(String.format("insert or ignore into folders values(%d, '%s', 0, '%s', '%s')", folderHash, folder, archive, Constants.DB_VERSION_CODE));
+                statement.executeUpdate(String.format("UPDATE  folders set path = '%s' where hash = %d and archive = '%s'", folder, folderHash, archive));
+            }
             if (!IsFolder) {
                 statement.executeUpdate(String.format("insert or ignore into filenames values(%d, '%s', 0, '%s', '%s')", fileHash, filename, archive, Constants.DB_VERSION_CODE));
                 statement.executeUpdate(String.format("UPDATE  filenames set name = '%s' where hash = %d and archive = '%s'", filename, fileHash, archive));
@@ -289,9 +309,9 @@ public class HashDatabase {
 
         } catch (SQLException e) {
             Utils.getGlobalLogger().error(e);
-            return false;
+            return 0;
         }
-        return true;
+        return result;
     }
 
     /**
@@ -312,7 +332,16 @@ public class HashDatabase {
                 return "020"+ fullPath.charAt(5) + fullPath.substring(7,9);
             }
         }
-        else if (fullPath.startsWith("cut/")){return "030000";}
+        else if (fullPath.startsWith("cut/")){
+            if (fullPath.charAt(6)=='x'){
+                //cut/ffxiv
+                return "030000";
+            }
+            else{
+                //cut/ex3/
+                return "030"+fullPath.charAt(6)+"00";
+            }
+        }
         else if (fullPath.startsWith("chara/")){return "040000";}
         else if (fullPath.startsWith("shader/")){return "050000";}
         else if (fullPath.startsWith("ui/")){return "060000";}
@@ -452,7 +481,7 @@ public class HashDatabase {
                         fullPath = line.substring(indexof + 2);
                     }
 
-                    if (HashDatabase.addPathToDB(fullPath, getArchiveID(fullPath), HashDatabase.globalConnection,true)) {
+                    if (HashDatabase.addPathToDB(fullPath, getArchiveID(fullPath), HashDatabase.globalConnection,true) == 1) {
                         count++;
                     }
                 } catch (java.lang.StringIndexOutOfBoundsException e) {
