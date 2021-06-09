@@ -24,3 +24,4 @@ bin/
 *.jar
 execonfig.xml
 *.cmp
+/.idea/
