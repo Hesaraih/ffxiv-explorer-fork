@@ -833,37 +833,31 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
             return;
         }
 
-        //TODO: refactor this to use byte magic
+        //ファイル名クリック時の動作(ファイル種別毎に分岐)
         if (data.length >= 3 && checkMagic(data, "EXDF")) {
             if (exhfComponent == null || !exhfComponent.isSame(file.getName())) {
                 exhfComponent = new EXDF_View(currentIndexFile, HashDatabase.getFolder(file.getId2()) + "/" + file.getName(), options_showAsHex.getState(), options_sortByOffset.getState());
             }
             tabs.addTab("EXDF File", exhfComponent);
         } else if (data.length >= 3 && checkMagic(data, "EXHF")) {
-            try {
-                if (exhfComponent == null || !exhfComponent.isSame(file.getName())) {
-                    exhfComponent = new EXDF_View(currentIndexFile, HashDatabase.getFolder(file.getId2()) + "/" + file.getName(), new EXHF_File(data), options_showAsHex.getState(), options_sortByOffset.getState());
-                }
-                tabs.addTab("EXHF File", exhfComponent);
-            } catch (IOException e) {
-                Utils.getGlobalLogger().error(e);
+            if (exhfComponent == null || !exhfComponent.isSame(file.getName())) {
+                exhfComponent = new EXDF_View(currentIndexFile, HashDatabase.getFolder(file.getId2()) + "/" + file.getName(), new EXHF_File(data), options_showAsHex.getState(), options_sortByOffset.getState());
             }
+            tabs.addTab("EXHF File", exhfComponent);
+        } else if (data.length >= 4 && checkMagic(data, "ENVB")) {
+            new ENVB_File(currentIndexFile, data, currentIndexFile.getEndian());
+        } else if (data.length >= 4 && checkMagic(data, "ESSB")) {
+            new ENVB_File(currentIndexFile, data, currentIndexFile.getEndian());
+        } else if (data.length >= 4 && checkMagic(data, "OBSB")) {
+            new ENVB_File(currentIndexFile, data, currentIndexFile.getEndian());
         } else if (data.length >= 8 && checkMagic(data, "SEDBSSCF")) {
             Sound_View scdComponent;
-            try {
-                scdComponent = new Sound_View(new SCD_File(data, currentIndexFile.getEndian()));
-                tabs.addTab("SCD File", scdComponent);
-            } catch (IOException e) {
-                Utils.getGlobalLogger().error(e);
-            }
+            scdComponent = new Sound_View(new SCD_File(data, currentIndexFile.getEndian()));
+            tabs.addTab("SCD File", scdComponent);
         } else if (data.length >= 4 && checkMagic(data, "CUTB")) {
-            try {
-                @SuppressWarnings("unused")
-                CUTB_File cutbFile = new CUTB_File(currentIndexFile, data, currentIndexFile.getEndian());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            new CutbFile(currentIndexFile, data, currentIndexFile.getEndian());
         } else if (data.length >= 4 && checkMagic(data, "XFVA")) {
+            //avfxファイル
             AVFX_File avfxFile = new AVFX_File(currentIndexFile, data, currentIndexFile.getEndian());
             avfxFile.regHash();
         } else if (data.length >= 4 && contentType == 2 && file.getName().endsWith("mtrl")) {
@@ -873,65 +867,51 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
                 ||(data.length >= 4 && (data[0]==0 && data[1]==0 && data[2] == (byte)0x80 && data[3] == 0))) {
             Image_View imageComponent = new Image_View(new Texture_File(data, currentIndexFile.getEndian()));
             tabs.addTab("テクスチャ", imageComponent);
+        } else if (data.length >= 4 && checkMagic(data, "LGB1")) {
+            //lgbファイル
+            new LgbFile(currentIndexFile, data, currentIndexFile.getEndian());
+        } else if (data.length >= 4 && checkMagic(data, "LVB1")) {
+            //lvbファイル
+            new LvbFile(currentIndexFile, data, currentIndexFile.getEndian());
+        } else if (data.length >= 4 && checkMagic(data, "LCB1")) {
+            //lcbファイル
+            new LcbFile(data, currentIndexFile.getEndian());
+        } else if (data.length >= 4 && checkMagic(data, "SVB1")) {
+            //svbファイル
+            new SvbFile(data, currentIndexFile.getEndian());
+        } else if (data.length >= 4 && checkMagic(data, "UWB1")) {
+            //uwbファイル
+            new UwbFile(data, currentIndexFile.getEndian());
         } else if (data.length >= 5 && checkMagic(data, "LuaQ", 1)) {
-            //TODO: double-check this if you ever feel like working on SDAT
-            try {
-                Lua_View luaView;
+            //Luaのデコンパイル
+            String text = getDecompiledLuaString(data);
 
-                String text = getDecompiledLuaString(data);
-
-                luaView = new Lua_View(("-- unluac_2021_04_09 1.2.3.446 by tehtmi (https://sourceforge.net/projects/unluac/)を使用して逆コンパイルしました。\n" + text).split("\\r?\\n"));
-                tabs.addTab("Lua(デコンパイル)", luaView);
-            } catch (Exception e) {
-                Utils.getGlobalLogger().error(e);
-            }
+            Lua_View luaView = new Lua_View(("-- unluac_2021_04_09 1.2.3.446 by tehtmi (https://sourceforge.net/projects/unluac/)を使用して逆コンパイルしました。\n" + text).split("\\r?\\n"));
+            tabs.addTab("Lua(デコンパイル)", luaView);
         } else if (data.length >= 4 && checkMagic(data, "pap ")) {
-            try {
-                PAP_View papView = new PAP_View(new PAP_File(data, currentIndexFile.getEndian()));
-                tabs.addTab("アニメーションファイル", papView);
-            } catch (IOException e) {
-                Utils.getGlobalLogger().error(e);
-            }
+            PAP_View papView = new PAP_View(new PAP_File(currentIndexFile, data, currentIndexFile.getEndian()));
+            tabs.addTab("アニメーションファイル", papView);
         } else if (data.length >= 4 && checkMagic(data, "ShCd")) {
-            try {
-                Shader_View shaderView = new Shader_View(new SHCD_File(data, currentIndexFile.getEndian()));
-                tabs.addTab("シェーダーファイル", shaderView);
-            } catch (IOException e) {
-                Utils.getGlobalLogger().error(e);
-            }
+            Shader_View shaderView = new Shader_View(new SHCD_File(data, currentIndexFile.getEndian()));
+            tabs.addTab("シェーダーファイル", shaderView);
         } else if (data.length >= 4 && checkMagic(data, "ShPk")) {
-            try {
-                Shader_View shaderView = new Shader_View(new SHPK_File(data, currentIndexFile.getEndian()));
-                tabs.addTab("シェーダーパック", shaderView);
-            } catch (IOException e) {
-                Utils.getGlobalLogger().error(e);
-            }
+            Shader_View shaderView = new Shader_View(new SHPK_File(data, currentIndexFile.getEndian()));
+            tabs.addTab("シェーダーパック", shaderView);
         } else if (data.length >= 4 && checkMagic(data, "imc ")) {
             //file.getName().endsWith(".imc")
             IMC_View imcView = new IMC_View(new IMC_File(data, currentIndexFile.getEndian()));
             tabs.addTab("モデル情報ファイル", imcView);
         } else if (data.length >= 4 && checkMagic(data, "SGB1")) {
-            try {
-                @SuppressWarnings("unused")
-                SGB_File sgbFile = new SGB_File(currentIndexFile, data, currentIndexFile.getEndian());
-            } catch (IOException e) {
-                Utils.getGlobalLogger().error(e);
-            }
+            //sgbファイル
+            new SgbFile(currentIndexFile, data, currentIndexFile.getEndian());
         } else if (data.length >= 4 && checkMagic(data, "TMLB")) {
-            try {
-                @SuppressWarnings("unused")
-                TMB_File tmbFile = new TMB_File(currentIndexFile, data, currentIndexFile.getEndian());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            new TmbFile(currentIndexFile, data, currentIndexFile.getEndian());
         } else if (data.length >= 4 && checkMagic(data, "uldh")) {
-            try {
-                ULD_View uldView = new ULD_View(new ULD_File(currentIndexFile, data, currentIndexFile.getEndian()));
-                tabs.addTab("ULDレンダラー", uldView);
-            } catch (Exception e) {
-                Utils.getGlobalLogger().error(e);
-            }
+            //uldファイル
+            ULD_View uldView = new ULD_View(new ULD_File(currentIndexFile, data, currentIndexFile.getEndian()));
+            tabs.addTab("ULDレンダラー", uldView);
         } else if (file.getName().equals("human.cmp")) {
+            //cmpファイル(1ファイルしかない)
             CMP_File cmpFile = new CMP_File(data);
             CMP_View cmpView = new CMP_View(cmpFile);
             tabs.addTab("CMP Viewer", cmpView);
@@ -1282,8 +1262,8 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
                                 continue;
                             case ".hkx":
                                 if (data.length >= 4 && data[0] == 'p' && data[1] == 'a' && data[2] == 'p' && data[3] == ' ') {
-                                    PAP_File pap = new PAP_File(data, currentIndexFile.getEndian());
-                                    dataToSave = pap.getHavokData();
+                                    PAP_File pap = new PAP_File(currentIndexFile, data, currentIndexFile.getEndian());
+                                    dataToSave = pap.HavokData;
                                 } else if (data.length >= 4 && data[0] == 'b' && data[1] == 'l' && data[2] == 'k' && data[3] == 's') {
                                     SKLB_File pap = new SKLB_File(data, currentIndexFile.getEndian());
                                     dataToSave = pap.getHavokData();
