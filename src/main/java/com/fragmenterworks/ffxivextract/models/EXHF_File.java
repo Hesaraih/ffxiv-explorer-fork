@@ -2,9 +2,6 @@ package com.fragmenterworks.ffxivextract.models;
 
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -24,23 +21,8 @@ public class EXHF_File extends Game_File {
     private int numEntries = 0;
     private int trueNumEntries = 0;
 
-    public EXHF_File(byte[] data) throws IOException {
+    public EXHF_File(byte[] data){
         super(ByteOrder.BIG_ENDIAN);
-        loadEXHF(data);
-    }
-
-    @SuppressWarnings("unused")
-    public EXHF_File(String path) throws IOException {
-        super(ByteOrder.BIG_ENDIAN);
-        File file = new File(path);
-        byte[] data;
-        try (FileInputStream fis = new FileInputStream(file)) {
-            data = new byte[(int) file.length()];
-            while (fis.read(data) != -1){
-                Utils.getGlobalLogger().debug("EXHF読み取り");
-            }
-        }
-
         loadEXHF(data);
     }
 

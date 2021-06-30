@@ -3,9 +3,6 @@ package com.fragmenterworks.ffxivextract.models;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.models.directx.D3DXShader_ConstantTable;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -22,21 +19,7 @@ public class SHCD_File extends Game_File {
 
     private D3DXShader_ConstantTable constantTable;
 
-    @SuppressWarnings("unused")
-    public SHCD_File(String path, ByteOrder endian) throws IOException {
-        super(endian);
-        File file = new File(path);
-        byte[] data;
-        try (FileInputStream fis = new FileInputStream(file)) {
-            data = new byte[(int) file.length()];
-            while (fis.read(data) != -1) {
-                Utils.getGlobalLogger().debug("SHCD読み取り");
-            }
-        }
-        loadSHPK(data);
-    }
-
-    public SHCD_File(byte[] data, ByteOrder endian) throws IOException {
+    public SHCD_File(byte[] data, ByteOrder endian){
         super(endian);
         loadSHPK(data);
     }

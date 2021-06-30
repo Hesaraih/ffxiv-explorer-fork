@@ -24,7 +24,7 @@ public class ULD_File extends Game_File {
     @SuppressWarnings({"FieldCanBeLocal", "unused"})
     private static SqPack_IndexFile currentIndex;
 
-    public SqPack_IndexFile spIndex = currentIndex;
+    public SqPack_IndexFile spIndex;
 
     /**
      * グラフィカルノード パーサ(構文解析器)の一覧
@@ -288,7 +288,7 @@ public class ULD_File extends Game_File {
                     //ファイル登録
                     String archive = HashDatabase.getArchiveID(path);
                     if (!archive.equals("*")) {
-                        if (currentIndex.existsFile2(path) == 2) {
+                        if (currentIndex.findFile(path) == 2) {
                             HashDatabase.addPathToDB(path, archive);
                         }
                     }
@@ -324,7 +324,7 @@ public class ULD_File extends Game_File {
                                     iconPath2 = String.format("ui/icon/%06d/%s%06d_hr1.tex",pathNum, lang, iconID); //高画質用
 
                                     //ui/icon登録
-                                    if (currentIndex.existsFile2(iconPath) == 2) {
+                                    if (currentIndex.findFile(iconPath) == 2) {
                                         HashDatabase.addPathToDB(iconPath, "060000");
                                         HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
                                     }
@@ -336,7 +336,7 @@ public class ULD_File extends Game_File {
                                 iconPath2 = String.format("ui/icon/%06d/ja/%06d_hr1.tex",pathNum, iconID); //高画質用
                             }
                         }
-                        if (currentIndex.existsFile2(iconPath) == 2) {
+                        if (currentIndex.findFile(iconPath) == 2) {
                             HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
                         }
                         //高画質表示したい時は以下でiconPath2をpathに代入
@@ -349,7 +349,7 @@ public class ULD_File extends Game_File {
                     //ファイル登録
                     String archive = HashDatabase.getArchiveID(path);
                     if (!archive.equals("*")) {
-                        if (currentIndex.existsFile2(path) == 2) {
+                        if (currentIndex.findFile(path) == 2) {
                             HashDatabase.addPathToDB(path, archive);
                         }
                     }

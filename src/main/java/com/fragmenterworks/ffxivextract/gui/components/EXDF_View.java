@@ -35,6 +35,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
     //EXH Context
 	private SqPack_IndexFile currentIndex;
+    private static SqPack_IndexFile sp_IndexFile;
     private EXHF_File exhFile = null;
     private EXDF_File[] exdFile = null;
 
@@ -68,7 +69,6 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         this.currentIndex = currentIndex;
         this.showAsHex = showAsHex;
 
-        //TODO 多分これをその場で交換することを実装します
         this.sortByOffset = sortByOffset;
 
         fullPath = fullPath.toLowerCase();
@@ -137,8 +137,6 @@ public class EXDF_View extends JScrollPane implements ItemListener {
     public EXDF_View(SqPack_IndexFile currentIndex, String fullPath, EXHF_File file, boolean showAsHex, boolean sortByOffset) {
 
         this();
-
-        //fullPath = fullPath.toLowerCase();
 
         this.currentIndex = currentIndex;
         this.exhFile = file;
@@ -443,7 +441,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
             }
         }
 
-        //列見出し作成
+        //列見出し取得
         @Override
         public String getColumnName(int column) {
             if (column == 0) {
@@ -557,6 +555,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                             if ((exhName.equals("ENpcDressUpDress.exh") && columnIndex > 40)
                                     || (exhName.equals("NpcEquip.exh") && columnIndex >= 4)
                                     || (exhName.equals("BenchmarkOverrideEquipment.exh") && columnIndex >= 10)){
+                                //特殊なUIntを含むファイルの処理
                                 int[] dual = entry.getDual(dataset.offset);
                                 return dual[1] + ", " + dual[0];
                             }
@@ -659,14 +658,23 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                 return "Bool";
             case 0x00: // STRING; データセット部の終わりからオフセットするポイント。 0x0まで読む
                 //return new String(entry.getString(exhFile.getDatasetChunkSize(), dataset.offset));
-                return "String";
+                return "XivString";
             default:
                 return "unknown";
         }
     }
 
+    /**
+     * Item.exhを読み込んだ時にWeapon,equipment,accessoryのmdlファイルを登録するためのメソッド
+     * ※現在未使用
+     */
     @SuppressWarnings("unused")
     public void addAllWeaponModels() {
+        try {
+            sp_IndexFile = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\040000.win32.index", true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         //データ書き込み
         for (int row = 0; row < table.getRowCount(); row++) {
 
@@ -681,63 +689,58 @@ public class EXDF_View extends JScrollPane implements ItemListener {
             String path = null, path2 = null;
             int[] chara_id = new int[] { 101, 103, 104, 201, 204, 301, 401, 501, 504, 601, 604, 701, 801, 804, 901, 1001, 1101, 1201, 1301, 1304, 1401, 1404, 1501, 1801, 9104, 9204 };
 
-            switch (slot) {
-                case 13: //Weapon：副
-                case 2: //Weapon：主
-                    HashDatabase.addPathToDB(String.format("chara/weapon/w%04d/obj/body/b%04d/model/w%04db%04d.mdl", model1[0], model1[1], model1[0], model1[1]), "040000");
-                    break;
-                case 3: //Equipment:頭
-                    for (int humanID : chara_id){
-                        HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c%04de%04d_%s.mdl", model1[0], humanID, model1[0], "met"), "040000");
-                    }
-                    break;
-                case 5: //Equipment:手
-                    for (int humanID : chara_id){
-                        HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c%04de%04d_%s.mdl", model1[0], humanID, model1[0], "glv"), "040000");
-                    }
-                    break;
-                case 6: //Equipment:腰
-                    break;
-                case 7: //Equipment:脚
-                    for (int humanID : chara_id){
-                        HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c%04de%04d_%s.mdl", model1[0], humanID, model1[0], "dwn"), "040000");
-                    }
-                    break;
-                case 8: //Equipment:足
-                    for (int humanID : chara_id){
-                        HashDatabase.addPathToDB(String.format("chara/equipment/e%04d/model/c%04de%04d_%s.mdl", model1[0], humanID, model1[0], "sho"), "040000");
-                    }
-                    break;
-                case 9: //Accessory：耳
-                    for (int humanID : chara_id){
-                        HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "ear"), "040000");
-                    }
-                    break;
-                case 10: //Accessory：首
-                    for (int humanID : chara_id){
-                        HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "nek"), "040000");
-                    }
-                    break;
-                case 11: //Accessory：腕
-                    for (int humanID : chara_id) {
-                        HashDatabase.addPathToDB(String.format("chara/equipment/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "wrs"), "040000");
-                    }
-                    break;
-                case 12: //Accessory：指輪
-                    for (int humanID : chara_id) {
-                        HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "rir"), "040000"); //右
-                        HashDatabase.addPathToDB(String.format("chara/accessory/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "ril"), "040000"); //左
-                    }
-                    break;
-                default:
-                    continue;
-            }
+            for (int humanID : chara_id){
+                switch (slot) {
+                    case 13: //Weapon：副
+                    case 2: //Weapon：主
+                        path = String.format("chara/weapon/w%04d/obj/body/b%04d/model/w%04db%04d.mdl", model1[0], model1[1], model1[0], model1[1]);
+                        break;
+                    case 3: //Equipment:頭
+                        path = String.format("chara/equipment/e%04d/model/c%04de%04d_%s.mdl", model1[0], humanID, model1[0], "met");
+                        break;
+                    case 5: //Equipment:手
+                        path = String.format("chara/equipment/e%04d/model/c%04de%04d_%s.mdl", model1[0], humanID, model1[0], "glv");
+                        break;
+                    case 6: //Equipment:腰
+                        break;
+                    case 7: //Equipment:脚
+                        path = String.format("chara/equipment/e%04d/model/c%04de%04d_%s.mdl", model1[0], humanID, model1[0], "dwn");
+                        break;
+                    case 8: //Equipment:足
+                        path = String.format("chara/equipment/e%04d/model/c%04de%04d_%s.mdl", model1[0], humanID, model1[0], "sho");
+                        break;
+                    case 9: //Accessory：耳
+                        path =String.format("chara/equipment/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "ear");
+                        break;
+                    case 10: //Accessory：首
+                        path = String.format("chara/equipment/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "nek");
+                        break;
+                    case 11: //Accessory：腕
+                        path = String.format("chara/equipment/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "wrs");
+                        break;
+                    case 12: //Accessory：指輪
+                        path = String.format("chara/accessory/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "rir"); //右
+                        path2 = String.format("chara/accessory/a%04d/model/c%04da%04d_%s.mdl", model1[0], humanID, model1[0], "ril"); //左
+                        break;
+                    default:
+                        continue;
+                }
 
-            //noinspection ConstantConditions
-            if (path != null) {
-                HashDatabase.addPathToDB(path, "040000");
-                if (path2 != null) {
-                    HashDatabase.addPathToDB(path2, "040000");
+                if (path != null) {
+                    int pathCheck = sp_IndexFile.findFile(path);
+                    if (pathCheck == 2) {
+                        HashDatabase.addPathToDB(path, "040000");
+                        if (path2 != null) {
+                            pathCheck = sp_IndexFile.findFile(path);
+                            if (pathCheck == 2) {
+                                HashDatabase.addPathToDB(path2, "040000");
+                            }
+                        }
+                    }
+                }
+
+                if (slot == 13 || slot ==2) {
+                    break;
                 }
             }
         }

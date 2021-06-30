@@ -188,7 +188,7 @@ public class Path_to_Hash_Window extends JFrame {
         btnCalculate.setEnabled(false); //強制登録用のボタン無効化
 
         try {
-            pathCheck = currentIndex.existsFile2(path);
+            pathCheck = currentIndex.findFile(path);
             if (pathCheck == 2){
                 HashDatabase.addPathToDB(edtFullPath.getText(), currentIndex.getName());
                 border = BorderFactory.createLineBorder(Color.GREEN, 2);

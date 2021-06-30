@@ -298,7 +298,7 @@ public class HashFinding_Utils extends Component {
                 }
 
                 String archive = HashDatabase.getArchiveID(path);
-                if (sp_IndexFile.existsFile2(path) == 2) {
+                if (sp_IndexFile.findFile(path) == 2) {
                     HashDatabase.addPathToDB(path, archive);
                 }
             }
@@ -321,7 +321,7 @@ public class HashFinding_Utils extends Component {
                 }
 
                 String archive = HashDatabase.getArchiveID(path);
-                if (sp_IndexFile.existsFile2(path) == 2) {
+                if (sp_IndexFile.findFile(path) == 2) {
                     HashDatabase.addPathToDB(path, archive);
                 }
             }
@@ -561,7 +561,7 @@ public class HashFinding_Utils extends Component {
                     }
 
                     String archive = HashDatabase.getArchiveID(path);
-                    if (sp_IndexFile.existsFile2(path) == 2) {
+                    if (sp_IndexFile.findFile(path) == 2) {
                         int result = HashDatabase.addPathToDB(path, archive);
 
                         if (result == 1) {
@@ -600,7 +600,7 @@ public class HashFinding_Utils extends Component {
                         }
 
                         String archive = HashDatabase.getArchiveID(path);
-                        if (sp_IndexFile.existsFile2(path) == 2) {
+                        if (sp_IndexFile.findFile(path) == 2) {
                             int result = HashDatabase.addPathToDB(path, archive);
 
                             if (result == 1) {
@@ -645,7 +645,7 @@ public class HashFinding_Utils extends Component {
                     }
 
                     String archive = HashDatabase.getArchiveID(path);
-                    if (sp_IndexFile.existsFile2(path) == 2) {
+                    if (sp_IndexFile.findFile(path) == 2) {
                         int result = HashDatabase.addPathToDB(path, archive);
 
                         if (result == 1) {
@@ -683,7 +683,7 @@ public class HashFinding_Utils extends Component {
                     }
 
                     String archive = HashDatabase.getArchiveID(path);
-                    if (sp_IndexFile.existsFile2(path) == 2) {
+                    if (sp_IndexFile.findFile(path) == 2) {
                         int result = HashDatabase.addPathToDB(path, archive);
 
                         if (result == 1) {
@@ -721,7 +721,7 @@ public class HashFinding_Utils extends Component {
                     }
 
                     String archive = HashDatabase.getArchiveID(path);
-                    if (sp_IndexFile.existsFile2(path) == 2) {
+                    if (sp_IndexFile.findFile(path) == 2) {
                         int result = HashDatabase.addPathToDB(path, archive);
 
                         if (result == 1) {
@@ -750,7 +750,7 @@ public class HashFinding_Utils extends Component {
                     }
 
                     String archive = HashDatabase.getArchiveID(path);
-                    if (sp_IndexFile.existsFile2(path) == 2) {
+                    if (sp_IndexFile.findFile(path) == 2) {
                         int result = HashDatabase.addPathToDB(path, archive);
 
                         if (result == 1) {
@@ -895,119 +895,115 @@ public class HashFinding_Utils extends Component {
      * Mapハッシュ検索
      */
     public static void findMapHashes() {
+        byte[] exhData = null;
+        SqPack_IndexFile index = null;
+        SqPack_IndexFile index2 = null;
         try {
-            byte[] exhData = null;
-            SqPack_IndexFile index = null;
-            SqPack_IndexFile index2 = null;
-            try {
-                index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\0a0000.win32.index", true);
-                index2 = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\060000.win32.index", true);
-                exhData = index.extractFile("exd/map.exh");
-            } catch (IOException e) {
-                Utils.getGlobalLogger().error(e);
-            }
-
-            if (exhData == null) {
-                return;
-            }
-
-            EXHF_File exhfFile = new EXHF_File(exhData);
-            EXDF_View mapView = new EXDF_View(index, "exd/map.exh", exhfFile);
-
-            HashDatabase.beginConnection();
-            try {
-                HashDatabase.setAutoCommit(false);
-            } catch (SQLException e1) {
-                Utils.getGlobalLogger().error(e1);
-            }
-
-            //noinspection ConstantConditions
-            if (true){ //デバッグ用フラグ
-                //Map用テクスチャファイル登録
-                for (int i = 1; i < mapView.getTable().getRowCount(); i++) {
-                    String map = mapView.getTable().getValueAt(i, 7).toString();
-
-                    if (map == null || map.isEmpty()) {
-                        continue;
-                    }
-
-                    String mapFolder = "ui/map/" + map;
-
-                    if (!map.contains("/")) {
-                        continue;
-                    }
-
-                    String[] split = map.split("/");
-                    String[] mapTexEx = new String[]{"_m.tex","_s.tex","m_m.tex","m_s.tex","d.tex"};
-                    for (String mapEx :mapTexEx){
-                        String mapPath = mapFolder + "/" + split[0] + split[1] + mapEx;
-                        if (index2.existsFile2(mapPath) == 2) { //存在チェック
-                            HashDatabase.addPathToDB(mapPath, "060000", HashDatabase.globalConnection);
-                        }
-                    }
-                }
-                Utils.getGlobalLogger().info("Map検索完了");
-            }
-
-            //noinspection ConstantConditions
-            if (true){ //デバッグ用フラグ
-                int searchIconNum = 182000;
-
-                //ui/icon検索
-                boolean multiFlag = false;
-                for (int i = 0; i < searchIconNum; i++) {
-                    String iconPath;
-                    String iconPath2;
-                    //例：ui/icon/181000/ja/181001.tex
-                    String[] multi = {"ja/","en/","fr/","de/"};
-                    int pathNum = (i / 1000) * 1000;
-                    if (i < 20000 || (i >= 60000 && i < 120000) || (i >= 130000 && i < 150000)){
-                        iconPath = String.format("ui/icon/%06d/%06d.tex",pathNum, i);
-                        iconPath2 = String.format("ui/icon/%06d/%06d_hr1.tex",pathNum, i); //高画質用
-                    }else if (i < 60000){
-                        iconPath = String.format("ui/icon/%06d/%s%06d.tex",pathNum, "hq/", i);
-                        iconPath2 = String.format("ui/icon/%06d/%s%06d_hr1.tex",pathNum, "hq/", i); //高画質用
-                    }else{
-                        if ((i % 1000) == 0){multiFlag = true;}
-                        if (multiFlag){
-                            for (String lang :multi) {
-                                iconPath = String.format("ui/icon/%06d/%s%06d.tex",pathNum, lang, i);
-                                iconPath2 = String.format("ui/icon/%06d/%s%06d_hr1.tex",pathNum, lang, i); //高画質用
-
-                                if (index2.existsFile2(iconPath) == 2) { //存在チェック
-                                    //ui/icon登録
-                                    HashDatabase.addPathToDB(iconPath, "060000", HashDatabase.globalConnection);
-                                    HashDatabase.addPathToDB(iconPath2, "060000", HashDatabase.globalConnection); //高画質用
-                                }
-                                multiFlag = false;
-                            }
-                            continue;
-                        }else{
-                            iconPath = String.format("ui/icon/%06d/ja/%06d.tex",pathNum, i);
-                            iconPath2 = String.format("ui/icon/%06d/ja/%06d_hr1.tex",pathNum, i); //高画質用
-                        }
-
-                    }
-
-                    if (index2.existsFile2(iconPath) == 2) { //存在チェック
-                        //ui/icon登録
-                        HashDatabase.addPathToDB(iconPath, "060000", HashDatabase.globalConnection);
-                        HashDatabase.addPathToDB(iconPath2, "060000", HashDatabase.globalConnection); //高画質用
-                    }
-                }
-                Utils.getGlobalLogger().info("Icon検索完了");
-            }
-
-            try {
-                HashDatabase.commit();
-            } catch (SQLException e) {
-                Utils.getGlobalLogger().error(e);
-            }
-            HashDatabase.closeConnection();
-
+            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\0a0000.win32.index", true);
+            index2 = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\060000.win32.index", true);
+            exhData = index.extractFile("exd/map.exh");
         } catch (IOException e) {
             Utils.getGlobalLogger().error(e);
         }
+
+        if (exhData == null) {
+            return;
+        }
+
+        EXHF_File exhfFile = new EXHF_File(exhData);
+        EXDF_View mapView = new EXDF_View(index, "exd/map.exh", exhfFile);
+
+        HashDatabase.beginConnection();
+        try {
+            HashDatabase.setAutoCommit(false);
+        } catch (SQLException e1) {
+            Utils.getGlobalLogger().error(e1);
+        }
+
+        //noinspection ConstantConditions
+        if (true){ //デバッグ用フラグ
+            //Map用テクスチャファイル登録
+            for (int i = 1; i < mapView.getTable().getRowCount(); i++) {
+                String map = mapView.getTable().getValueAt(i, 7).toString();
+
+                if (map == null || map.isEmpty()) {
+                    continue;
+                }
+
+                String mapFolder = "ui/map/" + map;
+
+                if (!map.contains("/")) {
+                    continue;
+                }
+
+                String[] split = map.split("/");
+                String[] mapTexEx = new String[]{"_m.tex","_s.tex","m_m.tex","m_s.tex","d.tex"};
+                for (String mapEx :mapTexEx){
+                    String mapPath = mapFolder + "/" + split[0] + split[1] + mapEx;
+                    if (index2.findFile(mapPath) == 2) { //存在チェック
+                        HashDatabase.addPathToDB(mapPath, "060000", HashDatabase.globalConnection);
+                    }
+                }
+            }
+            Utils.getGlobalLogger().info("Map検索完了");
+        }
+
+        //noinspection ConstantConditions
+        if (true){ //デバッグ用フラグ
+            int searchIconNum = 182000;
+
+            //ui/icon検索
+            boolean multiFlag = false;
+            for (int i = 0; i < searchIconNum; i++) {
+                String iconPath;
+                String iconPath2;
+                //例：ui/icon/181000/ja/181001.tex
+                String[] multi = {"ja/","en/","fr/","de/"};
+                int pathNum = (i / 1000) * 1000;
+                if (i < 20000 || (i >= 60000 && i < 120000) || (i >= 130000 && i < 150000)){
+                    iconPath = String.format("ui/icon/%06d/%06d.tex",pathNum, i);
+                    iconPath2 = String.format("ui/icon/%06d/%06d_hr1.tex",pathNum, i); //高画質用
+                }else if (i < 60000){
+                    iconPath = String.format("ui/icon/%06d/%s%06d.tex",pathNum, "hq/", i);
+                    iconPath2 = String.format("ui/icon/%06d/%s%06d_hr1.tex",pathNum, "hq/", i); //高画質用
+                }else{
+                    if ((i % 1000) == 0){multiFlag = true;}
+                    if (multiFlag){
+                        for (String lang :multi) {
+                            iconPath = String.format("ui/icon/%06d/%s%06d.tex",pathNum, lang, i);
+                            iconPath2 = String.format("ui/icon/%06d/%s%06d_hr1.tex",pathNum, lang, i); //高画質用
+
+                            if (index2.findFile(iconPath) == 2) { //存在チェック
+                                //ui/icon登録
+                                HashDatabase.addPathToDB(iconPath, "060000", HashDatabase.globalConnection);
+                                HashDatabase.addPathToDB(iconPath2, "060000", HashDatabase.globalConnection); //高画質用
+                            }
+                            multiFlag = false;
+                        }
+                        continue;
+                    }else{
+                        iconPath = String.format("ui/icon/%06d/ja/%06d.tex",pathNum, i);
+                        iconPath2 = String.format("ui/icon/%06d/ja/%06d_hr1.tex",pathNum, i); //高画質用
+                    }
+
+                }
+
+                if (index2.findFile(iconPath) == 2) { //存在チェック
+                    //ui/icon登録
+                    HashDatabase.addPathToDB(iconPath, "060000", HashDatabase.globalConnection);
+                    HashDatabase.addPathToDB(iconPath2, "060000", HashDatabase.globalConnection); //高画質用
+                }
+            }
+            Utils.getGlobalLogger().info("Icon検索完了");
+        }
+
+        try {
+            HashDatabase.commit();
+        } catch (SQLException e) {
+            Utils.getGlobalLogger().error(e);
+        }
+        HashDatabase.closeConnection();
+
     }
 
     /**
@@ -1074,7 +1070,7 @@ public class HashFinding_Utils extends Component {
                     //chara/demihuman/d1024/obj/equipment/e0001/vfx/eff/ve0001.avfx
                     String avfxPath = String.format("%s%04d/obj/equipment/e%04d/vfx/eff/ve0001.avfx", typePath, model, base);
                     String atexPath = String.format("%s%04d/obj/equipment/e%04d/vfx/texture/", typePath, model, base);
-                    int pathCheck = sp_IndexFile.existsFile2(avfxPath);
+                    int pathCheck = sp_IndexFile.findFile(avfxPath);
                     if (pathCheck == 2){
                         HashDatabase.addPathToDB(avfxPath, "040000");
                         HashDatabase.addFolderToDB(atexPath, "040000");
@@ -1285,16 +1281,8 @@ public class HashFinding_Utils extends Component {
             Utils.getGlobalLogger().error(e);
         }
 
-        EXDF_View viewer = null;
-        try {
-            viewer = new EXDF_View(index, "exd/Item.exh", new EXHF_File(exhData));
-        } catch (IOException e2) {
-            Utils.getGlobalLogger().error(e2);
-        }
-
-        if (viewer == null) {
-            return;
-        }
+        EXDF_View viewer;
+        viewer = new EXDF_View(index, "exd/Item.exh", new EXHF_File(exhData));
 
         Utils.getGlobalLogger().info("Item.exhを読み込みました");
 
@@ -1360,7 +1348,7 @@ public class HashFinding_Utils extends Component {
                             do {
                                 //vw○○○.avfxファイルを検索して追加を試みる
                                 avfxPath = String.format("%s%04d/obj/body/b%04d/vfx/eff/vw%04d.avfx", typePath, modelNum, bodyNum, vfxNum);
-                                pathCheck = sp_IndexFile.existsFile2(avfxPath);
+                                pathCheck = sp_IndexFile.findFile(avfxPath);
                                 vfxNum++;
                             } while (vfxNum < 10 && pathCheck == 2);
 
@@ -1564,13 +1552,13 @@ public class HashFinding_Utils extends Component {
 
                 //bgcommon/hou/outdoor/general/0225/asset/gar_b0_m0225.sgb
                 modelPath = String.format("bgcommon/hou/outdoor/general/%04d/asset/gar_b0_m%04d.sgb", ModelKey, ModelKey);
-                if (sp_IndexFile.existsFile2(modelPath) == 2){
+                if (sp_IndexFile.findFile(modelPath) == 2){
 
                     result = HashDatabase.addPathToDB(modelPath, "010000");
                     if (result == 1) {
                         //新規に登録した場合のみSGBファイルを解析する
                         byte[] data2 = sp_IndexFile.extractFile(modelPath);
-                        SGB_File sgbFile = new SGB_File(sp_IndexFile, data2, sp_IndexFile.getEndian());
+                        SgbFile sgbFile = new SgbFile(sp_IndexFile, data2, sp_IndexFile.getEndian());
                     }
                     continue;
                 }
@@ -1579,7 +1567,7 @@ public class HashFinding_Utils extends Component {
                 //bgcommon/hou/outdoor/general/0225/bgparts/gar_b0_m0225.mdl
                 //bgcommon/hou/outdoor/general/0224/collision/gar_b0_m0224.pcb
                 modelPath = String.format("bgcommon/hou/outdoor/general/%04d/bgparts/gar_b0_m%04d.mdl", ModelKey, ModelKey);
-                pathCheck = sp_IndexFile.existsFile2(modelPath);
+                pathCheck = sp_IndexFile.findFile(modelPath);
                 if (pathCheck >= 1){
                     if (pathCheck == 2) {
                         result = cAddPathToDB(modelPath, "010000", 2);
@@ -1593,7 +1581,7 @@ public class HashFinding_Utils extends Component {
                     for (int cNum = 97; cNum <= 112; cNum++) {
                         //a～zまでだと97-123 取りあえずa～pまで
                         modelPath = String.format("bgcommon/hou/outdoor/general/%04d/bgparts/gar_b0_m%04d%s.mdl", ModelKey, ModelKey, (char)cNum);
-                        if (sp_IndexFile.existsFile2(modelPath) == 2) {
+                        if (sp_IndexFile.findFile(modelPath) == 2) {
                             result = cAddPathToDB(modelPath, "010000", 2);
                             if (result != 1) {
                                 break;  //ファイルが登録済みまたは存在しない場合
@@ -1623,16 +1611,16 @@ public class HashFinding_Utils extends Component {
 
                 //bgcommon/hou/indoor/general/0982/asset/fun_b0_m0982.sgb
                 modelPath = String.format("bgcommon/hou/indoor/general/%04d/asset/fun_b0_m%04d.sgb", ModelKey, ModelKey);
-                if (sp_IndexFile.existsFile2(modelPath) == 2){
+                if (sp_IndexFile.findFile(modelPath) == 2){
                     HashDatabase.addPathToDB(modelPath, "010000");
                     byte[] data2 = sp_IndexFile.extractFile(modelPath);
-                    SGB_File sgbFile = new SGB_File(sp_IndexFile, data2, sp_IndexFile.getEndian());
+                    SgbFile sgbFile = new SgbFile(sp_IndexFile, data2, sp_IndexFile.getEndian());
                     continue;
                 }
 
                 //assetのsgbファイルが存在しない場合
                 modelPath = String.format("bgcommon/hou/outdoor/indoor/%04d/bgparts/fun_b0_m%04d.mdl", ModelKey, ModelKey);
-                pathCheck = sp_IndexFile.existsFile2(modelPath);
+                pathCheck = sp_IndexFile.findFile(modelPath);
                 if (pathCheck >= 1){
                     if (pathCheck == 2) {
                         result = cAddPathToDB(modelPath, "010000", 2);
@@ -1646,7 +1634,7 @@ public class HashFinding_Utils extends Component {
                     for (int cNum = 97; cNum <= 112; cNum++) {
                         //a～zまでだと97-123 取りあえずa～pまで
                         modelPath = String.format("bgcommon/hou/indoor/general/%04d/bgparts/fun_b0_m%04d%s.mdl", ModelKey, ModelKey, (char)cNum);
-                        if (sp_IndexFile.existsFile2(modelPath) == 2) {
+                        if (sp_IndexFile.findFile(modelPath) == 2) {
                             result = cAddPathToDB(modelPath, "010000", 2);
                             if (result != 1) {
                                 break; //ファイルが登録済みまたは存在しない場合
@@ -2619,7 +2607,7 @@ public class HashFinding_Utils extends Component {
                     for (int Body_ID = 1; Body_ID < 12; Body_ID++) {
                         //chara/monster/m0563/obj/body/b0001/texture/v01_m0563b0001_d.tex
                         papPath = String.format("chara/monster/m%04d/obj/body/b%04d/texture/v01_m%04db%04d_d.tex", id, Body_ID, id, Body_ID);
-                        if (sp_IndexFile.existsFile2(papPath) >= 1) {
+                        if (sp_IndexFile.findFile(papPath) >= 1) {
                             cAddPathToDB(papPath, "040000", 2);
                             papPath = String.format("chara/monster/m%04d/obj/body/b%04d/texture/v01_m%04db%04d_n.tex", id, Body_ID, id, Body_ID);
                             cAddPathToDB(papPath, "040000", 2);
@@ -3101,7 +3089,7 @@ public class HashFinding_Utils extends Component {
                     for (int Body_ID = 1; Body_ID < 330; Body_ID++) {
                         //chara/weapon/w0101/obj/body/b0001/texture/v01_w0101b0001_d.tex
                         papPath = String.format("chara/weapon/w%04d/obj/body/b%04d/texture/v01_w%04db%04d_d.tex", id, Body_ID, id, Body_ID);
-                        if (sp_IndexFile.existsFile2(papPath) >= 1) {
+                        if (sp_IndexFile.findFile(papPath) >= 1) {
                             cAddPathToDB(papPath, "040000", 2);
                             papPath = String.format("chara/weapon/w%04d/obj/body/b%04d/texture/v01_w%04db%04d_n.tex", id, Body_ID, id, Body_ID);
                             cAddPathToDB(papPath, "040000", 2);
@@ -3197,7 +3185,7 @@ public class HashFinding_Utils extends Component {
 
                     //faceアニメーション関係
                     fullPath = String.format("chara/human/c%04d/animation/f%04d/resident/face.pap", charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
-                    int pathCheck = sp_IndexFile.existsFile2(fullPath);
+                    int pathCheck = sp_IndexFile.findFile(fullPath);
                     if (pathCheck == 2){
                         //face.papが存在する時のみ
                         HashDatabase.addPathToDB(fullPath, "040000");
@@ -3647,7 +3635,7 @@ public class HashFinding_Utils extends Component {
                         byte[] data = currentIndex.extractFile(CutSceneBlock_File);
 
                         @SuppressWarnings("unused")
-                        CUTB_File cutbFile = new CUTB_File(currentIndex, data, currentIndex.getEndian());
+                        CutbFile cutbFile = new CutbFile(currentIndex, data, currentIndex.getEndian());
                     }
                 }
             }
@@ -3716,6 +3704,7 @@ public class HashFinding_Utils extends Component {
      * @param archive Indexファイル名
      * @return 登録結果 0:登録失敗 1:登録成功 2:ファイル名変更 3:ファイルパス変更 4:登録済みのため何もしない
      */
+    @SuppressWarnings("UnusedReturnValue")
     private static int cAddPathToDB(String fullPath, String archive){
         return cAddPathToDB(fullPath, archive,1);
     }
@@ -3729,7 +3718,7 @@ public class HashFinding_Utils extends Component {
      */
     private static int cAddPathToDB(String fullPath, String archive,int regMode){
         int result = 0;
-        int pathCheck = sp_IndexFile.existsFile2(fullPath);
+        int pathCheck = sp_IndexFile.findFile(fullPath);
         if (pathCheck == 2){
             result = HashDatabase.addPathToDB(fullPath, archive);
 
@@ -3747,7 +3736,7 @@ public class HashFinding_Utils extends Component {
                     byte[] data = sp_IndexFile.extractFile(fullPath);
 
                     @SuppressWarnings("unused")
-                    CUTB_File cutbFile = new CUTB_File(sp_IndexFile, data, sp_IndexFile.getEndian());
+                    CutbFile cutbFile = new CutbFile(sp_IndexFile, data, sp_IndexFile.getEndian());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

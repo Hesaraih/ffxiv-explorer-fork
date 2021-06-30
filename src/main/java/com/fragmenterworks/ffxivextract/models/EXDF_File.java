@@ -2,9 +2,6 @@ package com.fragmenterworks.ffxivextract.models;
 
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -15,23 +12,8 @@ public class EXDF_File extends Game_File {
     private byte[] data;
     private EXDF_Offset[] entryOffsets;
 
-    public EXDF_File(byte[] data) throws IOException {
+    public EXDF_File(byte[] data){
         super(ByteOrder.BIG_ENDIAN);
-        loadEXDF(data);
-    }
-
-    @SuppressWarnings("unused")
-    public EXDF_File(String path) throws IOException {
-        super(ByteOrder.BIG_ENDIAN);
-        File file = new File(path);
-        byte[] data;
-        try (FileInputStream fis = new FileInputStream(file)) {
-            data = new byte[(int) file.length()];
-            while (fis.read(data) != -1){
-                Utils.getGlobalLogger().debug("EXDF読み取り");
-            }
-        }
-
         loadEXDF(data);
     }
 

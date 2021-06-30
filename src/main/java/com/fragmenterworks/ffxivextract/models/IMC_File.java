@@ -43,7 +43,7 @@ public class IMC_File extends Game_File {
         int partMask = bb.getShort();
         boolean gotFirst = false;
 
-        //This is weird variants sitting here. SaintCoinach reads it based on the part mask.
+        //This is weird variants sitting here. SaintCoinach は、部分マスクに基づいて亜種を読み取ります。
         for (int i = 0; i < 8; i++) {
             int bit = (byte) (1 << i);
             if ((partMask & bit) == bit) {
@@ -54,7 +54,7 @@ public class IMC_File extends Game_File {
             }
         }
 
-        //Get the variances
+        //Varianceを取得
         int remaining = numVariances;
         while (--remaining >= 0) {
             for (ImcPart imcPart : parts.values()) {

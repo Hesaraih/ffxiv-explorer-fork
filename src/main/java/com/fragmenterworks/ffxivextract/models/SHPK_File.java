@@ -3,9 +3,6 @@ package com.fragmenterworks.ffxivextract.models;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.models.directx.D3DXShader_ConstantTable;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -29,20 +26,7 @@ public class SHPK_File extends Game_File {
 
     private final ArrayList<ShaderHeader> shaderHeaders = new ArrayList<>();
 
-    @SuppressWarnings("unused")
-    public SHPK_File(String path, ByteOrder endian) throws IOException {
-        super(endian);
-        File file = new File(path);
-        try (FileInputStream fis = new FileInputStream(file)) {
-            data = new byte[(int) file.length()];
-            while (fis.read(data) != -1) {
-                Utils.getGlobalLogger().debug("SHPK読み取り");
-            }
-        }
-        loadSHPK(data);
-    }
-
-    public SHPK_File(byte[] data, ByteOrder endian) throws IOException {
+    public SHPK_File(byte[] data, ByteOrder endian){
         super(endian);
         loadSHPK(data);
     }

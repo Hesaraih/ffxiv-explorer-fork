@@ -141,7 +141,7 @@ public class SqPack_IndexFile {
      * @param pathToIndex 開きたいSqPackインデックスファイルへのパス(例：ゲームパス\sqpack\ffxiv\0a0000.win32.index)
      * @param fastLoad    これをtrueに設定すると、アーカイブのファイル情報のみが読み込まれ、その構造とファイル/フォルダー名が省略されます。
      */
-    @SuppressWarnings("unused")
+
     public SqPack_IndexFile(String pathToIndex, boolean fastLoad) throws IOException {
 
         path = pathToIndex;
@@ -214,9 +214,7 @@ public class SqPack_IndexFile {
         ref.close();
 
         for (SqPack_Folder folder : packFolders) {
-            for (SqPack_File file : folder.files) {
-                totalFiles++;
-            }
+            totalFiles += folder.files.length;
         }
     }
 
@@ -231,8 +229,9 @@ public class SqPack_IndexFile {
         ref.readFully(buffer, 0, 6);
         bref.readFully(bigBuffer, 0, 6);
 
-        if (buffer[0] != 'S' || buffer[1] != 'q' || buffer[2] != 'P'
-                || buffer[3] != 'a' || buffer[4] != 'c' || buffer[5] != 'k') {
+        String Magic = new String(buffer).trim();
+
+        if (!Magic.equals("SqPack")) {
             ref.close();
 
             Utils.getGlobalLogger().error("SqPack magicが正しくありませんでした。");
@@ -654,24 +653,11 @@ public class SqPack_IndexFile {
     }
 
     /**
-     * 指定したフルパス先のファイルの存在確認
-     * (今まではファイルhashのチェックのためにデータの解凍までしていたがムダなので別のメソッドに分けた)
-     * @param fullPath ファイルパス
-     * @return true:ファイルがある false:ファイルなし
-     */
-    public boolean existsFile(String fullPath){
-        String folder = fullPath.substring(0, fullPath.lastIndexOf("/"));
-        String file = fullPath.substring(fullPath.lastIndexOf("/") + 1);
-
-        return existsFile(folder, file) == 2;
-    }
-
-    /**
      * 指定したフルパス先のファイルとパスの照合
      * @param fullPath ファイルパス
      * @return 2:ファイルがある 1:パスは合ってる 0:ファイル名もパスもなし
      */
-    public Integer existsFile2(String fullPath){
+    public Integer findFile(String fullPath){
         String folder,file;
         if (fullPath.contains(".")) {
             folder = fullPath.substring(0, fullPath.lastIndexOf("/"));
@@ -680,7 +666,7 @@ public class SqPack_IndexFile {
             folder = fullPath;
             file = "";
         }
-        return existsFile(folder, file);
+        return findFile(folder, file);
     }
 
     /**
@@ -689,7 +675,7 @@ public class SqPack_IndexFile {
      * @param filename ファイル名
      * @return  2:ファイルがある 1:パスは合ってる 0:ファイル名もパスもなし
      */
-    public Integer existsFile(String folderName, String filename){
+    public Integer findFile(String folderName, String filename){
         int returnValue = 0;
         if (getPath().contains("index2")) {
             String fullPath = folderName + "/" + filename;
