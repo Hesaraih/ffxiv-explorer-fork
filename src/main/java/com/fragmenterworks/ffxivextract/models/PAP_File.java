@@ -1,125 +1,104 @@
 package com.fragmenterworks.ffxivextract.models;
 
+import com.fragmenterworks.ffxivextract.helpers.ByteArrayExtensions;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class PAP_File extends Game_File {
 
-    private int numAnimations;
-    private byte[] havokData;
-    private String[] animationNames;
-    private int[] animationIndex;
+    //他のファイルを見つけるために使用されます
+    private static SqPack_IndexFile currentIndex; //現在表示中または呼び出し元のIndexファイル
 
-    private short modelId;
-    private byte baseId;
-    private byte variantId;
-
-    @SuppressWarnings("unused")
-    public PAP_File(String path, ByteOrder endian) throws IOException {
-        super(endian);
-        File file = new File(path);
-        byte[] data;
-        try (FileInputStream fis = new FileInputStream(file)) {
-            data = new byte[(int) file.length()];
-            while (fis.read(data) != -1) {
-                Utils.getGlobalLogger().debug("PAP読み取り");
-            }
-        }
-        loadPAP(data);
+    public static class HeaderData {
+        public String Magic; //uint
+        public short Unknown1;
+        public short Unknown2;
+        public short AnimationCount;
+        public short ModelId;
+        public byte BaseId; //byte
+        public byte VariantId; //byte
+        public short NameTableOffset;
+        public short Unknown6;
+        public int HavokDataOffset;
+        public int ParametersOffset;
     }
 
-    public PAP_File(byte[] data, ByteOrder endian) throws IOException {
+    public HeaderData Header;
+    public PapAnimation[] Animations;
+    public byte[] HavokData;
+    public byte[] Parameters;
+    public TmbFile tmbFile;
+
+    public PAP_File(SqPack_IndexFile index, byte[] data, ByteOrder endian){
         super(endian);
+        currentIndex = index;
         loadPAP(data);
     }
 
     private void loadPAP(byte[] data) {
+        byte[] signature = new byte[4];
         ByteBuffer bb = ByteBuffer.wrap(data);
         bb.order(endian);
 
-        int magic = bb.getInt();
+        Header = new HeaderData();
 
-        if (magic != 0x20706170) {
+        bb.get(signature);
+        Header.Magic = new String(signature).trim();
+
+        if (!Header.Magic.equals("pap")) {
             Utils.getGlobalLogger().error("PAP magic was incorrect.");
-            Utils.getGlobalLogger().debug("Magic was {}", String.format("0x%08X", magic));
+            Utils.getGlobalLogger().debug("Magic was {}", Header.Magic);
             return;
         }
+        Header.Unknown1 = bb.getShort();
+        Header.Unknown2 = bb.getShort();
+        Header.AnimationCount = bb.getShort();
 
-        bb.getShort();
-        bb.getShort();
-        numAnimations = bb.getShort();
+        Header.ModelId = bb.getShort();
+        Header.BaseId = bb.get();
+        Header.VariantId = bb.get();
 
-        modelId = bb.getShort();
-        baseId = bb.get();
-        variantId = bb.get();
+        Header.NameTableOffset = bb.getShort();
+        Header.Unknown6 = bb.getShort();
 
-        bb.getInt();
-        int havokPosition = bb.getInt();
-        int footerPosition = bb.getInt();
+        Header.HavokDataOffset = bb.getInt();
+        Header.ParametersOffset = bb.getInt();
 
         //ANIM NAME TABLE
-        animationNames = new String[numAnimations];
-        animationIndex = new int[numAnimations];
+        Animations = new PapAnimation[Header.AnimationCount];
+
         int nameTableOffset = bb.position();
-        for (int i = 0; i < numAnimations; i++) {
-            bb.position(nameTableOffset + (0x28 * i));
-            byte[] name = new byte[34];
-            bb.get(name);
-            animationNames[i] = new String(name).trim();
-            animationIndex[i] = bb.getShort();
+        for (int i = 0; i < Header.AnimationCount; ++i) {
+            Animations[i] = new PapAnimation(bb, nameTableOffset);
         }
 
         //HAVOK FILE
-        bb.position(nameTableOffset + (0x28 * numAnimations));
-        havokData = new byte[footerPosition - havokPosition];
-        bb.get(havokData);
+        HavokData = new byte[Header.ParametersOffset - Header.HavokDataOffset];
+        bb.get(HavokData);
 
         //FOOTER
-        //TODO: Unknown
+        Parameters = new byte[bb.capacity() - Header.ParametersOffset];
+        bb.get(Parameters);
+        tmbFile = new TmbFile(currentIndex, Parameters, currentIndex.getEndian());
     }
 
-    public int getNumAnimations() {
-        return numAnimations;
-    }
+    public static class PapAnimation {
+        public String Name;
+        public short Unknown20;
+        public int Index;
+        public short Unknown26;
 
-    public String[] getAnimationNames() {
-        return animationNames;
+        protected PapAnimation(ByteBuffer bb, int offset) {
+            Name = ByteArrayExtensions.ReadString(bb, offset);
+            bb.position(offset + 0x20);
+            Unknown20 = bb.getShort();
+            Index = bb.getInt();
+            Unknown26 = bb.getShort();
+        }
     }
-
-    public String getAnimationName(int index) {
-        if (index >= numAnimations)
-            return null;
-        return animationNames[index];
-    }
-
-    @SuppressWarnings("unused")
-    public int getAnimationIndex(int index) {
-        if (index >= numAnimations)
-            return -1;
-        return animationIndex[index];
-    }
-
-    public byte[] getHavokData() {
-        return havokData;
-    }
-
-    @SuppressWarnings("unused")
-    public short getModelId() {
-        return modelId;
-    }
-
-    @SuppressWarnings("unused")
-    public byte getBaseId() {
-        return baseId;
-    }
-
-    @SuppressWarnings("unused")
-    public byte getVariantId() {
-        return variantId;
+    public int getAnimationCount() {
+        return Header.AnimationCount;
     }
 }

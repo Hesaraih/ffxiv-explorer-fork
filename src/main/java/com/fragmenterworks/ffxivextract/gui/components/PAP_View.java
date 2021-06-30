@@ -25,11 +25,11 @@ public class PAP_View extends JPanel {
         lstAnimationNames.setModel(new AbstractListModel<String>() {
 
             public int getSize() {
-                return currentPAP.getAnimationNames().length;
+                return currentPAP.Animations.length;
             }
 
             public String getElementAt(int index) {
-                return currentPAP.getAnimationNames()[index];
+                return currentPAP.Animations[index].Name;
             }
         });
 

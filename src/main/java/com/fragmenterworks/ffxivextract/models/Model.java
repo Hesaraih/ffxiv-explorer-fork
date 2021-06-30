@@ -32,9 +32,6 @@ public class Model extends Game_File {
     private final IMC_File imcFile;
     private final DX9VertexElement[][] vertexElements;
     private final String[] stringArray;
-    private final short AttributeCount;
-    private final short BoneCount;
-    private final short MaterialCount;
     private short numShpStrings;
     private final MeshPart[] meshPartTable;
 
@@ -64,6 +61,28 @@ public class Model extends Game_File {
     public Model(byte[] data, ByteOrder endian) {
         this(null, null, data, endian);
     }
+
+    public static class ModelDefinitionHeader {
+        public int Unknown1;   //uint
+        public short MeshCount; //ushort
+        public short AttributeCount; //ushort
+        public short PartCount; //ushort
+        public short MaterialCount; //ushort
+        public short BoneCount; //ushort
+        public int UnknownStruct4Count;   //ushort// 3 in hsl
+        public int UnknownStruct5Count;   //ushort// 4 in hsl
+        public int UnknownStruct6Count;   //ushort// 5 in hsl
+        public int UnknownStruct7Count;   //ushort// 6 in hsl
+        public short Unknown2;              //ushort
+        public int UnknownStruct1Count;   //ushort// 0 in hsl
+        public int UnknownStruct2Count;  //byte // 1 in hsl
+        public byte Unknown3;              //byte
+        public short[] Unknown4 = new short[5];    //ushort
+        public int UnknownStruct3Count;  //ushort// 7 in hsl
+        public short[] Unknown5 = new short[8];    //ushort
+    }
+
+    public ModelDefinitionHeader Header;
 
     public Model(String modelPath, SqPack_IndexFile index, byte[] data, ByteOrder endian) throws BufferOverflowException, BufferUnderflowException {
         super(endian);
@@ -126,42 +145,48 @@ public class Model extends Game_File {
             end++;
         }
 
+        Header = new ModelDefinitionHeader();
+
         //ModelDefinitionHeader
-        bb.getInt(); //Unknown1
-        @SuppressWarnings("unused")
-        short MeshCount = bb.getShort();
-        AttributeCount = bb.getShort();
-        short PartCount = bb.getShort();
-        MaterialCount = bb.getShort();
-        BoneCount = bb.getShort();
-        int UnknownStruct4Count = bb.getShort();    // 3 in hsl //numShpStrings?
-        int UnknownStruct5Count = bb.getShort();    // 4 in hsl
-        int UnknownStruct6Count = bb.getShort();    // 5 in hsl
-        int UnknownStruct7Count = bb.getShort();    // 6 in hsl
-        @SuppressWarnings("unused")
-        int Unknown2 = bb.getShort();
+        //region ModelDefinitionHeader Read
+        Header.Unknown1 = bb.getInt(); //Unknown1
+        Header.MeshCount = bb.getShort();
+        Header.AttributeCount = bb.getShort();
+        Header.PartCount = bb.getShort();
+        Header.MaterialCount = bb.getShort();
+        Header.BoneCount = bb.getShort();
+        Header.UnknownStruct4Count = bb.getShort();    // 3 in hsl //numShpStrings?
+        Header.UnknownStruct5Count = bb.getShort();    // 4 in hsl
+        Header.UnknownStruct6Count = bb.getShort();    // 5 in hsl
+        Header.UnknownStruct7Count = bb.getShort();    // 6 in hsl
+        Header.Unknown2 = bb.getShort();
         //From Rogueadyn's Code
-        int UnknownStruct1Count = bb.getShort();    // 0 in hsl
-        int UnknownStruct2Count = bb.get() & 0xFF;  // 1 in hsl
-        bb.get(); //Unknown3
-        bb.position(bb.position() + 10); //ushort[] Unknown4 × 5
-        int UnknownStruct3Count = bb.getShort();    // 7 in hsl
-        bb.position(bb.position() + 16); //ushort[] Unknown5 × 8
+        Header.UnknownStruct1Count = bb.getShort();    // 0 in hsl
+        Header.UnknownStruct2Count = bb.get() & 0xFF;  // 1 in hsl
+        Header.Unknown3 = bb.get(); //Unknown3
+        for(int i = 0; i < Header.Unknown4.length; i++){  //ushort[] Unknown4 × 5
+            Header.Unknown4[i] = bb.getShort();
+        }
+        Header.UnknownStruct3Count = bb.getShort();    // 7 in hsl
+        for(int i = 0; i < Header.Unknown5.length; i++){  //ushort[] Unknown5 × 8
+            Header.Unknown5[i] = bb.getShort();
+        }
+        //endregion
 
-        meshPartTable = new MeshPart[PartCount];
-        boneLists = new BoneList[UnknownStruct4Count];
-        atrMasks = new long[AttributeCount];
-        String[] atrStrings = new String[AttributeCount];
-        boneStrings = new String[BoneCount];
+        meshPartTable = new MeshPart[Header.PartCount];
+        boneLists = new BoneList[Header.UnknownStruct4Count];
+        atrMasks = new long[Header.AttributeCount];
+        String[] atrStrings = new String[Header.AttributeCount];
+        boneStrings = new String[Header.BoneCount];
 
-        System.arraycopy(stringArray, 0, atrStrings, 0, AttributeCount);
-        System.arraycopy(stringArray, AttributeCount, boneStrings, 0, BoneCount);
+        System.arraycopy(stringArray, 0, atrStrings, 0, Header.AttributeCount);
+        System.arraycopy(stringArray, Header.AttributeCount, boneStrings, 0, Header.BoneCount);
 
         for (int i = 0; i < atrStrings.length; i++) {
             atrMasks[i] = getMaskFromAtrName(atrStrings[i]);
         }
 
-        materials = new Material[MaterialCount];
+        materials = new Material[Header.MaterialCount];
 
         StringBuilder s = new StringBuilder();
         for (String str : stringArray) {
@@ -170,7 +195,7 @@ public class Model extends Game_File {
         }
 
         Utils.getGlobalLogger().trace("Attr strings: {}\nMaterial strings: {}\nBone strings: {}\nStrings:\n{}",
-                AttributeCount, MaterialCount, BoneCount, s.toString());
+                Header.AttributeCount, Header.MaterialCount, Header.BoneCount, s.toString());
 
         imcFile = loadImcFile();
 
@@ -179,7 +204,7 @@ public class Model extends Game_File {
         }
 
         //Skip Stuff
-        bb.position(bb.position() + (32 * UnknownStruct1Count));
+        bb.position(bb.position() + (32 * Header.UnknownStruct1Count));
 
         //LOD Headers
         Utils.getGlobalLogger().trace("-----Level of Detail(LoD) Header Info-----");
@@ -195,8 +220,8 @@ public class Model extends Game_File {
         int vertElementNumber = 0;
 
 
-        Mesh[] MeshHeaders = new Mesh[MeshCount];
-        for (int j = 0; j < MeshCount; j++) {
+        Mesh[] MeshHeaders = new Mesh[Header.MeshCount];
+        for (int j = 0; j < Header.MeshCount; j++) {
             Utils.getGlobalLogger().trace(String.format("メッシュ %d:", j));
             MeshHeaders[j] = new Mesh(bb, vertElementNumber); //SaintCoinachではMeshHeaders = buffer.ToStructures<MeshHeader>(Header.MeshCount, ref offset)
             vertElementNumber++;
@@ -210,6 +235,7 @@ public class Model extends Game_File {
 
             //Mesh[] MeshHeaders = new Mesh[lodModels[i].MeshCount]
             //for (int j = 0; j < lodModels[i].MeshCount; j++)
+            //noinspection ConstantConditions
             if (false) {
                 if (i == 0 && lodModels[i].MeshCount == 0) {
                     MeshHeaders = new Mesh[lodModels[i].MeshCount];
@@ -238,10 +264,10 @@ public class Model extends Game_File {
         }
 
         //New stuff added from SaintCoinach
-        bb.position(bb.position() + (AttributeCount * 4));
-        bb.position(bb.position() + (UnknownStruct2Count * 20)); //Skip this data
+        bb.position(bb.position() + (Header.AttributeCount * 4));
+        bb.position(bb.position() + (Header.UnknownStruct2Count * 20)); //Skip this data
 
-        for (int i = 0; i < PartCount; i++) {
+        for (int i = 0; i < Header.PartCount; i++) {
             meshPartTable[i] = new MeshPart(bb);
         }
 
@@ -253,18 +279,18 @@ public class Model extends Game_File {
             }
         }
 
-        bb.position(bb.position() + (UnknownStruct3Count * 12));//Skip this data
+        bb.position(bb.position() + (Header.UnknownStruct3Count * 12));//Skip this data
 
-        bb.position(bb.position() + (MaterialCount * 4));
-        bb.position(bb.position() + (BoneCount * 4));
+        bb.position(bb.position() + (Header.MaterialCount * 4));
+        bb.position(bb.position() + (Header.BoneCount * 4));
 
-        for (int i = 0; i < UnknownStruct4Count; i++) {
+        for (int i = 0; i < Header.UnknownStruct4Count; i++) {
             boneLists[i] = new BoneList(bb);
         }
 
-        bb.position(bb.position() + (UnknownStruct5Count * 16));//Skip this data
-        bb.position(bb.position() + (UnknownStruct6Count * 12));//Skip this data
-        bb.position(bb.position() + (UnknownStruct7Count * 4));//Skip this data
+        bb.position(bb.position() + (Header.UnknownStruct5Count * 16));//Skip this data
+        bb.position(bb.position() + (Header.UnknownStruct6Count * 12));//Skip this data
+        bb.position(bb.position() + (Header.UnknownStruct7Count * 4));//Skip this data
 
         int BoneIndicesSize = bb.getShort() & 0xFFFF;
         bb.getShort();
@@ -366,7 +392,7 @@ public class Model extends Game_File {
             try {
                 byte[] animData = currentIndex.extractFile(animationPath);
                 if (animData != null) {
-                    animFile = new PAP_File(animData, endian);
+                    animFile = new PAP_File(currentIndex, animData, endian);
                 }
             } catch (IOException e) {
                 Utils.getGlobalLogger().error("Couldn't find animation @ {}", animationPath, e);
@@ -376,9 +402,9 @@ public class Model extends Game_File {
                 ByteBuffer skeletonBuffer = ByteBuffer.allocateDirect(skeletonFile.getHavokData().length);
                 skeletonBuffer.order(ByteOrder.nativeOrder());
                 skeletonBuffer.put(skeletonFile.getHavokData());
-                ByteBuffer animBuffer = ByteBuffer.allocateDirect(animFile.getHavokData().length);
+                ByteBuffer animBuffer = ByteBuffer.allocateDirect(animFile.HavokData.length);
                 skeletonBuffer.order(ByteOrder.nativeOrder());
-                animBuffer.put(animFile.getHavokData());
+                animBuffer.put(animFile.HavokData);
                 skeletonBuffer.position(0);
                 animBuffer.position(0);
 
@@ -391,7 +417,7 @@ public class Model extends Game_File {
                     return;
                 }
 
-                if (HavokNative.loadSkeleton(skeletonBuffer, skeletonFile.getHavokData().length) && (HavokNative.loadAnimation(animBuffer, animFile.getHavokData().length))) {
+                if (HavokNative.loadSkeleton(skeletonBuffer, skeletonFile.getHavokData().length) && (HavokNative.loadAnimation(animBuffer, animFile.HavokData.length))) {
                     if (HavokNative.setAnimation(0) == -1) {
                         HavokNative.setAnimation(0);
                         Utils.getGlobalLogger().info("Animation 0 was invalid");
@@ -434,7 +460,7 @@ public class Model extends Game_File {
 
             return new IMC_File(data, endian);
         } catch (IOException e) {
-            Utils.getGlobalLogger().error("IMCファイル{}を作成できませんでした", imcPath, e);
+            Utils.getGlobalLogger().error("IMCファイル{}を開けませんでした", imcPath, e);
         }
 
         return null;
@@ -458,8 +484,8 @@ public class Model extends Game_File {
 
         String materialFolderPath;
 
-        if (!stringArray[AttributeCount + BoneCount].startsWith("/") && !stringArray[AttributeCount + BoneCount].contains("chara")) {
-            materialFolderPath = stringArray[AttributeCount + BoneCount].substring(0, stringArray[AttributeCount + BoneCount].lastIndexOf("/"));
+        if (!stringArray[Header.AttributeCount + Header.BoneCount].startsWith("/") && !stringArray[Header.AttributeCount + Header.BoneCount].contains("chara")) {
+            materialFolderPath = stringArray[Header.AttributeCount + Header.BoneCount].substring(0, stringArray[Header.AttributeCount + Header.BoneCount].lastIndexOf("/"));
         } else if (modelPath.contains("face")) {
             materialFolderPath = String.format("%smaterial", modelPath.substring(0, modelPath.indexOf("model")));
         } else if (modelPath.contains("hair")) {
@@ -479,14 +505,14 @@ public class Model extends Game_File {
         if (materialFolderPath.contains("body") && materialFolderPath.contains("human")) {
             bodyMaterialSpot = 0;
         } else {
-            for (int i = 0; i < MaterialCount; i++) {
+            for (int i = 0; i < Header.MaterialCount; i++) {
                 String fileString;
 
                 try {
-                    if (stringArray[AttributeCount + BoneCount + i].startsWith("/")) {
-                        fileString = stringArray[AttributeCount + BoneCount + i].substring(1);
+                    if (stringArray[Header.AttributeCount + Header.BoneCount + i].startsWith("/")) {
+                        fileString = stringArray[Header.AttributeCount + Header.BoneCount + i].substring(1);
                     } else {
-                        fileString = stringArray[AttributeCount + BoneCount + i].substring(stringArray[AttributeCount + BoneCount + i].lastIndexOf("/") + 1);
+                        fileString = stringArray[Header.AttributeCount + Header.BoneCount + i].substring(stringArray[Header.AttributeCount + Header.BoneCount + i].lastIndexOf("/") + 1);
                     }
                 } catch (ArrayIndexOutOfBoundsException e) {
                     //Ion pls
@@ -555,7 +581,7 @@ public class Model extends Game_File {
         //body/b..../materialがあったら、ここでハッシュDBに登録
         if (bodyMaterialSpot != -1) {
             //chara/humanのみの処理？
-            String s = stringArray[AttributeCount + BoneCount + bodyMaterialSpot].substring(1);
+            String s = stringArray[Header.AttributeCount + Header.BoneCount + bodyMaterialSpot].substring(1);
             String s1 = s.replace("mt_c", "").substring(0, 9);
             int chara = Integer.parseInt(s1.substring(0, 4));
             int body = Integer.parseInt(s1.substring(5, 9));
@@ -928,7 +954,7 @@ public class Model extends Game_File {
         if (animFile == null) {
             return 0;
         } else {
-            return animFile.getNumAnimations();
+            return animFile.getAnimationCount();
         }
     }
 
@@ -936,7 +962,7 @@ public class Model extends Game_File {
         if (animFile == null) {
             return null;
         } else {
-            return animFile.getAnimationName(index);
+            return animFile.Animations[index].Name;
         }
     }
 
