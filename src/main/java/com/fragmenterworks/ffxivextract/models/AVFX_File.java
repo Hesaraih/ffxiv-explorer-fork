@@ -115,13 +115,13 @@ public class AVFX_File extends Game_File {
                 if (fileCheck) {
                     int pathCheck = 0;
                     if (currentIndex.getName().equals(archive)){
-                        pathCheck = currentIndex.existsFile2(fullPath);
+                        pathCheck = currentIndex.findFile(fullPath);
                     }else {
                         try {
                             if (index == null || !index.getName().equals(archive)) {
                                 index = new SqPack_IndexFile(FileTools.ArchiveID2IndexFilePath(archive), true);
                             }
-                            pathCheck = index.existsFile2(fullPath);
+                            pathCheck = index.findFile(fullPath);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -154,7 +154,7 @@ public class AVFX_File extends Game_File {
                                 for (int i = 1; i < 50; i++) {
                                     //vfx/cut/anvwil/anvwil00510/eff/anvwil00510_01a.avfx
                                     String avfxPath = String.format("%s/%s_%02da.avfx", folder, pathParts[3], i);
-                                    int pathCheck = currentIndex.existsFile2(avfxPath);
+                                    int pathCheck = currentIndex.findFile(avfxPath);
                                     if (pathCheck == 2) {
                                         HashDatabase.addPathToDB(avfxPath, archive);
                                     }
@@ -166,7 +166,7 @@ public class AVFX_File extends Game_File {
                                     for (String sign1 : actionSign) {
                                         //vfx/action/ab_2kt010/eff/ab_2kt010c0t.avfx
                                         String avfxPath = String.format("%s/%s%s%dt.avfx", folder, pathParts[2], sign1, i);
-                                        int pathCheck = currentIndex.existsFile2(avfxPath);
+                                        int pathCheck = currentIndex.findFile(avfxPath);
                                         if (pathCheck == 2) {
                                             HashDatabase.addPathToDB(avfxPath, archive);
                                         }
@@ -182,12 +182,12 @@ public class AVFX_File extends Game_File {
                                         for (String sign2 : tempSign2) {
                                             //vfx/temporary/abl_myc016/eff/abl_myc016_c0w.avfx
                                             String avfxPath = String.format("%s/%s_%s%d%s.avfx", folder, pathParts[2], sign1, i, sign2);
-                                            int pathCheck = currentIndex.existsFile2(avfxPath);
+                                            int pathCheck = currentIndex.findFile(avfxPath);
                                             if (pathCheck == 2) {
                                                 HashDatabase.addPathToDB(avfxPath, archive);
                                             }else{
                                                 avfxPath = String.format("%s/%s%s%d%s.avfx", folder, pathParts[2], sign1, i, sign2);
-                                                pathCheck = currentIndex.existsFile2(avfxPath);
+                                                pathCheck = currentIndex.findFile(avfxPath);
                                                 if (pathCheck == 2) {
                                                     HashDatabase.addPathToDB(avfxPath, archive);
                                                 }
@@ -214,6 +214,7 @@ public class AVFX_File extends Game_File {
         }
     }
 
+    @SuppressWarnings("unused")
     public void printOut() {
         packets.forEach(ap -> Utils.getGlobalLogger().trace(ap));
     }
@@ -225,6 +226,7 @@ public class AVFX_File extends Game_File {
      * @param byteLength The number of bytes to read
      * @return A new non-trimmed string read from the given buffer with the given length.
      */
+    @SuppressWarnings("SameParameterValue")
     private static String getString(ByteBuffer buffer, int byteLength) {
         byte[] input = new byte[byteLength];
         buffer.get(input);

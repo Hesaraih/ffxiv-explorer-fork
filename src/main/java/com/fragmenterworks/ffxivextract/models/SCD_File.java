@@ -2,9 +2,6 @@ package com.fragmenterworks.ffxivextract.models;
 
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -17,28 +14,27 @@ public class SCD_File extends Game_File {
     private int[] soundEntryOffsets;
     private byte[] scdFile;
 
-    @SuppressWarnings("unused")
-    public SCD_File(String path, ByteOrder endian) throws IOException {
-        super(endian);
+    public static class ScdHeader {
+        public short Unknown1Count;
+        public short Unknown2Count;
+        public short EntryCount;
+        public short Unknown1;
+        public int Unknown1Offset;
+        public int EntryTableOffset;
+        public int Unknown2Offset;
+        public int Unknown2;
+        public int UnknownOffset1;
+    }
 
-        File file = new File(path);
-        byte[] data;
-        try (FileInputStream fis = new FileInputStream(file)) {
-            data = new byte[(int) file.length()];
-            while (fis.read(data) != -1) {
-                Utils.getGlobalLogger().debug("SCD読み取り");
-            }
-        }
+    public ScdHeader ScdHeader;
+
+    public SCD_File(byte[] data, ByteOrder endian){
+        super(endian);
         loadSCD(data);
     }
 
-    public SCD_File(byte[] data, ByteOrder endian) throws IOException {
-        super(endian);
-        loadSCD(data);
-    }
 
-    @SuppressWarnings("unused")
-    private void loadSCD(byte[] data) throws IOException {
+    private void loadSCD(byte[] data){
 
         scdFile = data;
 
@@ -53,47 +49,58 @@ public class SCD_File extends Game_File {
             byte[] sigBuf = new byte[8];
             buffer.get(sigBuf, 0, 8);
             if (!(new String(sigBuf)).equals("SEDBSSCF")) //SEDBSSCF in hex
-                throw new IOException("Not a valid SCD file");
+            {
+                Utils.getGlobalLogger().error("Not a valid SCD file");
+                return;
+            }
 
             //Check Version
             int version = buffer.getInt();
-            if (version != 3)
-                throw new IOException("Only version 3 SCD files supported");
+            if (version != 3) {
+                Utils.getGlobalLogger().error("Only version 3 SCD files supported");
+                return;
+            }
 
             buffer.rewind();
             buffer.position(0xE);
-            int sizeOfSCDHeader = buffer.getShort();
-            int fullFileLength = buffer.getInt();
+            int fileHeaderSize = buffer.getShort();
+            //int fullFileLength = buffer.getInt();
 
             //Offset Header
             buffer.rewind();
-            buffer.position(sizeOfSCDHeader);
-
-            int sizeofTable0 = buffer.getShort();
-            int sizeofTable1 = buffer.getShort();
-            int sizeofSoundTable = buffer.getShort();
-            int val3 = buffer.getShort();
-            int table0Offset = buffer.getInt();
-            int soundEntryOffsetTable_Offset = buffer.getInt();
-            int table1Offset = buffer.getInt();
-            buffer.getInt();
-            int unknownOffset1 = buffer.getInt();
+            ReadScdHeader(buffer, fileHeaderSize);
 
             //Load Sound Entry Offsets
-            soundEntryOffsets = new int[sizeofSoundTable];
+            soundEntryOffsets = new int[ScdHeader.EntryCount];
             buffer.rewind();
-            buffer.position(soundEntryOffsetTable_Offset);
-            for (int i = 0; i < sizeofSoundTable; i++)
+            buffer.position(ScdHeader.EntryTableOffset);
+            for (int i = 0; i < ScdHeader.EntryCount; i++) {
                 soundEntryOffsets[i] = buffer.getInt();
+            }
 
         } catch (BufferUnderflowException | BufferOverflowException flowException) {
             Utils.getGlobalLogger().error(flowException);
         }
     }
 
+    private void ReadScdHeader(ByteBuffer buffer, int offset){
+        buffer.position(offset);
+        ScdHeader = new ScdHeader();
+        ScdHeader.Unknown1Count = buffer.getShort();
+        ScdHeader.Unknown2Count = buffer.getShort();
+        ScdHeader.EntryCount = buffer.getShort();
+        ScdHeader.Unknown1 = buffer.getShort();
+        ScdHeader.Unknown1Offset = buffer.getInt();
+        ScdHeader.EntryTableOffset = buffer.getInt();
+        ScdHeader.Unknown2Offset = buffer.getInt();
+        ScdHeader.Unknown2 = buffer.getInt();
+        ScdHeader.UnknownOffset1 = buffer.getInt();
+    }
+
     private void xorDecode(byte[] vorbisHeader, int encodeByte) {
-        for (int i = 0; i < vorbisHeader.length; i++)
+        for (int i = 0; i < vorbisHeader.length; i++) {
             vorbisHeader[i] ^= encodeByte;
+        }
     }
 
     private void xorDecodeFromTable(byte[] dataFile, int dataLength) {
@@ -115,8 +122,9 @@ public class SCD_File extends Game_File {
 
     @SuppressWarnings("unused")
     public SCD_Sound_Info getSoundInfo(int index) {
-        if (index > soundEntryOffsets.length - 1)
+        if (index > soundEntryOffsets.length - 1) {
             return null;
+        }
 
         //Get to Sound Entry Header
         ByteBuffer buffer = ByteBuffer.wrap(scdFile);
@@ -127,8 +135,9 @@ public class SCD_File extends Game_File {
         int dataLength = buffer.getInt();
 
         //Exception for placeholders
-        if (dataLength == 0)
+        if (dataLength == 0) {
             return null;
+        }
 
         int numChannels = buffer.getInt();
         int frequency = buffer.getInt();
@@ -144,8 +153,9 @@ public class SCD_File extends Game_File {
 
     @SuppressWarnings("unused")
     public byte[] getConverted(int index) {
-        if (index > soundEntryOffsets.length - 1)
+        if (index > soundEntryOffsets.length - 1) {
             return null;
+        }
 
         //Get to Sound Entry Header
         ByteBuffer buffer = ByteBuffer.wrap(scdFile);
@@ -156,8 +166,9 @@ public class SCD_File extends Game_File {
         int dataLength = buffer.getInt();
 
         //Exception for placeholders
-        if (dataLength == 0)
+        if (dataLength == 0) {
             return null;
+        }
 
         int numChannels = buffer.getInt();
         int frequency = buffer.getInt();
@@ -197,7 +208,9 @@ public class SCD_File extends Game_File {
 
             if (encodeMode == 0x2002) {
                 if (encodeByte != 0x00) //Decode if need to
+                {
                     xorDecode(vorbisHeader, encodeByte);
+                }
             }
 
             //Read in the rest of the music
@@ -208,8 +221,9 @@ public class SCD_File extends Game_File {
             System.arraycopy(vorbisHeader, 0, dataFile, 0, vorbisHeaderSize);
             System.arraycopy(oggData, 0, dataFile, vorbisHeaderSize, oggData.length);
 
-            if (encodeMode == 0x2003)
+            if (encodeMode == 0x2003) {
                 xorDecodeFromTable(dataFile, dataLength);
+            }
 
             return dataFile;
         } else if (dataType == 0x0C) {
@@ -234,8 +248,9 @@ public class SCD_File extends Game_File {
             out.put(data);
 
             return waveFile;
-        } else
+        } else {
             return null;
+        }
     }
 
     public static class SCD_Sound_Info {
@@ -273,8 +288,9 @@ public class SCD_File extends Game_File {
         int dataLength = buffer.getInt();
 
         //Exception for placeholders
-        if (dataLength == 0)
+        if (dataLength == 0) {
             return null;
+        }
 
         int numChannels = buffer.getInt();
         int frequency = buffer.getInt();
@@ -311,8 +327,9 @@ public class SCD_File extends Game_File {
         int dataLength = buffer.getInt();
 
         //Exception for placeholders
-        if (dataLength == 0)
+        if (dataLength == 0) {
             return null;
+        }
 
         int numChannels = buffer.getInt();
         int frequency = buffer.getInt();
