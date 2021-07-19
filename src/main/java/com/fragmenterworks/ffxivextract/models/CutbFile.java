@@ -1,11 +1,9 @@
 package com.fragmenterworks.ffxivextract.models;
 
-import com.fragmenterworks.ffxivextract.Constants;
 import com.fragmenterworks.ffxivextract.helpers.ByteArrayExtensions;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.storage.HashDatabase;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -13,7 +11,6 @@ public class CutbFile extends Game_File {
 
     //他のファイルを見つけるために使用されます
     private static SqPack_IndexFile currentIndex; //現在表示中または呼び出し元のIndexファイル
-    private static SqPack_IndexFile bgcommonIndex;
 
     //region Struct
     public static class HeaderData {
@@ -60,7 +57,7 @@ public class CutbFile extends Game_File {
             Entry[i] = new CutbGroupEntry(bb, entryOffset);
             entryOffset += 0x10;
         }
-        Utils.getGlobalLogger().trace("cutb読み込み完了");
+        Utils.DummyLog("cutb読み込み完了");
     }
 
     public class CutbGroupEntry {
@@ -94,8 +91,14 @@ public class CutbFile extends Game_File {
                 case "CTDS":
                     Entry = new CtdsEntry(bb, BaseOffset + Header.EntryOffset);
                     break;
+                case "CTEX":
+                    Entry = new CtexEntry(bb, BaseOffset + Header.EntryOffset);
+                    break;
                 case "CTAL":
                     Entry = new CtalEntry(bb, BaseOffset + Header.EntryOffset);
+                    break;
+                case "CTPC":
+                    Entry = new CtpcEntry(bb, BaseOffset + Header.EntryOffset);
                     break;
                 case "CTCB":
                     Entry = new CtcbEntry(bb, BaseOffset + Header.EntryOffset);
@@ -141,7 +144,7 @@ public class CutbFile extends Game_File {
                 int entryOffset = offset + Header.EntriesOffset + i * 8;
                 Entry[i] = new CtrlDataEntry(bb, entryOffset);
             }
-
+            Utils.DummyLog("CtrlEntry");
         }
 
         public class CtrlDataEntry {
@@ -168,7 +171,10 @@ public class CutbFile extends Game_File {
     public static class CtisEntry implements ICutbEntry{
         public static class HeaderData{
             public int NameOffset;
-            public int EntryCount;
+            public byte UnknownFlag1;
+            public byte UnknownFlag2;
+            public byte UnknownFlag3;
+            public byte UnknownFlag4;
         }
 
         public HeaderData Header = new HeaderData();
@@ -177,15 +183,14 @@ public class CutbFile extends Game_File {
         public CtisEntry(ByteBuffer bb, int offset){
             bb.position(offset);
             Header.NameOffset = bb.getInt();
-            Header.EntryCount = bb.getInt();
+            Header.UnknownFlag1 = bb.get();
+            Header.UnknownFlag2 = bb.get();
+            Header.UnknownFlag3 = bb.get();
+            Header.UnknownFlag4 = bb.get();
 
             Name = ByteArrayExtensions.ReadString(bb, offset + Header.NameOffset);
 
-            if (Header.EntryCount > 1){
-                Utils.getGlobalLogger().trace("Nameが複数あるかも");
-            }
-
-            Utils.getGlobalLogger().trace("CtisEntry");
+            Utils.DummyLog("CtisEntry");
         }
     }
 
@@ -229,31 +234,101 @@ public class CutbFile extends Game_File {
             Header.EntriesOffset = bb.getInt();
             Header.EntryCount = bb.getInt();
             Header.Unknown7 = bb.getInt();
-            Header.Unknown8 = bb.getInt();
             Header.NameOffset2 = bb.getInt();
+            Header.Unknown8 = bb.getInt();
             Header.Unknown9 = bb.getInt();
 
             Name = ByteArrayExtensions.ReadString(bb, offset + Header.NameOffset);
 
             DataEntry = new CtdsDataEntry[Header.EntryCount];
-            for (int i = 0; i < Header.EntryCount + 1; i++){
+            for (int i = 0; i < Header.EntryCount; i++){
                 int entryOffset = BaseOffset + Header.EntriesOffset + i * 8;
                 DataEntry[i] = new CtdsDataEntry(bb, entryOffset);
             }
 
-            Utils.getGlobalLogger().trace("CtdsEntry");
+            Utils.DummyLog("CtdsEntry");
         }
 
         public static class CtdsDataEntry{
-            public float UnknownFloat;
+
+            public short UnknownShort1;
+            public short UnknownShort2;
             public int Unknown1;
 
             public CtdsDataEntry (ByteBuffer bb, int offset){
                 bb.position(offset);
-                UnknownFloat = bb.getFloat();
+                UnknownShort1 = bb.getShort();
+                UnknownShort2 = bb.getShort();
                 Unknown1 = bb.getInt();
 
-                Utils.getGlobalLogger().trace("CtdsDataEntry");
+                Utils.DummyLog("CtdsDataEntry");
+            }
+        }
+
+    }
+
+    public static class CtexEntry implements ICutbEntry{
+        public static class HeaderData{
+            public int UnknownOffset;
+            public int UnknownID1;
+            public int ID1_Data;
+            public int UnknownID2;
+            public int ID2_Data;
+            public int UnknownID3;
+            public int ID3_Data;
+        }
+
+        public HeaderData Header = new HeaderData();
+        public String Name;
+        public CtexDataEntry[] Entry;
+
+        public CtexEntry(ByteBuffer bb, int offset){
+            bb.position(offset);
+            int EntryCount = 1;
+            Header.UnknownOffset = bb.getInt();
+
+
+            Header.UnknownID1 = bb.getInt();
+            Header.ID1_Data = bb.getInt();
+            int tmpOffset = bb.position();
+            Header.UnknownID2 = bb.getInt();
+            Header.ID2_Data = bb.getInt();
+            if (Header.UnknownID2 == 1){
+                bb.position(tmpOffset);
+            }else {
+                EntryCount = 2;
+                tmpOffset = bb.position();
+                Header.UnknownID3 = bb.getInt();
+                Header.ID3_Data = bb.getInt();
+                if (Header.UnknownID3 == 1){
+                    bb.position(tmpOffset);
+                }else{
+                    EntryCount = 3;
+                }
+            }
+
+            Entry = new CtexDataEntry[EntryCount];
+            for(int i = 0; i < EntryCount; i++){
+                int BaseOffset = bb.position();
+                Entry[i] = new CtexDataEntry(bb, BaseOffset);
+            }
+
+            Name = ByteArrayExtensions.ReadString(bb, offset + Header.UnknownOffset);
+
+            Utils.DummyLog("CtexEntry");
+        }
+
+        public static class CtexDataEntry{
+            public int EntryID;
+            public int EntriesOffset;
+            public String Flag;
+            public CtexDataEntry(ByteBuffer bb, int offset){
+                bb.position(offset);
+                EntryID = bb.getInt();
+                EntriesOffset = bb.getInt();
+                if(EntriesOffset != 0) {
+                    Flag = ByteArrayExtensions.ReadString(bb, offset + EntriesOffset);
+                }
             }
         }
 
@@ -295,7 +370,7 @@ public class CutbFile extends Game_File {
                 Entry2[i] = new CtalDataEntry2(bb, entryOffset);
             }
 
-            Utils.getGlobalLogger().trace("CtalEntry");
+            Utils.DummyLog("CtalEntry");
         }
 
         public static class CtalDataEntry {
@@ -325,7 +400,7 @@ public class CutbFile extends Game_File {
 
                 Name = ByteArrayExtensions.ReadString(bb, offset + Header.NameOffset);
 
-                Utils.getGlobalLogger().trace("※要検証");
+                Utils.DummyLog("※要検証");
             }
 
         }
@@ -357,9 +432,87 @@ public class CutbFile extends Game_File {
 
                 Name = ByteArrayExtensions.ReadString(bb, offset + Header.NameOffset);
 
-                Utils.getGlobalLogger().trace("※要検証");
+                Utils.DummyLog("※要検証");
             }
 
+        }
+    }
+
+    public static class CtpcEntry implements ICutbEntry{
+        public static class HeaderData{
+            public int Entry1Offset;
+            public int Entry1Count;
+            public int Entry2Offset;
+            public int Entry2Count;
+        }
+
+        public HeaderData Header = new HeaderData();
+        public CtpcDataEntry[] DataEntry;
+        public String[] Name;
+
+        public CtpcEntry(ByteBuffer bb, int offset){
+            bb.position(offset);
+            Header.Entry1Offset = bb.getInt();
+            Header.Entry1Count = bb.getInt();
+            Header.Entry2Offset = bb.getInt();
+            Header.Entry2Count = bb.getInt();
+            int BaseOffset = offset + Header.Entry1Offset;
+
+            Name = new String[Header.Entry1Count];
+            for (int i = 0; i < Header.Entry1Count; i++){
+                int NameOffset = bb.getInt();
+
+                Name[i] = ByteArrayExtensions.ReadString(bb, BaseOffset + NameOffset);
+            }
+
+            BaseOffset = offset + Header.Entry2Offset;
+
+            DataEntry = new CtpcDataEntry[Header.Entry2Count];
+            for (int i = 0; i < Header.Entry2Count; i++){
+                int entryOffset = BaseOffset + i * 8;
+                DataEntry[i] = new CtpcDataEntry(bb, entryOffset);
+            }
+
+            Utils.DummyLog("CtpcEntry");
+        }
+
+        public static class CtpcDataEntry {
+
+            public int EntryOffset;
+            public int EntryCount;
+
+            public CtpcData[] Entry;
+
+            public CtpcDataEntry(ByteBuffer bb, int offset){
+                bb.position(offset);
+                EntryOffset = bb.getInt();
+                EntryCount = bb.getInt();
+
+                Entry = new CtpcData[EntryCount];
+                for (int i = 0; i < EntryCount; i++){
+                    Entry[i] = new CtpcData(bb, offset + EntryOffset);
+                }
+
+                Utils.DummyLog("CtpcDataEntry");
+            }
+        }
+
+        public static class CtpcData {
+
+            public int Unknown1;
+            public short Unknown2;
+            public short Unknown3;
+            public int Unknown4;
+
+            public CtpcData(ByteBuffer bb, int offset){
+                bb.position(offset);
+                Unknown1 = bb.getInt();
+                Unknown2 = bb.getShort();
+                Unknown3 = bb.getShort();
+                Unknown4 = bb.getInt();
+
+                Utils.DummyLog("CtpcData");
+            }
         }
     }
 
@@ -376,11 +529,12 @@ public class CutbFile extends Game_File {
             Header.NameOffset = bb.getInt();
 
             Name = ByteArrayExtensions.ReadString(bb, offset + Header.NameOffset);
+            Utils.DummyLog("CtcbEntry");
         }
     }
 
-    public class CtpaEntry implements ICutbEntry{
-        public class HeaderData{
+    public static class CtpaEntry implements ICutbEntry{
+        public static class HeaderData{
             public int EntriesOffset;
             public int EntryCount;
         }
@@ -398,11 +552,11 @@ public class CutbFile extends Game_File {
                 int entriesOffset = offset + Header.EntriesOffset + i * 0x0C;
                 Entry[i] = new CtpaDataEntry(bb, entriesOffset);
             }
-
+            Utils.DummyLog("CtpaEntry");
         }
 
-        public class CtpaDataEntry{
-            public class HeaderData{
+        public static class CtpaDataEntry{
+            public static class HeaderData{
                 public short CtpaID;
                 public short SumFlag;
                 public int EntriesOffset;
@@ -427,8 +581,8 @@ public class CutbFile extends Game_File {
             }
         }
 
-        public class CtpaSubDataEntry{
-            public class HeaderData{
+        public static class CtpaSubDataEntry{
+            public static class HeaderData{
                 public short CtpaSubID;
                 public short SumFlag;
                 public int EntriesOffset;
@@ -453,15 +607,15 @@ public class CutbFile extends Game_File {
             }
         }
 
-        public class CtpaEventNameEntry {
-            public class HeaderData{
+        public static class CtpaEventNameEntry {
+            public static class HeaderData{
                 public short ID;
                 public short SumFlag;
                 public int EntriesOffset;
                 public int NameOffset;
             }
             public HeaderData Header = new HeaderData();
-            public String Name;
+            public String PapFilePath;
 
             public CtpaEventNameEntry(ByteBuffer bb, int offset){
                 bb.position(offset);
@@ -470,10 +624,11 @@ public class CutbFile extends Game_File {
                 Header.EntriesOffset = bb.getInt();
                 Header.NameOffset = bb.getInt();
 
-                Name = ByteArrayExtensions.ReadString(bb, offset + Header.NameOffset);
+                PapFilePath = ByteArrayExtensions.ReadString(bb, offset + Header.NameOffset);
+                //例：chara/human/c0101/animation/a0001/bt_common/event_npc/event_cid0_driving_id.papの
+                //「event_npc/event_cid0_driving_id」が入っている
 
-                cAddPathToDB(Name);
-                Utils.getGlobalLogger().trace("CtpaFileDataEntry");
+                Utils.DummyLog("CtpaFileDataEntry");
             }
         }
 
@@ -486,7 +641,7 @@ public class CutbFile extends Game_File {
             bb.position(offset);
             byte[] data = new byte[DataSize];
             bb.get(data);
-            tmbFile = new TmbFile(currentIndex, data, currentIndex.getEndian());
+            tmbFile = new TmbFile(data, currentIndex.getEndian());
 
         }
     }
@@ -509,6 +664,9 @@ public class CutbFile extends Game_File {
             return 4;
         }else{
             String archive = HashDatabase.getArchiveID(fullPath);
+            if (archive.equals("*")){
+                return 0;
+            }
             return cAddPathToDB(fullPath, archive);
         }
     }
@@ -521,31 +679,11 @@ public class CutbFile extends Game_File {
      */
     @SuppressWarnings("SameParameterValue")
     private int cAddPathToDB(String fullPath, String archive){
-        SqPack_IndexFile sp_IndexFile;
-        SqPack_IndexFile temp_IndexFile = currentIndex;
-
         int result = 0;
+        SqPack_IndexFile temp_IndexFile = SqPack_IndexFile.GetIndexFileForArchiveID(archive, false);
 
-        if (currentIndex.getName().equals(archive)) {
-            Utils.getGlobalLogger().trace("");
-        } else if (archive.equals("010000")){
-            if(bgcommonIndex == null) {
-                try {
-                    bgcommonIndex = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\010000.win32.index", false);
-                    temp_IndexFile = bgcommonIndex;
-                } catch (IOException e) {
-                    Utils.getGlobalLogger().error(e);
-                }
-            }else{
-                temp_IndexFile = bgcommonIndex;
-            }
-        } else {
-            try {
-                sp_IndexFile = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\" + archive + ".win32.index", true);
-                temp_IndexFile = sp_IndexFile;
-            } catch (IOException e) {
-                Utils.getGlobalLogger().error(e);
-            }
+        if (temp_IndexFile == null){
+            return 0;
         }
 
         int pathCheck = temp_IndexFile.findFile(fullPath);
@@ -555,30 +693,18 @@ public class CutbFile extends Game_File {
             if (result == 1) {
                 if (fullPath.endsWith(".mdl")) {
                     //mdlファイル内のパスも解析
-                    try {
-                        byte[] data2 = temp_IndexFile.extractFile(fullPath);
-                        Model tempModel = new Model(fullPath, temp_IndexFile, data2, temp_IndexFile.getEndian());
-                        tempModel.loadVariant(1); //mdlファイルに関連するmtrlとtexの登録を試みる。
-                    } catch (Exception modelException) {
-                        modelException.printStackTrace();
-                    }
+                    byte[] data2 = temp_IndexFile.extractFile(fullPath);
+                    Model tempModel = new Model(fullPath, temp_IndexFile, data2, temp_IndexFile.getEndian());
+                    tempModel.loadVariant(1); //mdlファイルに関連するmtrlとtexの登録を試みる。
                 } else if (fullPath.endsWith(".avfx")) {
-                    try {
-                        //avfxファイル内のパスも解析
-                        byte[] data2 = temp_IndexFile.extractFile(fullPath);
-                        AVFX_File avfxFile = new AVFX_File(temp_IndexFile, data2, temp_IndexFile.getEndian());
-                        avfxFile.regHash(true);
-                    } catch (Exception avfxException) {
-                        avfxException.printStackTrace();
-                    }
+                    //avfxファイル内のパスも解析
+                    byte[] data2 = temp_IndexFile.extractFile(fullPath);
+                    AVFX_File avfxFile = new AVFX_File(temp_IndexFile, data2, temp_IndexFile.getEndian());
+                    avfxFile.regHash(true);
                 } else if (fullPath.endsWith(".sgb")) {
                     //sgbファイル内のパスも解析
-                    try {
-                        byte[] data2 = temp_IndexFile.extractFile(fullPath);
-                        new SgbFile(temp_IndexFile, data2, temp_IndexFile.getEndian());
-                    } catch (Exception sgbException) {
-                        sgbException.printStackTrace();
-                    }
+                    byte[] data2 = temp_IndexFile.extractFile(fullPath);
+                    new SgbFile(data2, temp_IndexFile.getEndian());
                 }
             }
         }
