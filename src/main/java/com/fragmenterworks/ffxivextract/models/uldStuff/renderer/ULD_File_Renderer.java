@@ -1154,6 +1154,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
     }
 
     public static class GraphicsComponent extends GraphicsElement<GraphicsNode> implements MouseListener {
+        @SuppressWarnings("rawtypes")
         UIComponent component;
         GraphicsElement<? extends GraphicsNode> parent;
 
