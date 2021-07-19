@@ -87,6 +87,10 @@ public class Main {
 
         Utils.getGlobalLogger().info("ロギングを{}に設定", LogManager.getRootLogger().getLevel());
 
+        //シャットダウン処理のフック
+        Thread hook = new Thread(HashDatabase::closeConnection);
+        Runtime.getRuntime().addShutdownHook(hook);
+
         // Open up the main window
         FileManagerWindow fileMan = new FileManagerWindow(Constants.APPNAME);
         fileMan.setVisible(true);
