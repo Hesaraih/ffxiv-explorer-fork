@@ -1,20 +1,14 @@
 package com.fragmenterworks.ffxivextract.models;
 
-import com.fragmenterworks.ffxivextract.Constants;
 import com.fragmenterworks.ffxivextract.helpers.ByteArrayExtensions;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.storage.HashDatabase;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.EnumSet;
 
 public class ENVB_File extends Game_File {
-
-    //他のファイルを見つけるために使用されます
-    private final SqPack_IndexFile currentIndex; //現在表示中または呼び出し元のIndexファイル
-    private static SqPack_IndexFile bgcommonIndex;
 
     //region Struct
     public static class HeaderData {
@@ -41,9 +35,8 @@ public class ENVB_File extends Game_File {
      * @param data sgbデータ
      * @param endian エンディアンの種類
      */
-    public ENVB_File(SqPack_IndexFile index, byte[] data, ByteOrder endian) {
+    public ENVB_File(byte[] data, ByteOrder endian) {
         super(endian);
-        this.currentIndex = index;
         Build(data);
     }
 
@@ -1144,31 +1137,11 @@ public class ENVB_File extends Game_File {
      */
     @SuppressWarnings("SameParameterValue")
     private int cAddPathToDB(String fullPath, String archive){
-        SqPack_IndexFile sp_IndexFile;
-        SqPack_IndexFile temp_IndexFile = currentIndex;
-
         int result = 0;
+        SqPack_IndexFile temp_IndexFile = SqPack_IndexFile.GetIndexFileForArchiveID(archive, false);
 
-        if (currentIndex.getName().equals(archive)) {
-            Utils.getGlobalLogger().trace("");
-        } else if (archive.equals("010000")){
-            if(bgcommonIndex == null) {
-                try {
-                    bgcommonIndex = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\010000.win32.index", false);
-                    temp_IndexFile = bgcommonIndex;
-                } catch (IOException e) {
-                    Utils.getGlobalLogger().error(e);
-                }
-            }else{
-                temp_IndexFile = bgcommonIndex;
-            }
-        } else {
-            try {
-                sp_IndexFile = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\" + archive + ".win32.index", true);
-                temp_IndexFile = sp_IndexFile;
-            } catch (IOException e) {
-                Utils.getGlobalLogger().error(e);
-            }
+        if (temp_IndexFile == null){
+            return 0;
         }
 
         int pathCheck = temp_IndexFile.findFile(fullPath);

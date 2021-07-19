@@ -35,7 +35,6 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
     //EXH Context
 	private SqPack_IndexFile currentIndex;
-    private static SqPack_IndexFile sp_IndexFile;
     private EXHF_File exhFile = null;
     private EXDF_File[] exdFile = null;
 
@@ -97,14 +96,10 @@ public class EXDF_View extends JScrollPane implements ItemListener {
         exhFolder = folderName;
 
         //検索
-        try {
-            byte[] data = currentIndex.extractFile(folderName, exhName);
+        byte[] data = currentIndex.extractFile(folderName, exhName);
 
-            if (data != null) {
-                exhFile = new EXHF_File(data);
-            }
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
+        if (data != null) {
+            exhFile = new EXHF_File(data);
         }
 
         //exhファイルが見つからない
@@ -304,20 +299,16 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                 formattedExdName = String.format(exdName, exhFile.getPageTable()[i].pageNum, EXHF_File.languageCodes[exhFile.getLanguageTable()[j]]);
                 formattedExdName = formattedExdName.substring(formattedExdName.lastIndexOf("/") + 1);
 
-                try {
-                    //誤って何かを見つけました
-                    if (HashDatabase.getFileName(HashDatabase.computeCRC(formattedExdName.getBytes(), 0, formattedExdName.getBytes().length)) == null) {
-                        if (!(numLanguages > 5 && (formattedExdName.contains("chs") || formattedExdName.contains("cht") || formattedExdName.contains("ko")))) {
-                            HashDatabase.addPathToDB(exhFolder + "/" + formattedExdName, currentIndex.getName());
-                        }
+                //誤って何かを見つけました
+                if (HashDatabase.getFileName(HashDatabase.computeCRC(formattedExdName.getBytes(), 0, formattedExdName.getBytes().length)) == null) {
+                    if (!(numLanguages > 5 && (formattedExdName.contains("chs") || formattedExdName.contains("cht") || formattedExdName.contains("ko")))) {
+                        HashDatabase.addPathToDB(exhFolder + "/" + formattedExdName, currentIndex.getName());
                     }
-                    byte[] data = currentIndex.extractFile(exhFolder, formattedExdName);
+                }
+                byte[] data = currentIndex.extractFile(exhFolder, formattedExdName);
 
-                    if (exdFile != null && data != null) {
-                        exdFile[(i * numLanguages) + j] = new EXDF_File(data);
-                    }
-                } catch (IOException e) {
-                    Utils.getGlobalLogger().error(e);
+                if (exdFile != null && data != null) {
+                    exdFile[(i * numLanguages) + j] = new EXDF_File(data);
                 }
             }
         }
@@ -670,11 +661,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
      */
     @SuppressWarnings("unused")
     public void addAllWeaponModels() {
-        try {
-            sp_IndexFile = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\040000.win32.index", true);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        SqPack_IndexFile sp_IndexFile = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\040000.win32.index", true);
         //データ書き込み
         for (int row = 0; row < table.getRowCount(); row++) {
 
