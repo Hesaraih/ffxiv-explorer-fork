@@ -12,10 +12,8 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.net.URL;
-import java.sql.SQLException;
 import java.util.Objects;
 
-@SuppressWarnings("CommentedOutCode")
 public class Path_to_Hash_Window extends JFrame {
 
     private final JTextField edtFullPath;
@@ -107,21 +105,21 @@ public class Path_to_Hash_Window extends JFrame {
     private void commit() {
         //計算ボタンを押したときの動作
         String path = edtFullPath.getText();
+        String archive = HashDatabase.getArchiveID(path);
 
-        HashDatabase.beginConnection();
-        try {
-            HashDatabase.setAutoCommit(false);
-        } catch (SQLException e1) {
-            Utils.getGlobalLogger().error(e1);
-        }
         int result = 0;
+
+        if (archive.equals("*")){
+            return;
+        }
+
         if (pathCheck == 2){
             //ファイルパスとファイル名を強制的に追加
-            result = HashDatabase.addPathToDB(path, currentIndex.getName(), HashDatabase.globalConnection,true);
+            result = HashDatabase.addPathToDB(path, archive);
         }else if (pathCheck == 1){
             //ファイルパスのみ追加
             String folder = path.substring(0, path.lastIndexOf('/'));
-            result = HashDatabase.addFolderToDB(folder, currentIndex.getName(),true);
+            result = HashDatabase.addFolderToDB(folder, archive,true);
         }
 
         if (result == 1) {
@@ -151,12 +149,6 @@ public class Path_to_Hash_Window extends JFrame {
                     JOptionPane.ERROR_MESSAGE);
         }
 
-        try {
-            HashDatabase.commit();
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-        HashDatabase.closeConnection();
     }
 
     /**
@@ -188,20 +180,23 @@ public class Path_to_Hash_Window extends JFrame {
         btnCalculate.setEnabled(false); //強制登録用のボタン無効化
 
         try {
-            pathCheck = currentIndex.findFile(path);
+            String archive = HashDatabase.getArchiveID(path);
+            SqPack_IndexFile temp_IndexFile = currentIndex;
+            if (!currentIndex.getName().equals(archive) && !archive.equals("*")) {
+                //↑自由に入力できるためarchiveに存在しないフォルダを指定しエラーが発生する場合があるので"*"禁止
+                temp_IndexFile = SqPack_IndexFile.GetIndexFileForArchiveID(archive, false);
+            }
+
+            pathCheck = temp_IndexFile.findFile(path);
             if (pathCheck == 2){
-                HashDatabase.addPathToDB(edtFullPath.getText(), currentIndex.getName());
+                HashDatabase.addPathToDB(edtFullPath.getText(), archive);
                 border = BorderFactory.createLineBorder(Color.GREEN, 2);
                 btnCalculate.setEnabled(true); //強制登録用のボタン有効化
             }else if (pathCheck == 1){
                 border = BorderFactory.createLineBorder(Color.ORANGE, 2);
                 btnCalculate.setEnabled(true); //強制登録用のボタン有効化
             }
-            //変更前：
-//            if (currentIndex.extractFile(path) != null) {
-//                HashDatabase.addPathToDB(edtFullPath.getText(), currentIndex.getName());
-//                border = BorderFactory.createLineBorder(Color.GREEN, 2);
-//            }
+
         } catch (Exception e) {
             Utils.getGlobalLogger().error(e);
         }

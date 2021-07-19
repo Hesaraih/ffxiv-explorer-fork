@@ -6,8 +6,6 @@ import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile;
 import com.fragmenterworks.ffxivextract.models.Texture_File;
 
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.prefs.Preferences;
@@ -26,44 +24,10 @@ public class FileTools {
         }
     }
 
-
-    @SuppressWarnings("unused")
-    public static BufferedImage getIcon(SqPack_IndexFile sqPak, int iconID) {
-        String file;
-        if (sqPak == null) {
-            file = Constants.datPath;
-        } else {
-            file = sqPak.getPath();
-            file = new File(file).getParentFile().getPath();
-        }
-        return getIcon(file, iconID);
-    }
-
-    @SuppressWarnings("unused")
     public static BufferedImage getIcon(int iconID) {
-        return getIcon((String) null, iconID);
-    }
-
-    public static BufferedImage getIcon(String sqPakPath, int iconID) {
-        if (sqPakPath == null) {
-            sqPakPath = Constants.datPath;
-        }
         String iconPath = String.format("ui/icon/%06d/%06d.tex", iconID - (iconID % 1000), iconID);
         Utils.getGlobalLogger().info("IconPath: {}, iconID: {}", iconPath, iconID);
-        return getTexture(sqPakPath, iconPath);
-    }
-
-
-    @SuppressWarnings("unused")
-    public static byte[] getRaw(SqPack_IndexFile sqPak, String path) {
-        String file = sqPak.getPath();
-        String sqPackPath = new File(file).getParentFile().getPath();
-        return getRaw(sqPackPath, path);
-    }
-
-    @SuppressWarnings("unused")
-    public static byte[] getRaw(String path) {
-        return getRaw((String) null, path);
+        return getTexture(iconPath);
     }
 
     /**
@@ -83,34 +47,19 @@ public class FileTools {
         return String.format("%s\\game\\sqpack\\%s\\%s.win32.index", Constants.datPath, exPath, ArchiveID);
     }
 
-    public static byte[] getRaw(String sqPakPath, String path) {
-        if (sqPakPath == null) {
-            sqPakPath = Constants.datPath;
-        }
+    public static byte[] getRaw(String path) {
         String lowerPath = path.toLowerCase();
-        String dat = getDatByPath(lowerPath);
+        String ArchiveID = getArchiveID_ByPath(lowerPath);
 
-        if (!sqPakPath.endsWith(File.separator)) {
-            sqPakPath += File.separator;
-        }
-
-        if (!sqPakPath.endsWith("\\game\\sqpack\\ffxiv\\")) {
-            sqPakPath += "\\game\\sqpack\\ffxiv\\";
-        }
-
-        SqPack_IndexFile index = SqPack_IndexFile.createIndexFileForPath(sqPakPath + dat + ".index", true);
+        SqPack_IndexFile index = SqPack_IndexFile.GetIndexFileForArchiveID(ArchiveID, true);
 
         if (index != null) {
-            try {
-                return index.extractFile(lowerPath);
-            } catch (IOException e) {
-                Utils.getGlobalLogger().error(e);
-            }
+            return index.extractFile(lowerPath);
         }
         return new byte[0];
     }
 
-    private static String getDatByPath(final String fullPath) {
+    private static String getArchiveID_ByPath(final String fullPath) {
         if (fullPath.startsWith("common/")){return "000000" + ".win32";}
         else if (fullPath.startsWith("bgcommon/")){return "010000" + ".win32";}
         else if (fullPath.startsWith("bg/")){
@@ -147,16 +96,8 @@ public class FileTools {
         return "";
     }
 
-    @SuppressWarnings("unused")
     public static BufferedImage getTexture(String path) {
-        return getTexture(null, path);
-    }
-
-    public static BufferedImage getTexture(String sqPakPath, String path) {
-        if (sqPakPath == null) {
-            sqPakPath = Constants.datPath;
-        }
-        byte[] data = getRaw(sqPakPath, path);
+        byte[] data = getRaw(path);
 
         //TODO: Random ULD stuff can be little-endian, no?
         Texture_File tf = new Texture_File(data, ByteOrder.LITTLE_ENDIAN);

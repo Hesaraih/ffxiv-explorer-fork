@@ -21,404 +21,414 @@ public class SqPack_DatFile {
     @SuppressWarnings("unused")
     public final static int TYPE_PLACEHOLDER = 1;
 
-    private final EARandomAccessFile currentFilePointer;
+    private EARandomAccessFile currentFilePointer;
     private final ByteOrder endian;
 
-    SqPack_DatFile(String path, ByteOrder endian) throws FileNotFoundException {
+    SqPack_DatFile(String path, ByteOrder endian){
         this.endian = endian;
-        currentFilePointer = new EARandomAccessFile(path, "r", endian);
+        try {
+            currentFilePointer = new EARandomAccessFile(path, "r", endian);
+        } catch (FileNotFoundException e) {
+            Utils.getGlobalLogger().error("ファイルが読み込めません");
+        }
     }
 
     @SuppressWarnings("unused")
-    protected byte[] extractFile(long fileOffset, Loading_Dialog loadingDialog) throws IOException {
-        currentFilePointer.seek(fileOffset);
-        int headerLength = currentFilePointer.readInt();
-        int contentType = currentFilePointer.readInt();
-        int fileSize = currentFilePointer.readInt();
-        int num_blocks = currentFilePointer.readInt(); // UNKNOWN
-        int blockBufferSize = currentFilePointer.readInt() * 0x80;
-        int blockCount = currentFilePointer.readInt();
-
-        byte[] extraHeader = null;
-        int extraHeaderSize = 0;
-
-        Utils.getGlobalLogger().trace("\nFile @ {}\n\tHeader length: {}\n\tContent type: {}\n\tFile size: {}\n\tBlock buffer size: {}\n\tBlock count: {}",
-                String.format("%08x", fileOffset), headerLength, contentType, fileSize, blockBufferSize, blockCount);
-        Utils.getGlobalLogger().trace("Block data: ...");
-
-        Data_Block[][] dataBlocks = null;
-
-        //How to get the blocks
-        switch (contentType) {
-            case TYPE_TEXTURE:
-
-                int[][] referenceRanges;
-                if (this.endian == ByteOrder.BIG_ENDIAN) {
-                    referenceRanges = new int[3][2];
-
-                    for (int i = 0; i < referenceRanges.length; i++) {
-                        for (int j = 0; j < referenceRanges[i].length; j++) {
-                            referenceRanges[i][j] = currentFilePointer.readInt();
-                        }
-                    }
-
-                    TextureBlocks[] blocks = new TextureBlocks[blockCount];
-
-                    dataBlocks = new Data_Block[blockCount][];
-
-                    for (int i = 0; i < blockCount; i++) {
-                        int frameStartOffset = currentFilePointer.readInt();
-                        int frameSize = currentFilePointer.readInt();
-                        int decompressedSize = currentFilePointer.readInt();
-                        int blockTableOffset = currentFilePointer.readInt();
-                        int numSubBlocks = currentFilePointer.readInt();
-                        blocks[i] = new TextureBlocks(frameStartOffset, frameSize, blockTableOffset, numSubBlocks);
-                        dataBlocks[i] = new Data_Block[numSubBlocks];
-                    }
-
-                    //don't ask
-                    while (currentFilePointer.peekShort() == 0)
-                        currentFilePointer.skipBytes(2);
-
-                    for (int i = 0; i < blockCount; i++) {
-                        TextureBlocks block = blocks[i];
-                        if (dataBlocks[i].length == 0)
-                            continue;
-                        dataBlocks[i][0] = new Data_Block(block.offset);
-                        int runningTotal = block.offset;
-                        for (int j = 1; j < block.subBlockSize; j++) {
-                            runningTotal += currentFilePointer.readShort();
-                            dataBlocks[i][j] = new Data_Block(runningTotal);
-                        }
-                        currentFilePointer.readShort();
-                    }
-
-                    extraHeaderSize = blocks[0].offset;
-                } else {
-                    TextureBlocks[] blocks = new TextureBlocks[blockCount];
-
-                    dataBlocks = new Data_Block[blockCount][];
-
-                    for (int i = 0; i < blockCount; i++) {
-                        int frameStartOffset = currentFilePointer.readInt();
-                        int frameSize = currentFilePointer.readInt();
-                        int decompressedSize = currentFilePointer.readInt();
-                        int blockTableOffset = currentFilePointer.readInt();
-                        int numSubBlocks = currentFilePointer.readInt();
-                        blocks[i] = new TextureBlocks(frameStartOffset, frameSize, blockTableOffset, numSubBlocks);
-                        dataBlocks[i] = new Data_Block[numSubBlocks];
-                    }
-
-                    for (int i = 0; i < blockCount; i++) {
-                        TextureBlocks block = blocks[i];
-                        if (dataBlocks[i].length == 0)
-                            continue;
-                        dataBlocks[i][0] = new Data_Block(block.offset);
-                        int runningTotal = block.offset;
-                        for (int j = 1; j < block.subBlockSize; j++) {
-                            runningTotal += currentFilePointer.readShort();
-                            dataBlocks[i][j] = new Data_Block(runningTotal);
-                        }
-                        currentFilePointer.readShort();
-                    }
-
-                    extraHeaderSize = blocks[0].offset;
-                }
-                extraHeader = new byte[extraHeaderSize];
-                currentFilePointer.seek(fileOffset + headerLength);
-                currentFilePointer.read(extraHeader, 0, extraHeaderSize);
-
-                break;
-            case TYPE_MODEL:
-                boolean newMethod = true;
-
-                //noinspection ConstantConditions
-                if (newMethod) {
-                    byte[] mdlData = new byte[fileSize];
-
-                    ModelFileSqPackData header = new ModelFileSqPackData(currentFilePointer);
-
-                    //use header info to get total number of blocks
-                    int numBlocks = header.indexBufferDataBlockIndex[2] + header.indexBufferDataBlockNum[2];
-                    short[] blockOffsets = new short[numBlocks];
-                    for (int i = 0; i < blockOffsets.length; i++)
-                        blockOffsets[i] = currentFilePointer.readShort();
-
-                    ModelFileHeader mdlHeader = new ModelFileHeader();
-                    mdlHeader.version = blockCount;
-                    mdlHeader.vertexDeclarationNum = header.vertexDeclarationNum;
-                    mdlHeader.materialNum = header.materialNum;
-                    mdlHeader.lodNum = header.lodNum;
-                    mdlHeader.enableIndexBufferStreaming = header.enableIndexBufferStreaming;
-                    mdlHeader.enableEdgeGeometry = header.enableEdgeGeometry;
-
-                    //start copying to mdlData at the end of the header, header gets written at offset 0
-                    long base = fileOffset + headerLength;
-                    int pos = 0x44;
-                    DataBlock block;
-                    byte[] tmp;
-                    int currentBlockNum = 0;
-
-                    // stack data
-                    int stackSize = 0;
-                    currentFilePointer.seek(base + header.stackMemoryOffset);
-                    for (int i = 0; i < header.stackDataBlockNum; i++) {
-                        long lastPos = currentFilePointer.getFilePointer();
-                        block = new DataBlock(currentFilePointer, contentType);
-                        stackSize += block.getDecompressedSize();
-                        tmp = block.getData();
-                        System.arraycopy(tmp, 0, mdlData, pos, tmp.length);
-                        pos += tmp.length;
-                        currentFilePointer.seek(lastPos + blockOffsets[currentBlockNum]);
-                        currentBlockNum++;
-                    }
-                    mdlHeader.stackMemorySize = stackSize;
-
-                    // runtime data
-                    int runtimeSize = 0;
-                    currentFilePointer.seek(base + header.runtimeMemoryOffset);
-                    for (int i = 0; i < header.runtimeDataBlockNum; i++) {
-                        long lastPos = currentFilePointer.getFilePointer();
-                        block = new DataBlock(currentFilePointer, contentType);
-                        runtimeSize += block.getDecompressedSize();
-                        tmp = block.getData();
-                        System.arraycopy(tmp, 0, mdlData, pos, tmp.length);
-                        pos += tmp.length;
-                        currentFilePointer.seek(lastPos + blockOffsets[currentBlockNum]);
-                        currentBlockNum++;
-                    }
-                    mdlHeader.runtimeMemorySize = runtimeSize;
-
-                    // vertex buffers
-                    for (int i = 0; i < 3; i++) {
-                        if (header.vertexBufferDataBlockNum[i] != 0) {
-                            int currentVertexOffset = pos;// - 0x44;
-                            if (i == 0 || currentVertexOffset != mdlHeader.vertexDataOffset[i - 1])
-                                mdlHeader.vertexDataOffset[i] = currentVertexOffset;
-                            else
-                                mdlHeader.vertexDataOffset[i] = 0;
-
-                            currentFilePointer.seek(base + header.vertexBufferOffset[i]);
-                            int totalSize = 0;
-
-                            for (int j = 0; j < header.vertexBufferDataBlockNum[i]; j++) {
-                                long lastPos = currentFilePointer.getFilePointer();
-                                //System.out.printf("%d: vertex buffer %d, block %d / %d\n", lastPos, i, j, header.vertexBufferDataBlockNum[i]);
-                                block = new DataBlock(currentFilePointer, contentType);
-                                totalSize += block.getDecompressedSize();
-                                tmp = block.getData();
-                                System.arraycopy(tmp, 0, mdlData, pos, tmp.length);
-                                pos += tmp.length;
-                                currentFilePointer.seek(lastPos + blockOffsets[currentBlockNum]);
-                                currentBlockNum++;
-                            }
-//                            currentBlockNum++;
-                            mdlHeader.vertexBufferSize[i] = totalSize;
-                        }
-
-                        if (header.edgeGeometryVertexBufferDataBlockNum[i] != 0) {
-//                            currentFilePointer.seek(base + header.edgeGeometryVertexBufferOffset[i]);
-                            for (int j = 0; j < header.edgeGeometryVertexBufferDataBlockNum[i]; j++) {
-                                long lastPos = currentFilePointer.getFilePointer();
-                                block = new DataBlock(currentFilePointer, contentType);
-                                tmp = block.getData();
-                                System.arraycopy(tmp, 0, mdlData, pos, tmp.length);
-                                pos += tmp.length;
-                                currentFilePointer.seek(lastPos + blockOffsets[currentBlockNum]);
-                                currentBlockNum++;
-                            }
-                        }
-
-                        if (header.indexBufferDataBlockNum[i] != 0) {
-                            int currentIndexOffset = pos;// - 0x44;
-                            if (i == 0 || currentIndexOffset != mdlHeader.indexDataOffset[i - 1])
-                                mdlHeader.indexDataOffset[i] = currentIndexOffset;
-                            else
-                                mdlHeader.indexDataOffset[i] = 0;
-
-//                            currentFilePointer.seek(base + header.indexBufferOffset[i]);
-                            int totalSize = 0;
-
-                            for (int j = 0; j < header.indexBufferDataBlockNum[i]; j++) {
-                                long lastPos = currentFilePointer.getFilePointer();
-                                block = new DataBlock(currentFilePointer, contentType);
-                                totalSize += block.getDecompressedSize();
-                                tmp = block.getData();
-                                System.arraycopy(tmp, 0, mdlData, pos, tmp.length);
-                                pos += tmp.length;
-                                currentFilePointer.seek(lastPos + blockOffsets[currentBlockNum]);
-                                currentBlockNum++;
-                            }
-                            mdlHeader.indexBufferSize[i] = totalSize;
-                        }
-                    }
-
-                    ByteBuffer bb = ByteBuffer.wrap(mdlData);
-                    bb.order(endian);
-                    mdlHeader.writeOut(bb);
-
-                    return mdlData;
-                } else {
-                    ContentType3Container container = new ContentType3Container();
-
-                    for (int i = 0; i < 11; i++)
-                        container.chunkDecompressedSizes[i] = currentFilePointer.readInt();
-                    for (int i = 0; i < 11; i++)
-                        container.chunkSizes[i] = currentFilePointer.readInt();
-                    for (int i = 0; i < 11; i++)
-                        container.chunkOffsets[i] = currentFilePointer.readInt();
-                    for (int i = 0; i < 11; i++)
-                        container.chunkStartBlockIndex[i] = currentFilePointer.readShort();
-                    int numBlocks = 0;
-                    for (int i = 0; i < 11; i++) {
-                        container.chunkNumBlocks[i] = currentFilePointer.readShort();
-                        numBlocks += container.chunkNumBlocks[i];
-                    }
-
-                    container.blockSizes = new short[numBlocks];
-
-                    //Skip, unknown
-                    container.numMeshes = currentFilePointer.readShort();
-                    container.numMaterials = currentFilePointer.readShort();
-                    byte lods = currentFilePointer.readByte();
-                    byte streaming = currentFilePointer.readByte();
-                    byte edgeGeometry = currentFilePointer.readByte();
-                    byte hdrPadding = currentFilePointer.readByte();
-
-                    for (int i = 0; i < numBlocks; i++)
-                        container.blockSizes[i] = currentFilePointer.readShort();
-
-                    //int CHOSEN_CHUNK = 2;
-
-                    byte[] mdlData = new byte[fileSize];
-                    ByteBuffer bb = ByteBuffer.wrap(mdlData);
-                    bb.order(endian);
-
-                    int pos = 0x44;
-
-                    currentFilePointer.seek(fileOffset + headerLength + container.chunkOffsets[0]);
-                    for (int i = 0; i < container.blockSizes.length; i++) {
-                        long lastPos = currentFilePointer.getFilePointer();
-
-                        // Block Header
-                        int blockHeaderLength = currentFilePointer.readInt();
-                        int version = currentFilePointer.readInt(); // NULL
-                        int compressedBlockSize = currentFilePointer.readInt();
-                        int decompressedBlockSize = currentFilePointer.readInt();
-
-                        byte[] decompressedBlock2;
-                        if (compressedBlockSize == 32000 || decompressedBlockSize == 1) //Not actually compressed, just read decompressed size
-                        {
-                            decompressedBlock2 = new byte[decompressedBlockSize];
-                            currentFilePointer.readFully(decompressedBlock2);
-                        } else //Gotta decompress
-                            decompressedBlock2 = decompressBlock(compressedBlockSize, decompressedBlockSize);
-
-                        System.arraycopy(decompressedBlock2, 0, mdlData, pos, decompressedBlockSize);
-                        pos += decompressedBlockSize;
-
-                        currentFilePointer.seek(lastPos + container.blockSizes[i]);
-                    }
-                    return mdlData;
-                }
-            case TYPE_BINARY:
-                dataBlocks = new Data_Block[1][blockCount];
-
-                // Read in Block Info Header
-                for (int i = 0; i < blockCount; i++) {
-                    int offset = currentFilePointer.readInt();
-                    int compressedSize = currentFilePointer.readShort();
-                    int decompressedSize = currentFilePointer.readShort();
-
-                    dataBlocks[0][i] = new Data_Block(offset, compressedSize, decompressedSize);
-
-                    Utils.getGlobalLogger().trace("Block #{}\n\tOffset: {}\n\tPadding: {}\n\tUncompressed size: {}",
-                            i, String.format("%X", offset), compressedSize, decompressedSize);
-                }
-                break;
-        }
-
-        byte[] decompressedFile;
-        int currentFileOffset;
-
+    protected byte[] extractFile(long fileOffset, Loading_Dialog loadingDialog){
+        byte[] decompressedFile = new byte[0];
         try {
-            if (fileSize + extraHeaderSize < 0)
+            currentFilePointer.seek(fileOffset);
+            int headerLength = currentFilePointer.readInt();
+            int contentType = currentFilePointer.readInt();
+            int fileSize = currentFilePointer.readInt();
+            int num_blocks = currentFilePointer.readInt(); // UNKNOWN
+            int blockBufferSize = currentFilePointer.readInt() * 0x80;
+            int blockCount = currentFilePointer.readInt();
+
+            byte[] extraHeader = null;
+            int extraHeaderSize = 0;
+
+            Utils.getGlobalLogger().trace("\nFile @ {}\n\tHeader length: {}\n\tContent type: {}\n\tFile size: {}\n\tBlock buffer size: {}\n\tBlock count: {}",
+                    String.format("%08x", fileOffset), headerLength, contentType, fileSize, blockBufferSize, blockCount);
+            Utils.getGlobalLogger().trace("Block data: ...");
+
+            Data_Block[][] dataBlocks = null;
+
+            //How to get the blocks
+            switch (contentType) {
+                case TYPE_TEXTURE:
+
+                    int[][] referenceRanges;
+                    if (this.endian == ByteOrder.BIG_ENDIAN) {
+                        referenceRanges = new int[3][2];
+
+                        for (int i = 0; i < referenceRanges.length; i++) {
+                            for (int j = 0; j < referenceRanges[i].length; j++) {
+                                referenceRanges[i][j] = currentFilePointer.readInt();
+                            }
+                        }
+
+                        TextureBlocks[] blocks = new TextureBlocks[blockCount];
+
+                        dataBlocks = new Data_Block[blockCount][];
+
+                        for (int i = 0; i < blockCount; i++) {
+                            int frameStartOffset = currentFilePointer.readInt();
+                            int frameSize = currentFilePointer.readInt();
+                            int decompressedSize = currentFilePointer.readInt();
+                            int blockTableOffset = currentFilePointer.readInt();
+                            int numSubBlocks = currentFilePointer.readInt();
+                            blocks[i] = new TextureBlocks(frameStartOffset, frameSize, blockTableOffset, numSubBlocks);
+                            dataBlocks[i] = new Data_Block[numSubBlocks];
+                        }
+
+                        //don't ask
+                        while (currentFilePointer.peekShort() == 0)
+                            currentFilePointer.skipBytes(2);
+
+                        for (int i = 0; i < blockCount; i++) {
+                            TextureBlocks block = blocks[i];
+                            if (dataBlocks[i].length == 0)
+                                continue;
+                            dataBlocks[i][0] = new Data_Block(block.offset);
+                            int runningTotal = block.offset;
+                            for (int j = 1; j < block.subBlockSize; j++) {
+                                runningTotal += currentFilePointer.readShort();
+                                dataBlocks[i][j] = new Data_Block(runningTotal);
+                            }
+                            currentFilePointer.readShort();
+                        }
+
+                        extraHeaderSize = blocks[0].offset;
+                    } else {
+                        TextureBlocks[] blocks = new TextureBlocks[blockCount];
+
+                        dataBlocks = new Data_Block[blockCount][];
+
+                        for (int i = 0; i < blockCount; i++) {
+                            int frameStartOffset = currentFilePointer.readInt();
+                            int frameSize = currentFilePointer.readInt();
+                            int decompressedSize = currentFilePointer.readInt();
+                            int blockTableOffset = currentFilePointer.readInt();
+                            int numSubBlocks = currentFilePointer.readInt();
+                            blocks[i] = new TextureBlocks(frameStartOffset, frameSize, blockTableOffset, numSubBlocks);
+                            dataBlocks[i] = new Data_Block[numSubBlocks];
+                        }
+
+                        for (int i = 0; i < blockCount; i++) {
+                            TextureBlocks block = blocks[i];
+                            if (dataBlocks[i].length == 0)
+                                continue;
+                            dataBlocks[i][0] = new Data_Block(block.offset);
+                            int runningTotal = block.offset;
+                            for (int j = 1; j < block.subBlockSize; j++) {
+                                runningTotal += currentFilePointer.readShort();
+                                dataBlocks[i][j] = new Data_Block(runningTotal);
+                            }
+                            currentFilePointer.readShort();
+                        }
+
+                        extraHeaderSize = blocks[0].offset;
+                    }
+                    extraHeader = new byte[extraHeaderSize];
+                    currentFilePointer.seek(fileOffset + headerLength);
+                    currentFilePointer.read(extraHeader, 0, extraHeaderSize);
+
+                    break;
+                case TYPE_MODEL:
+                    boolean newMethod = true;
+
+                    //noinspection ConstantConditions
+                    if (newMethod) {
+                        byte[] mdlData = new byte[fileSize];
+
+                        ModelFileSqPackData header = new ModelFileSqPackData(currentFilePointer);
+
+                        //use header info to get total number of blocks
+                        int numBlocks = header.indexBufferDataBlockIndex[2] + header.indexBufferDataBlockNum[2];
+                        short[] blockOffsets = new short[numBlocks];
+                        for (int i = 0; i < blockOffsets.length; i++)
+                            blockOffsets[i] = currentFilePointer.readShort();
+
+                        ModelFileHeader mdlHeader = new ModelFileHeader();
+                        mdlHeader.version = blockCount;
+                        mdlHeader.vertexDeclarationNum = header.vertexDeclarationNum;
+                        mdlHeader.materialNum = header.materialNum;
+                        mdlHeader.lodNum = header.lodNum;
+                        mdlHeader.enableIndexBufferStreaming = header.enableIndexBufferStreaming;
+                        mdlHeader.enableEdgeGeometry = header.enableEdgeGeometry;
+
+                        //start copying to mdlData at the end of the header, header gets written at offset 0
+                        long base = fileOffset + headerLength;
+                        int pos = 0x44;
+                        DataBlock block;
+                        byte[] tmp;
+                        int currentBlockNum = 0;
+
+                        // stack data
+                        int stackSize = 0;
+                        currentFilePointer.seek(base + header.stackMemoryOffset);
+                        for (int i = 0; i < header.stackDataBlockNum; i++) {
+                            long lastPos = currentFilePointer.getFilePointer();
+                            block = new DataBlock(currentFilePointer, contentType);
+                            stackSize += block.getDecompressedSize();
+                            tmp = block.getData();
+                            System.arraycopy(tmp, 0, mdlData, pos, tmp.length);
+                            pos += tmp.length;
+                            currentFilePointer.seek(lastPos + blockOffsets[currentBlockNum]);
+                            currentBlockNum++;
+                        }
+                        mdlHeader.stackMemorySize = stackSize;
+
+                        // runtime data
+                        int runtimeSize = 0;
+                        currentFilePointer.seek(base + header.runtimeMemoryOffset);
+                        for (int i = 0; i < header.runtimeDataBlockNum; i++) {
+                            long lastPos = currentFilePointer.getFilePointer();
+                            block = new DataBlock(currentFilePointer, contentType);
+                            runtimeSize += block.getDecompressedSize();
+                            tmp = block.getData();
+                            System.arraycopy(tmp, 0, mdlData, pos, tmp.length);
+                            pos += tmp.length;
+                            currentFilePointer.seek(lastPos + blockOffsets[currentBlockNum]);
+                            currentBlockNum++;
+                        }
+                        mdlHeader.runtimeMemorySize = runtimeSize;
+
+                        // vertex buffers
+                        for (int i = 0; i < 3; i++) {
+                            if (header.vertexBufferDataBlockNum[i] != 0) {
+                                int currentVertexOffset = pos;// - 0x44;
+                                if (i == 0 || currentVertexOffset != mdlHeader.vertexDataOffset[i - 1])
+                                    mdlHeader.vertexDataOffset[i] = currentVertexOffset;
+                                else
+                                    mdlHeader.vertexDataOffset[i] = 0;
+
+                                currentFilePointer.seek(base + header.vertexBufferOffset[i]);
+                                int totalSize = 0;
+
+                                for (int j = 0; j < header.vertexBufferDataBlockNum[i]; j++) {
+                                    long lastPos = currentFilePointer.getFilePointer();
+                                    //System.out.printf("%d: vertex buffer %d, block %d / %d\n", lastPos, i, j, header.vertexBufferDataBlockNum[i]);
+                                    block = new DataBlock(currentFilePointer, contentType);
+                                    totalSize += block.getDecompressedSize();
+                                    tmp = block.getData();
+                                    System.arraycopy(tmp, 0, mdlData, pos, tmp.length);
+                                    pos += tmp.length;
+                                    currentFilePointer.seek(lastPos + blockOffsets[currentBlockNum]);
+                                    currentBlockNum++;
+                                }
+    //                            currentBlockNum++;
+                                mdlHeader.vertexBufferSize[i] = totalSize;
+                            }
+
+                            if (header.edgeGeometryVertexBufferDataBlockNum[i] != 0) {
+    //                            currentFilePointer.seek(base + header.edgeGeometryVertexBufferOffset[i]);
+                                for (int j = 0; j < header.edgeGeometryVertexBufferDataBlockNum[i]; j++) {
+                                    long lastPos = currentFilePointer.getFilePointer();
+                                    block = new DataBlock(currentFilePointer, contentType);
+                                    tmp = block.getData();
+                                    System.arraycopy(tmp, 0, mdlData, pos, tmp.length);
+                                    pos += tmp.length;
+                                    currentFilePointer.seek(lastPos + blockOffsets[currentBlockNum]);
+                                    currentBlockNum++;
+                                }
+                            }
+
+                            if (header.indexBufferDataBlockNum[i] != 0) {
+                                int currentIndexOffset = pos;// - 0x44;
+                                if (i == 0 || currentIndexOffset != mdlHeader.indexDataOffset[i - 1])
+                                    mdlHeader.indexDataOffset[i] = currentIndexOffset;
+                                else
+                                    mdlHeader.indexDataOffset[i] = 0;
+
+    //                            currentFilePointer.seek(base + header.indexBufferOffset[i]);
+                                int totalSize = 0;
+
+                                for (int j = 0; j < header.indexBufferDataBlockNum[i]; j++) {
+                                    long lastPos = currentFilePointer.getFilePointer();
+                                    block = new DataBlock(currentFilePointer, contentType);
+                                    totalSize += block.getDecompressedSize();
+                                    tmp = block.getData();
+                                    System.arraycopy(tmp, 0, mdlData, pos, tmp.length);
+                                    pos += tmp.length;
+                                    currentFilePointer.seek(lastPos + blockOffsets[currentBlockNum]);
+                                    currentBlockNum++;
+                                }
+                                mdlHeader.indexBufferSize[i] = totalSize;
+                            }
+                        }
+
+                        ByteBuffer bb = ByteBuffer.wrap(mdlData);
+                        bb.order(endian);
+                        mdlHeader.writeOut(bb);
+
+                        return mdlData;
+                    } else {
+                        ContentType3Container container = new ContentType3Container();
+
+                        for (int i = 0; i < 11; i++)
+                            container.chunkDecompressedSizes[i] = currentFilePointer.readInt();
+                        for (int i = 0; i < 11; i++)
+                            container.chunkSizes[i] = currentFilePointer.readInt();
+                        for (int i = 0; i < 11; i++)
+                            container.chunkOffsets[i] = currentFilePointer.readInt();
+                        for (int i = 0; i < 11; i++)
+                            container.chunkStartBlockIndex[i] = currentFilePointer.readShort();
+                        int numBlocks = 0;
+                        for (int i = 0; i < 11; i++) {
+                            container.chunkNumBlocks[i] = currentFilePointer.readShort();
+                            numBlocks += container.chunkNumBlocks[i];
+                        }
+
+                        container.blockSizes = new short[numBlocks];
+
+                        //Skip, unknown
+                        container.numMeshes = currentFilePointer.readShort();
+                        container.numMaterials = currentFilePointer.readShort();
+                        byte lods = currentFilePointer.readByte();
+                        byte streaming = currentFilePointer.readByte();
+                        byte edgeGeometry = currentFilePointer.readByte();
+                        byte hdrPadding = currentFilePointer.readByte();
+
+                        for (int i = 0; i < numBlocks; i++)
+                            container.blockSizes[i] = currentFilePointer.readShort();
+
+                        //int CHOSEN_CHUNK = 2;
+
+                        byte[] mdlData = new byte[fileSize];
+                        ByteBuffer bb = ByteBuffer.wrap(mdlData);
+                        bb.order(endian);
+
+                        int pos = 0x44;
+
+                        currentFilePointer.seek(fileOffset + headerLength + container.chunkOffsets[0]);
+                        for (int i = 0; i < container.blockSizes.length; i++) {
+                            long lastPos = currentFilePointer.getFilePointer();
+
+                            // Block Header
+                            int blockHeaderLength = currentFilePointer.readInt();
+                            int version = currentFilePointer.readInt(); // NULL
+                            int compressedBlockSize = currentFilePointer.readInt();
+                            int decompressedBlockSize = currentFilePointer.readInt();
+
+                            byte[] decompressedBlock2;
+                            if (compressedBlockSize == 32000 || decompressedBlockSize == 1) //Not actually compressed, just read decompressed size
+                            {
+                                decompressedBlock2 = new byte[decompressedBlockSize];
+                                currentFilePointer.readFully(decompressedBlock2);
+                            } else //Gotta decompress
+                                decompressedBlock2 = decompressBlock(compressedBlockSize, decompressedBlockSize);
+
+                            System.arraycopy(decompressedBlock2, 0, mdlData, pos, decompressedBlockSize);
+                            pos += decompressedBlockSize;
+
+                            currentFilePointer.seek(lastPos + container.blockSizes[i]);
+                        }
+                        return mdlData;
+                    }
+                case TYPE_BINARY:
+                    dataBlocks = new Data_Block[1][blockCount];
+
+                    // Read in Block Info Header
+                    for (int i = 0; i < blockCount; i++) {
+                        int offset = currentFilePointer.readInt();
+                        int compressedSize = currentFilePointer.readShort();
+                        int decompressedSize = currentFilePointer.readShort();
+
+                        dataBlocks[0][i] = new Data_Block(offset, compressedSize, decompressedSize);
+
+                        Utils.getGlobalLogger().trace("Block #{}\n\tOffset: {}\n\tPadding: {}\n\tUncompressed size: {}",
+                                i, String.format("%X", offset), compressedSize, decompressedSize);
+                    }
+                    break;
+            }
+
+            int currentFileOffset;
+
+            try {
+                if (fileSize + extraHeaderSize < 0)
+                    return null;
+
+                decompressedFile = new byte[fileSize];
+            } catch (Exception e) {
+                return null;
+            }
+
+            //If we got a loading dialog
+            if (loadingDialog != null)
+                loadingDialog.setMaxBlocks(Objects.requireNonNull(dataBlocks)[0].length);
+
+            if (dataBlocks == null || dataBlocks[0] == null)
                 return null;
 
-            decompressedFile = new byte[fileSize];
-        } catch (Exception e) {
-            return null;
-        }
+            int[] mipmapPosTable = null;
 
-        //If we got a loading dialog
-        if (loadingDialog != null)
-            loadingDialog.setMaxBlocks(Objects.requireNonNull(dataBlocks)[0].length);
+            //Load in file offsets for mipmaps
+            if (extraHeader != null) {
+                ByteBuffer bb = ByteBuffer.wrap(extraHeader);
+                bb.order(endian);
 
-        if (dataBlocks == null || dataBlocks[0] == null)
-            return null;
+                bb.position(0x0E);
+                int numMipmaps = bb.getShort();
+                mipmapPosTable = new int[numMipmaps];
 
-        int[] mipmapPosTable = null;
+                if (numMipmaps < blockCount)
+                    mipmapPosTable = new int[blockCount];
 
-        //Load in file offsets for mipmaps
-        if (extraHeader != null) {
-            ByteBuffer bb = ByteBuffer.wrap(extraHeader);
-            bb.order(endian);
-
-            bb.position(0x0E);
-            int numMipmaps = bb.getShort();
-            mipmapPosTable = new int[numMipmaps];
-
-            if (numMipmaps < blockCount)
-                mipmapPosTable = new int[blockCount];
-
-            bb.position(0x1C);
-            for (int i = 0; i < numMipmaps; i++)
-                mipmapPosTable[i] = bb.getInt();
-        }
-
-        //Extract File
-        for (int j = 0; j < (contentType == TYPE_TEXTURE ? blockCount : 1); j++) {
-            if (mipmapPosTable != null)
-                currentFileOffset = mipmapPosTable[j];
-            else
-                currentFileOffset = 0;
-
-            for (int i = 0; i < dataBlocks[j].length; i++) {
-                // Block Header
-                currentFilePointer.seek(fileOffset + headerLength + dataBlocks[j][i].offset);
-                int blockHeaderLength = currentFilePointer.readInt();
-                currentFilePointer.readInt(); // NULL
-                int compressedBlockSize = currentFilePointer.readInt();
-                int decompressedBlockSize = currentFilePointer.readInt();
-
-                Utils.getGlobalLogger().trace("Decompressing block {} @ file offset {} @ block offset: {}",
-                        i, currentFilePointer.getFilePointer(), String.format("%X", dataBlocks[j][i].offset));
-                Utils.getGlobalLogger().trace("Compressed size: {}, decompressed size: {}, block size: {}",
-                        compressedBlockSize, decompressedBlockSize, dataBlocks[j][i].compressedSize);
-
-                byte[] decompressedBlock;
-                if (compressedBlockSize == 32000 || decompressedBlockSize == 1) //Not actually compressed, just read decompressed size
-                {
-                    decompressedBlock = new byte[decompressedBlockSize];
-                    currentFilePointer.readFully(decompressedBlock);
-                } else //Gotta decompress
-                    decompressedBlock = decompressBlock(compressedBlockSize, decompressedBlockSize);
-
-                try {
-                    System.arraycopy(Objects.requireNonNull(decompressedBlock), 0, decompressedFile, currentFileOffset, decompressedBlockSize);
-                } catch (ArrayIndexOutOfBoundsException e) {
-                    // Couldn't tell you
-//					Utils.getGlobalLogger().error(e);
-                }
-
-                currentFileOffset += decompressedBlockSize;
-
-                if (loadingDialog != null)
-                    loadingDialog.nextBlock(i + 1);
+                bb.position(0x1C);
+                for (int i = 0; i < numMipmaps; i++)
+                    mipmapPosTable[i] = bb.getInt();
             }
+
+            //Extract File
+            for (int j = 0; j < (contentType == TYPE_TEXTURE ? blockCount : 1); j++) {
+                if (mipmapPosTable != null)
+                    currentFileOffset = mipmapPosTable[j];
+                else
+                    currentFileOffset = 0;
+
+                for (int i = 0; i < dataBlocks[j].length; i++) {
+                    // Block Header
+                    currentFilePointer.seek(fileOffset + headerLength + dataBlocks[j][i].offset);
+                    int blockHeaderLength = currentFilePointer.readInt();
+                    currentFilePointer.readInt(); // NULL
+                    int compressedBlockSize = currentFilePointer.readInt();
+                    int decompressedBlockSize = currentFilePointer.readInt();
+
+                    Utils.getGlobalLogger().trace("Decompressing block {} @ file offset {} @ block offset: {}",
+                            i, currentFilePointer.getFilePointer(), String.format("%X", dataBlocks[j][i].offset));
+                    Utils.getGlobalLogger().trace("Compressed size: {}, decompressed size: {}, block size: {}",
+                            compressedBlockSize, decompressedBlockSize, dataBlocks[j][i].compressedSize);
+
+                    byte[] decompressedBlock;
+                    if (compressedBlockSize == 32000 || decompressedBlockSize == 1) //Not actually compressed, just read decompressed size
+                    {
+                        decompressedBlock = new byte[decompressedBlockSize];
+                        currentFilePointer.readFully(decompressedBlock);
+                    } else //Gotta decompress
+                        decompressedBlock = decompressBlock(compressedBlockSize, decompressedBlockSize);
+
+                    try {
+                        System.arraycopy(Objects.requireNonNull(decompressedBlock), 0, decompressedFile, currentFileOffset, decompressedBlockSize);
+                    } catch (ArrayIndexOutOfBoundsException e) {
+                        // Couldn't tell you
+    //					Utils.getGlobalLogger().error(e);
+                    }
+
+                    currentFileOffset += decompressedBlockSize;
+
+                    if (loadingDialog != null)
+                        loadingDialog.nextBlock(i + 1);
+                }
+            }
+            if (extraHeader != null)
+                System.arraycopy(extraHeader, 0, decompressedFile, 0, extraHeaderSize);
+
+            return decompressedFile;
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        if (extraHeader != null)
-            System.arraycopy(extraHeader, 0, decompressedFile, 0, extraHeaderSize);
 
         return decompressedFile;
     }
@@ -474,7 +484,7 @@ public class SqPack_DatFile {
 
             return decompressedData;
         } catch (Exception e) {
-            Utils.getGlobalLogger().error(e);
+            Utils.getGlobalLogger().error("ファイルが読み込めません");
         }
         return null;
     }
@@ -488,8 +498,12 @@ public class SqPack_DatFile {
         }
     }
 
-    void close() throws IOException {
-        currentFilePointer.close();
+    void close(){
+        try {
+            currentFilePointer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -538,10 +552,15 @@ public class SqPack_DatFile {
         }
     }
 
-    int getContentType(long offset) throws IOException {
-        currentFilePointer.seek(offset);
-        currentFilePointer.readInt(); //Header Length
-        return currentFilePointer.readInt();
+    int getContentType(long offset){
+        try {
+            currentFilePointer.seek(offset);
+            currentFilePointer.readInt(); //Header Length
+            return currentFilePointer.readInt();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     Calendar getTimeStamp() throws IOException {

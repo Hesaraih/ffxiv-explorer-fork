@@ -11,7 +11,6 @@ import java.awt.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
@@ -20,7 +19,7 @@ import java.util.Objects;
  * ハッシュ検索用ユーティリティ集
  */
 public class HashFinding_Utils extends Component {
-    private static SqPack_IndexFile sp_IndexFile;
+    private static SqPack_IndexFile bgcommonIndex;
     private static int variant = 1;
     private static boolean IsDebug = false;
 
@@ -31,16 +30,9 @@ public class HashFinding_Utils extends Component {
     public static void findExhHashes() {
         Utils.getGlobalLogger().info("root.exlを開いています...");
 
-        byte[] rootData = null;
-        SqPack_IndexFile index = null;
-        SqPack_IndexFile index2 = null;
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\0a0000.win32.index", true);
-            index2 = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\0b0000.win32.index", true);
-            rootData = index.extractFile("exd/root.exl");
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
-        }
+        SqPack_IndexFile index = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", true);
+        SqPack_IndexFile index2 = SqPack_IndexFile.GetIndexFileForArchiveID("0b0000", true);
+        byte[] rootData = index.extractFile("exd/root.exl");
 
         if (rootData == null) {
             return;
@@ -54,11 +46,7 @@ public class HashFinding_Utils extends Component {
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
 
             HashDatabase.beginConnection();
-            try {
-                HashDatabase.setAutoCommit(false);
-            } catch (SQLException e1) {
-                Utils.getGlobalLogger().error(e1);
-            }
+            HashDatabase.setAutoCommit(false);
             for (String line = br.readLine(); line != null; line = br.readLine()) {
                 //データが Achievement,209のようにカンマ区切りになっている
                 String path;
@@ -74,13 +62,13 @@ public class HashFinding_Utils extends Component {
                             String path2 = path.replaceFirst("_",btl);
                             String luabName = String.format("game_script/%s.luab", path2);
                             if (index2.extractFile(luabName) != null) {
-                                HashDatabase.addPathToDB(luabName, "0b0000", HashDatabase.globalConnection,true);
+                                HashDatabase.addPathToDB(luabName, "0b0000",true);
                             }
                         }
                     } else {
                         String luabName = String.format("game_script/%s.luab", path);
                         if (index2.extractFile(luabName) != null) {
-                            HashDatabase.addPathToDB(luabName, "0b0000", HashDatabase.globalConnection,true);
+                            HashDatabase.addPathToDB(luabName, "0b0000",true);
                         }
                     }
                 }
@@ -92,7 +80,7 @@ public class HashFinding_Utils extends Component {
 
                     String exhName = String.format("exd/%s.exh", path);
                     if (index.extractFile(exhName) != null) {
-                        HashDatabase.addPathToDB(exhName, "0a0000", HashDatabase.globalConnection,true);
+                        HashDatabase.addPathToDB(exhName, "0a0000",true);
                         exhFile = new EXHF_File(index.extractFile(exhName));
                     }
 
@@ -104,19 +92,14 @@ public class HashFinding_Utils extends Component {
                             //exdページ対応
                             String exdName = String.format("exd/%s_%s%s.exd", path, pageNum, code);
                             if (index.extractFile(exdName) != null) { //ファイルの存在チェック
-                                HashDatabase.addPathToDB(exdName, "0a0000", HashDatabase.globalConnection,true);
+                                HashDatabase.addPathToDB(exdName, "0a0000",true);
                             }
                         }
                     }
                 }
             }
 
-            try {
-                HashDatabase.commit();
-            } catch (SQLException e) {
-                Utils.getGlobalLogger().error(e);
-            }
-            HashDatabase.closeConnection();
+            HashDatabase.commit();
             in.close();
 
         } catch (IOException e1) {
@@ -135,63 +118,50 @@ public class HashFinding_Utils extends Component {
         EXDF_View viewer;
 
         HashDatabase.beginConnection();
-        try {
-            HashDatabase.setAutoCommit(false);
-        } catch (SQLException e1) {
-            Utils.getGlobalLogger().error(e1);
-        }
+        HashDatabase.setAutoCommit(false);
 
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\0a0000.win32.index", true);
-            Utils.getGlobalLogger().info("BGM.exhを開いています...");
+        index = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", true);
+        Utils.getGlobalLogger().info("BGM.exhを開いています...");
 
-            exhData = index.extractFile("exd/BGM.exh");
-            viewer = new EXDF_View(index, "exd/BGM.exh", new EXHF_File(exhData));
+        exhData = index.extractFile("exd/BGM.exh");
+        viewer = new EXDF_View(index, "exd/BGM.exh", new EXHF_File(exhData));
 
-            Utils.getGlobalLogger().info("BGM.exhを読み込みました");
+        Utils.getGlobalLogger().info("BGM.exhを読み込みました");
 
-            for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                String path = String.format("%s", viewer.getTable().getValueAt(i, 1));
+        for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+            String path = String.format("%s", viewer.getTable().getValueAt(i, 1));
 
-                if (path == null || path.isEmpty()) {
-                    continue;
-                }
-
-                //蒼天までしか対応していなかったので変更
-                String archive = HashDatabase.getArchiveID(path);
-
-                HashDatabase.addPathToDB(path, archive, HashDatabase.globalConnection, true);
+            if (path == null || path.isEmpty()) {
+                continue;
             }
 
-            //OrchestrionPath.exh
-            exhData = index.extractFile("exd/OrchestrionPath.exh");
-            viewer = new EXDF_View(index, "exd/OrchestrionPath.exh", new EXHF_File(exhData));
+            //蒼天までしか対応していなかったので変更
+            String archive = HashDatabase.getArchiveID(path);
 
-            Utils.getGlobalLogger().info("OrchestrionPath.exhを読み込みました");
+            HashDatabase.addPathToDB(path, archive, true);
+        }
 
-            for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                String path = String.format("%s", viewer.getTable().getValueAt(i, 1));
+        //OrchestrionPath.exh
+        exhData = index.extractFile("exd/OrchestrionPath.exh");
+        viewer = new EXDF_View(index, "exd/OrchestrionPath.exh", new EXHF_File(exhData));
 
-                if (path == null || path.isEmpty()) {
-                    continue;
-                }
+        Utils.getGlobalLogger().info("OrchestrionPath.exhを読み込みました");
 
-                String archive = HashDatabase.getArchiveID(path);
-                if (!archive.equals("*")) {
-                    HashDatabase.addPathToDB(path, archive);
-                }
+        for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+            String path = String.format("%s", viewer.getTable().getValueAt(i, 1));
+
+            if (path == null || path.isEmpty()) {
+                continue;
             }
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
+
+            String archive = HashDatabase.getArchiveID(path);
+            if (!archive.equals("*")) {
+                HashDatabase.addPathToDB(path, archive);
+            }
         }
 
 
-        try {
-            HashDatabase.commit();
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-        HashDatabase.closeConnection();
+        HashDatabase.commit();
 
         Utils.getGlobalLogger().info("MusicHashの検索完了");
     }
@@ -220,7 +190,7 @@ public class HashFinding_Utils extends Component {
             findSoundHashes();
         }
 
-        if (IsDebug) {
+        if (false) {
             findVFXHashes();
         }
 
@@ -236,7 +206,7 @@ public class HashFinding_Utils extends Component {
             openEveryCutb();
         }
 
-        if (false) {
+        if (IsDebug) {
             findCutSceneHashes();
         }
 
@@ -264,74 +234,56 @@ public class HashFinding_Utils extends Component {
      */
     @SuppressWarnings("unused")
     public static void findSoundHashes() {
-        byte[] exhData;
-        SqPack_IndexFile index;
-        SqPack_IndexFile index2;
-        EXDF_View viewer = null;
 
         HashDatabase.beginConnection();
-        try {
-            HashDatabase.setAutoCommit(false);
-        } catch (SQLException e1) {
-            Utils.getGlobalLogger().error(e1);
-        }
+        HashDatabase.setAutoCommit(false);
 
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\0a0000.win32.index", true);
-            index2 = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\070000.win32.index", true);
-            sp_IndexFile = index2;
-            Utils.getGlobalLogger().info("SE.exhを開いています...");
+        SqPack_IndexFile index = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", true);
+        SqPack_IndexFile index2 = SqPack_IndexFile.GetIndexFileForArchiveID("070000", true);
+        Utils.getGlobalLogger().info("SE.exhを開いています...");
 
-            exhData = index.extractFile("exd/SE.exh");
-            viewer = new EXDF_View(index, "exd/SE.exh", new EXHF_File(exhData));
+        byte[] exhData = index.extractFile("exd/SE.exh");
+        EXDF_View viewer = new EXDF_View(index, "exd/SE.exh", new EXHF_File(exhData));
 
-            Utils.getGlobalLogger().info("SE.exhを読み込みました");
+        Utils.getGlobalLogger().info("SE.exhを読み込みました");
 
-            for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                //battle/etc/SE_Bt_Etc_UnicornVo.scd
-                //      ↓
-                //sound/battle/etc/SE_Bt_Etc_UnicornVo.scd
-                String path = String.format("sound/%s", viewer.getTable().getValueAt(i, 1));
+        for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+            //battle/etc/SE_Bt_Etc_UnicornVo.scd
+            //      ↓
+            //sound/battle/etc/SE_Bt_Etc_UnicornVo.scd
+            String path = String.format("sound/%s", viewer.getTable().getValueAt(i, 1));
 
-                if (path == null || path.isEmpty()) {
-                    continue;
-                }
-
-                String archive = HashDatabase.getArchiveID(path);
-                if (sp_IndexFile.findFile(path) == 2) {
-                    HashDatabase.addPathToDB(path, archive);
-                }
+            if (path == null || path.isEmpty()) {
+                continue;
             }
 
-            Utils.getGlobalLogger().info("Perform.exhを開いています...");
-
-            exhData = index.extractFile("exd/Perform.exh");
-            viewer = new EXDF_View(index, "exd/Perform.exh", new EXHF_File(exhData));
-
-            Utils.getGlobalLogger().info("Perform.exhを読み込みました");
-
-            for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                //001grandpiano
-                //      ↓
-                //sound/instruments/001grandpiano.scd
-                String path = String.format("sound/instruments/%s.scd", viewer.getTable().getValueAt(i, 1));
-
-                if (path == null || path.isEmpty()) {
-                    continue;
-                }
-
-                String archive = HashDatabase.getArchiveID(path);
-                if (sp_IndexFile.findFile(path) == 2) {
-                    HashDatabase.addPathToDB(path, archive);
-                }
+            String archive = HashDatabase.getArchiveID(path);
+            if (index2.findFile(path) == 2) {
+                HashDatabase.addPathToDB(path, archive);
             }
-
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
         }
 
-        if (viewer == null) {
-            return;
+        Utils.getGlobalLogger().info("Perform.exhを開いています...");
+
+        exhData = index.extractFile("exd/Perform.exh");
+        viewer = new EXDF_View(index, "exd/Perform.exh", new EXHF_File(exhData));
+
+        Utils.getGlobalLogger().info("Perform.exhを読み込みました");
+
+        for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+            //001grandpiano
+            //      ↓
+            //sound/instruments/001grandpiano.scd
+            String path = String.format("sound/instruments/%s.scd", viewer.getTable().getValueAt(i, 1));
+
+            if (path == null || path.isEmpty()) {
+                continue;
+            }
+
+            String archive = HashDatabase.getArchiveID(path);
+            if (index2.findFile(path) == 2) {
+                HashDatabase.addPathToDB(path, archive);
+            }
         }
 
         //noinspection ConstantConditions
@@ -386,12 +338,7 @@ public class HashFinding_Utils extends Component {
             }
         }
 
-        try {
-            HashDatabase.commit();
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-        HashDatabase.closeConnection();
+        HashDatabase.commit();
 
         Utils.getGlobalLogger().info("Soundの検索完了");
     }
@@ -415,106 +362,92 @@ public class HashFinding_Utils extends Component {
         String archive = "030000";
 
         HashDatabase.beginConnection();
-        try {
-            HashDatabase.setAutoCommit(false);
-        } catch (SQLException e1) {
-            Utils.getGlobalLogger().error(e1);
-        }
+        HashDatabase.setAutoCommit(false);
 
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\0a0000.win32.index", false);
+        index = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", false);
 
-            SqPack_IndexFile.SqPack_Folder[] folders = index.getPackFolders();
+        SqPack_Folder[] folders = index.getPackFolders();
 
-            for (SqPack_IndexFile.SqPack_Folder spPack_folder : folders){
-                SqPack_File[] files = spPack_folder.getFiles();
-                for (SqPack_File sqPack_file : files) {
-                    String folderName = spPack_folder.getName();
-                    if (folderName != null && folderName.startsWith("exd/cut_scene/")) {
-                        String fileName = sqPack_file.getName();
-                        if (fileName != null && fileName.endsWith(".exh")) {
-                            if (fileName.endsWith(".exh")) {
-                                //例：exd/cut_scene/055/VoiceMan_05500.exh
-                                String VoiceMan_File = folderName + "/" + fileName;
-                                exhData = index.extractFile(VoiceMan_File);
-                                viewer = new EXDF_View(index, VoiceMan_File, new EXHF_File(exhData));
+        for (SqPack_Folder spPack_folder : folders){
+            SqPack_File[] files = spPack_folder.getFiles();
+            for (SqPack_File sqPack_file : files) {
+                String folderName = spPack_folder.getName();
+                if (folderName != null && folderName.startsWith("exd/cut_scene/")) {
+                    String fileName = sqPack_file.getName();
+                    if (fileName != null && fileName.endsWith(".exh")) {
+                        if (fileName.endsWith(".exh")) {
+                            //例：exd/cut_scene/055/VoiceMan_05500.exh
+                            String VoiceMan_File = folderName + "/" + fileName;
+                            exhData = index.extractFile(VoiceMan_File);
+                            viewer = new EXDF_View(index, VoiceMan_File, new EXHF_File(exhData));
 
-                                Utils.getGlobalLogger().info(String.format("%sを読み込みました", fileName));
-                                if (folderName.charAt(15) == '2'){
-                                    ExPath = "ffxiv";
-                                    archive = HashDatabase.getArchiveID(String.format("cut/%s/", ExPath));
-                                    if(index3 == null) {
-                                        index3 = new SqPack_IndexFile(String.format("%s\\game\\sqpack\\%s\\%s.win32.index", Constants.datPath, ExPath, archive), true);
-                                    }
-                                    sp_IndexFile = index3;
-                                }else if (folderName.charAt(15) == '3'){
-                                    ExPath = "ex1";
-                                    archive = HashDatabase.getArchiveID(String.format("cut/%s/", ExPath));
-                                    if(index3_1 == null) {
-                                        index3_1 = new SqPack_IndexFile(String.format("%s\\game\\sqpack\\%s\\%s.win32.index", Constants.datPath, ExPath, archive), true);
-                                    }
-                                    sp_IndexFile = index3_1;
-                                }else if (folderName.charAt(15) == '4'){
-                                    ExPath = "ex2";
-                                    archive = HashDatabase.getArchiveID(String.format("cut/%s/", ExPath));
-                                    if(index3_2 == null) {
-                                        index3_2 = new SqPack_IndexFile(String.format("%s\\game\\sqpack\\%s\\%s.win32.index", Constants.datPath, ExPath, archive), true);
-                                    }
-                                    sp_IndexFile = index3_2;
-                                }else if (folderName.charAt(15) == '5'){
-                                    ExPath = "ex3";
-                                    archive = HashDatabase.getArchiveID(String.format("cut/%s/", ExPath));
-                                    if(index3_3 == null) {
-                                        index3_3 = new SqPack_IndexFile(String.format("%s\\game\\sqpack\\%s\\%s.win32.index", Constants.datPath, ExPath, archive), true);
-                                    }
-                                    sp_IndexFile = index3_3;
-                                }else if (folderName.charAt(15) == '6'){
-                                    //END WALKER 暁の終焉 用
-                                    ExPath = "ex4";
-
-                                    continue;
+                            Utils.getGlobalLogger().info(String.format("%sを読み込みました", fileName));
+                            if (folderName.charAt(15) == '2'){
+                                ExPath = "ffxiv";
+                                archive = HashDatabase.getArchiveID(String.format("cut/%s/", ExPath));
+                                if(index3 == null) {
+                                    index3 = SqPack_IndexFile.GetIndexFileForArchiveID(archive, true);
                                 }
+                                bgcommonIndex = index3;
+                            }else if (folderName.charAt(15) == '3'){
+                                ExPath = "ex1";
+                                archive = HashDatabase.getArchiveID(String.format("cut/%s/", ExPath));
+                                if(index3_1 == null) {
+                                    index3_1 = SqPack_IndexFile.GetIndexFileForArchiveID(archive, true);
+                                }
+                                bgcommonIndex = index3_1;
+                            }else if (folderName.charAt(15) == '4'){
+                                ExPath = "ex2";
+                                archive = HashDatabase.getArchiveID(String.format("cut/%s/", ExPath));
+                                if(index3_2 == null) {
+                                    index3_2 = SqPack_IndexFile.GetIndexFileForArchiveID(archive, true);
+                                }
+                                bgcommonIndex = index3_2;
+                            }else if (folderName.charAt(15) == '5'){
+                                ExPath = "ex3";
+                                archive = HashDatabase.getArchiveID(String.format("cut/%s/", ExPath));
+                                if(index3_3 == null) {
+                                    index3_3 = SqPack_IndexFile.GetIndexFileForArchiveID(archive, true);
+                                }
+                                bgcommonIndex = index3_3;
+                            }else if (folderName.charAt(15) == '6'){
+                                //END WALKER 暁の終焉 用
+                                ExPath = "ex4";
 
-                                if (IsDebug){
-                                    for (int i = 0; i < viewer.getTable().getRowCount(); i++) {
-                                        String VoiceSign = String.format("%s", viewer.getTable().getValueAt(i, 1));
-                                        //TEXT_VOICEMAN_05500_000010_MERLWYB
+                                continue;
+                            }
 
-                                        if (VoiceSign == null || VoiceSign.isEmpty()) {
-                                            continue;
-                                        }
+                            if (IsDebug){
+                                for (int i = 0; i < viewer.getTable().getRowCount(); i++) {
+                                    String VoiceSign = String.format("%s", viewer.getTable().getValueAt(i, 1));
+                                    //TEXT_VOICEMAN_05500_000010_MERLWYB
 
-                                        //TEXT_VOICEMAN_05500_Q1_000_001_NONE_VOICE等の排除
-                                        if (VoiceSign.startsWith("TEXT_VOICEMAN_") && !VoiceSign.endsWith("_NONE_VOICE")){
-                                            String[] VoiceID = VoiceSign.split("_");
-                                            for (String lang : multi) {
-                                                for (String voiceType2 : voiceType) {
-                                                    //cut/ex3/sound/voicem/VoiceMan_05401/Vo_VoiceMan_05401_000010_m_ja.scd
-                                                    String fullPass = String.format("cut/%s/sound/voicem/VoiceMan_%s/Vo_VoiceMan_%s_%s_%s_%s.scd", ExPath, VoiceID[2], VoiceID[2], VoiceID[3], voiceType2, lang);
+                                    if (VoiceSign == null || VoiceSign.isEmpty()) {
+                                        continue;
+                                    }
 
-                                                    cAddPathToDB(fullPass, archive, 2);
-                                                }
+                                    //TEXT_VOICEMAN_05500_Q1_000_001_NONE_VOICE等の排除
+                                    if (VoiceSign.startsWith("TEXT_VOICEMAN_") && !VoiceSign.endsWith("_NONE_VOICE")){
+                                        String[] VoiceID = VoiceSign.split("_");
+                                        for (String lang : multi) {
+                                            for (String voiceType2 : voiceType) {
+                                                //cut/ex3/sound/voicem/VoiceMan_05401/Vo_VoiceMan_05401_000010_m_ja.scd
+                                                String fullPass = String.format("cut/%s/sound/voicem/VoiceMan_%s/Vo_VoiceMan_%s_%s_%s_%s.scd", ExPath, VoiceID[2], VoiceID[2], VoiceID[3], voiceType2, lang);
+
+                                                cAddPathToDB(fullPass, archive, 2);
                                             }
                                         }
-
                                     }
+
                                 }
                             }
                         }
                     }
                 }
             }
-
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
         }
 
-        try {
-            HashDatabase.commit();
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-        HashDatabase.closeConnection();
+        HashDatabase.commit();
 
         Utils.getGlobalLogger().info("SoundVoiceの検索完了");
     }
@@ -530,46 +463,79 @@ public class HashFinding_Utils extends Component {
         EXDF_View viewer = null;
 
         HashDatabase.beginConnection();
-        try {
-            HashDatabase.setAutoCommit(false);
-        } catch (SQLException e1) {
-            Utils.getGlobalLogger().error(e1);
+        HashDatabase.setAutoCommit(false);
+
+        index = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", true);
+        index2 = SqPack_IndexFile.GetIndexFileForArchiveID("080000", true);
+        //TODO: "vfx/cut/general/eff/%s.avfx"も自動登録したい
+
+        if(false) {
+            Utils.getGlobalLogger().info("VFX.exhを開いています...");
+
+            exhData = index.extractFile("exd/VFX.exh");
+            viewer = new EXDF_View(index, "exd/VFX.exh", new EXHF_File(exhData));
+
+            Utils.getGlobalLogger().info("VFX.exhを読み込みました");
+
+            for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+                //m0689_stlp2b_c0t1
+                //      ↓
+                //vfx/common/eff/m0689_stlp2b_c0t1.avfx
+                String path = String.format("vfx/common/eff/%s.avfx", viewer.getTable().getValueAt(i, 1));
+
+                if (path == null || path.isEmpty()) {
+                    continue;
+                }
+
+                String archive = HashDatabase.getArchiveID(path);
+                if (index2.findFile(path) == 2) {
+                    int result = HashDatabase.addPathToDB(path, archive);
+
+                    if (result == 1) {
+                        //新規追加の場合
+                        try {
+                            //avfxファイル内のパスも解析
+                            byte[] data2 = index2.extractFile(path);
+                            AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
+                            avfxFile.regHash(true);
+                        } catch (Exception avfxException) {
+                            avfxException.printStackTrace();
+                        }
+                    }
+
+                }
+            }
         }
 
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\0a0000.win32.index", true);
-            index2 = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\080000.win32.index", true);
-            sp_IndexFile = index2;
-            //TODO: "vfx/cut/general/eff/%s.avfx"も自動登録したい
+        if(false) {
+            Utils.getGlobalLogger().info("Omen.exhを開いています...");
 
-            if(false) {
-                Utils.getGlobalLogger().info("VFX.exhを開いています...");
+            exhData = index.extractFile("exd/Omen.exh");
+            viewer = new EXDF_View(index, "exd/Omen.exh", new EXHF_File(exhData));
 
-                exhData = index.extractFile("exd/VFX.exh");
-                viewer = new EXDF_View(index, "exd/VFX.exh", new EXHF_File(exhData));
+            Utils.getGlobalLogger().info("Omen.exhを読み込みました");
 
-                Utils.getGlobalLogger().info("VFX.exhを読み込みました");
-
+            for (int col = 1; col <= 2; col++) {
                 for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                    //m0689_stlp2b_c0t1
+                    //bahamut2_bomu_omen0s
                     //      ↓
-                    //vfx/common/eff/m0689_stlp2b_c0t1.avfx
-                    String path = String.format("vfx/common/eff/%s.avfx", viewer.getTable().getValueAt(i, 1));
+                    //vfx/omen/eff/bahamut2_bomu_omen0s.avfx
+                    String path = String.format("vfx/omen/eff/%s.avfx", viewer.getTable().getValueAt(i, col));
 
                     if (path == null || path.isEmpty()) {
                         continue;
                     }
 
                     String archive = HashDatabase.getArchiveID(path);
-                    if (sp_IndexFile.findFile(path) == 2) {
+                    if (index2.findFile(path) == 2) {
                         int result = HashDatabase.addPathToDB(path, archive);
 
                         if (result == 1) {
                             //新規追加の場合
                             try {
                                 //avfxファイル内のパスも解析
-                                byte[] data2 = sp_IndexFile.extractFile(path);
-                                AVFX_File avfxFile = new AVFX_File(sp_IndexFile, data2, sp_IndexFile.getEndian());
+                                byte[] data2 = index2.extractFile(path);
+                                AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
                                 avfxFile.regHash(true);
                             } catch (Exception avfxException) {
                                 avfxException.printStackTrace();
@@ -579,209 +545,162 @@ public class HashFinding_Utils extends Component {
                     }
                 }
             }
+        }
 
-            if(false) {
-                Utils.getGlobalLogger().info("Omen.exhを開いています...");
+        if(false) {
+            Utils.getGlobalLogger().info("EventVfx.exhを開いています...");
 
-                exhData = index.extractFile("exd/Omen.exh");
-                viewer = new EXDF_View(index, "exd/Omen.exh", new EXHF_File(exhData));
+            exhData = index.extractFile("exd/EventVfx.exh");
+            viewer = new EXDF_View(index, "exd/EventVfx.exh", new EXHF_File(exhData));
 
-                Utils.getGlobalLogger().info("Omen.exhを読み込みました");
+            Utils.getGlobalLogger().info("EventVfx.exhを読み込みました");
 
-                for (int col = 1; col <= 2; col++) {
-                    for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                        //bahamut2_bomu_omen0s
-                        //      ↓
-                        //vfx/omen/eff/bahamut2_bomu_omen0s.avfx
-                        String path = String.format("vfx/omen/eff/%s.avfx", viewer.getTable().getValueAt(i, col));
+            for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+                //gpose_akatsuki
+                //      ↓
+                //vfx/grouppose/eff/gpose_akatsuki.avfx
+                int type = (int) viewer.getTable().getValueAt(i, 2);
+                String path = null;
+                if (type == 1) {
+                    path = String.format("vfx/general/eff/%s.avfx", viewer.getTable().getValueAt(i, 3));
+                } else if (type == 2) {
+                    path = String.format("vfx/grouppose/eff/%s.avfx", viewer.getTable().getValueAt(i, 3));
+                }
 
-                        if (path == null || path.isEmpty()) {
-                            continue;
-                        }
+                if (path == null || path.isEmpty()) {
+                    continue;
+                }
 
-                        String archive = HashDatabase.getArchiveID(path);
-                        if (sp_IndexFile.findFile(path) == 2) {
-                            int result = HashDatabase.addPathToDB(path, archive);
+                String archive = HashDatabase.getArchiveID(path);
+                if (index2.findFile(path) == 2) {
+                    int result = HashDatabase.addPathToDB(path, archive);
 
-                            if (result == 1) {
-                                //新規追加の場合
-                                try {
-                                    //avfxファイル内のパスも解析
-                                    byte[] data2 = sp_IndexFile.extractFile(path);
-                                    AVFX_File avfxFile = new AVFX_File(sp_IndexFile, data2, sp_IndexFile.getEndian());
-                                    avfxFile.regHash(true);
-                                } catch (Exception avfxException) {
-                                    avfxException.printStackTrace();
-                                }
-                            }
-
+                    if (result == 1) {
+                        //新規追加の場合
+                        try {
+                            //avfxファイル内のパスも解析
+                            byte[] data2 = index2.extractFile(path);
+                            AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
+                            avfxFile.regHash(true);
+                        } catch (Exception avfxException) {
+                            avfxException.printStackTrace();
                         }
                     }
+
                 }
             }
+        }
 
-            if(false) {
-                Utils.getGlobalLogger().info("EventVfx.exhを開いています...");
+        if(false) {
+            Utils.getGlobalLogger().info("Channeling.exhを開いています...");
 
-                exhData = index.extractFile("exd/EventVfx.exh");
-                viewer = new EXDF_View(index, "exd/EventVfx.exh", new EXHF_File(exhData));
+            exhData = index.extractFile("exd/Channeling.exh");
+            viewer = new EXDF_View(index, "exd/Channeling.exh", new EXHF_File(exhData));
 
-                Utils.getGlobalLogger().info("EventVfx.exhを読み込みました");
+            Utils.getGlobalLogger().info("Channeling.exhを読み込みました");
 
-                for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                    //gpose_akatsuki
-                    //      ↓
-                    //vfx/grouppose/eff/gpose_akatsuki.avfx
-                    int type = (int) viewer.getTable().getValueAt(i, 2);
-                    String path = null;
-                    if (type == 1) {
-                        path = String.format("vfx/general/eff/%s.avfx", viewer.getTable().getValueAt(i, 3));
-                    } else if (type == 2) {
-                        path = String.format("vfx/grouppose/eff/%s.avfx", viewer.getTable().getValueAt(i, 3));
-                    }
+            for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+                //chn_dark001f
+                //      ↓
+                //vfx/channeling/eff/chn_dark001f.avfx
+                String path = String.format("vfx/channeling/eff/%s.avfx", viewer.getTable().getValueAt(i, 1));
 
-                    if (path == null || path.isEmpty()) {
-                        continue;
-                    }
+                if (path == null || path.isEmpty()) {
+                    continue;
+                }
 
-                    String archive = HashDatabase.getArchiveID(path);
-                    if (sp_IndexFile.findFile(path) == 2) {
-                        int result = HashDatabase.addPathToDB(path, archive);
+                String archive = HashDatabase.getArchiveID(path);
+                if (index2.findFile(path) == 2) {
+                    int result = HashDatabase.addPathToDB(path, archive);
 
-                        if (result == 1) {
-                            //新規追加の場合
-                            try {
-                                //avfxファイル内のパスも解析
-                                byte[] data2 = sp_IndexFile.extractFile(path);
-                                AVFX_File avfxFile = new AVFX_File(sp_IndexFile, data2, sp_IndexFile.getEndian());
-                                avfxFile.regHash(true);
-                            } catch (Exception avfxException) {
-                                avfxException.printStackTrace();
-                            }
+                    if (result == 1) {
+                        //新規追加の場合
+                        try {
+                            //avfxファイル内のパスも解析
+                            byte[] data2 = index2.extractFile(path);
+                            AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
+                            avfxFile.regHash(true);
+                        } catch (Exception avfxException) {
+                            avfxException.printStackTrace();
                         }
-
                     }
+
                 }
             }
+        }
 
-            if(false) {
-                Utils.getGlobalLogger().info("Channeling.exhを開いています...");
+        if(true) {
+            Utils.getGlobalLogger().info("Lockon.exhを開いています...");
 
-                exhData = index.extractFile("exd/Channeling.exh");
-                viewer = new EXDF_View(index, "exd/Channeling.exh", new EXHF_File(exhData));
+            exhData = index.extractFile("exd/Lockon.exh");
+            viewer = new EXDF_View(index, "exd/Lockon.exh", new EXHF_File(exhData));
 
-                Utils.getGlobalLogger().info("Channeling.exhを読み込みました");
+            Utils.getGlobalLogger().info("Lockon.exhを読み込みました");
 
-                for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                    //chn_dark001f
-                    //      ↓
-                    //vfx/channeling/eff/chn_dark001f.avfx
-                    String path = String.format("vfx/channeling/eff/%s.avfx", viewer.getTable().getValueAt(i, 1));
+            for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+                //tar_ring0af
+                //      ↓
+                //vfx/lockon/eff/tar_ring0af.avfx
+                String path = String.format("vfx/lockon/eff/%s.avfx", viewer.getTable().getValueAt(i, 1));
 
-                    if (path == null || path.isEmpty()) {
-                        continue;
-                    }
+                if (path == null || path.isEmpty()) {
+                    continue;
+                }
 
-                    String archive = HashDatabase.getArchiveID(path);
-                    if (sp_IndexFile.findFile(path) == 2) {
-                        int result = HashDatabase.addPathToDB(path, archive);
+                String archive = HashDatabase.getArchiveID(path);
+                if (index2.findFile(path) == 2) {
+                    int result = HashDatabase.addPathToDB(path, archive);
 
-                        if (result == 1) {
-                            //新規追加の場合
-                            try {
-                                //avfxファイル内のパスも解析
-                                byte[] data2 = sp_IndexFile.extractFile(path);
-                                AVFX_File avfxFile = new AVFX_File(sp_IndexFile, data2, sp_IndexFile.getEndian());
-                                avfxFile.regHash(true);
-                            } catch (Exception avfxException) {
-                                avfxException.printStackTrace();
-                            }
+                    if (result == 1) {
+                        //新規追加の場合
+                        try {
+                            //avfxファイル内のパスも解析
+                            byte[] data2 = index2.extractFile(path);
+                            AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
+                            avfxFile.regHash(true);
+                        } catch (Exception avfxException) {
+                            avfxException.printStackTrace();
                         }
-
                     }
+
                 }
             }
+        }
 
-            if(true) {
-                Utils.getGlobalLogger().info("Lockon.exhを開いています...");
+        if(false) {
+            for (int i = 1; i < 1000; i++) {
+                String path;
+                path = String.format("vfx/lovm/eff/%03d.avfx", i);
 
-                exhData = index.extractFile("exd/Lockon.exh");
-                viewer = new EXDF_View(index, "exd/Lockon.exh", new EXHF_File(exhData));
+                if (path == null || path.isEmpty()) {
+                    continue;
+                }
 
-                Utils.getGlobalLogger().info("Lockon.exhを読み込みました");
+                String archive = HashDatabase.getArchiveID(path);
+                if (index2.findFile(path) == 2) {
+                    int result = HashDatabase.addPathToDB(path, archive);
 
-                for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                    //tar_ring0af
-                    //      ↓
-                    //vfx/lockon/eff/tar_ring0af.avfx
-                    String path = String.format("vfx/lockon/eff/%s.avfx", viewer.getTable().getValueAt(i, 1));
-
-                    if (path == null || path.isEmpty()) {
-                        continue;
-                    }
-
-                    String archive = HashDatabase.getArchiveID(path);
-                    if (sp_IndexFile.findFile(path) == 2) {
-                        int result = HashDatabase.addPathToDB(path, archive);
-
-                        if (result == 1) {
-                            //新規追加の場合
-                            try {
-                                //avfxファイル内のパスも解析
-                                byte[] data2 = sp_IndexFile.extractFile(path);
-                                AVFX_File avfxFile = new AVFX_File(sp_IndexFile, data2, sp_IndexFile.getEndian());
-                                avfxFile.regHash(true);
-                            } catch (Exception avfxException) {
-                                avfxException.printStackTrace();
-                            }
+                    if (result == 1) {
+                        //新規追加の場合
+                        try {
+                            //avfxファイル内のパスも解析
+                            byte[] data2 = index2.extractFile(path);
+                            AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
+                            avfxFile.regHash(true);
+                        } catch (Exception avfxException) {
+                            avfxException.printStackTrace();
                         }
-
                     }
+
                 }
             }
-
-            if(false) {
-                for (int i = 1; i < 1000; i++) {
-                    String path;
-                    path = String.format("vfx/lovm/eff/%03d.avfx", i);
-
-                    if (path == null || path.isEmpty()) {
-                        continue;
-                    }
-
-                    String archive = HashDatabase.getArchiveID(path);
-                    if (sp_IndexFile.findFile(path) == 2) {
-                        int result = HashDatabase.addPathToDB(path, archive);
-
-                        if (result == 1) {
-                            //新規追加の場合
-                            try {
-                                //avfxファイル内のパスも解析
-                                byte[] data2 = sp_IndexFile.extractFile(path);
-                                AVFX_File avfxFile = new AVFX_File(sp_IndexFile, data2, sp_IndexFile.getEndian());
-                                avfxFile.regHash(true);
-                            } catch (Exception avfxException) {
-                                avfxException.printStackTrace();
-                            }
-                        }
-
-                    }
-                }
-            }
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
         }
 
         if (viewer == null) {
             return;
         }
 
-        try {
-            HashDatabase.commit();
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-        HashDatabase.closeConnection();
+        HashDatabase.commit();
 
         Utils.getGlobalLogger().info("VFXの検索完了");
     }
@@ -805,106 +724,55 @@ public class HashFinding_Utils extends Component {
         String archive;
 
         HashDatabase.beginConnection();
-        try {
-            HashDatabase.setAutoCommit(false);
-        } catch (SQLException e1) {
-            Utils.getGlobalLogger().error(e1);
-        }
+        HashDatabase.setAutoCommit(false);
 
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\0a0000.win32.index", false);
+        index = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", false);
 
-            String folderName = "exd";
-            String fileName = "Cutscene.exh";
-            //例：exd/Cutscene.exh
-            String VoiceMan_File = folderName + "/" + fileName;
-            exhData = index.extractFile(VoiceMan_File);
-            viewer = new EXDF_View(index, VoiceMan_File, new EXHF_File(exhData));
+        String folderName = "exd";
+        String fileName = "Cutscene.exh";
+        //例：exd/Cutscene.exh
+        String VoiceMan_File = folderName + "/" + fileName;
+        exhData = index.extractFile(VoiceMan_File);
+        viewer = new EXDF_View(index, VoiceMan_File, new EXHF_File(exhData));
 
-            Utils.getGlobalLogger().info(String.format("%sを読み込みました", fileName));
+        Utils.getGlobalLogger().info(String.format("%sを読み込みました", fileName));
 
 
-            for (int i = 0; i < viewer.getTable().getRowCount(); i++) {
-                String CutSign = String.format("%s", viewer.getTable().getValueAt(i, 1));
-                //ffxiv/manfst/manfst00000/manfst00000
+        for (int i = 0; i < viewer.getTable().getRowCount(); i++) {
+            String CutSign = String.format("%s", viewer.getTable().getValueAt(i, 1));
+            //ffxiv/manfst/manfst00000/manfst00000
 
-                if (CutSign == null || CutSign.isEmpty()) {
-                    continue;
-                }
-
-                String[] CutPath = CutSign.split("/");
-
-                ExPath = CutPath[0];
-                CutPath[1] = CutPath[1].substring(0, 1).toUpperCase() + CutPath[1].substring(1, 3) + CutPath[1].substring(3, 4).toUpperCase() + CutPath[1].substring(4);
-                CutPath[2] = CutPath[1] + CutPath[2].substring(6);
-
-                archive = HashDatabase.getArchiveID(String.format("cut/%s/", ExPath));
-                switch (ExPath) {
-                    case "ffxiv":
-                        if (index3 == null) {
-                            index3 = new SqPack_IndexFile(String.format("%s\\game\\sqpack\\%s\\%s.win32.index", Constants.datPath, ExPath, archive), true);
-                        }
-                        sp_IndexFile = index3;
-                        break;
-                    case "ex1":
-                        if (index3_1 == null) {
-                            index3_1 = new SqPack_IndexFile(String.format("%s\\game\\sqpack\\%s\\%s.win32.index", Constants.datPath, ExPath, archive), true);
-                        }
-                        sp_IndexFile = index3_1;
-                        break;
-                    case "ex2":
-                        if (index3_2 == null) {
-                            index3_2 = new SqPack_IndexFile(String.format("%s\\game\\sqpack\\%s\\%s.win32.index", Constants.datPath, ExPath, archive), true);
-                        }
-                        sp_IndexFile = index3_2;
-                        break;
-                    case "ex3":
-                        if (index3_3 == null) {
-                            index3_3 = new SqPack_IndexFile(String.format("%s\\game\\sqpack\\%s\\%s.win32.index", Constants.datPath, ExPath, archive), true);
-                        }
-                        sp_IndexFile = index3_3;
-                        break;
-                    case "ex4":
-                        //END WALKER 暁の終焉 用
-
-                        continue;
-                }
-
-                String fullPass = String.format("cut/%s/%s/%s/%s.cutb",ExPath,CutPath[1],CutPath[2],CutPath[2]);
-                cAddPathToDB(fullPass, archive, 2);
-
-                //cut/ffxiv/sound/airfst/airfst00010/se_nc_airfst00010.scd
-                fullPass = String.format("cut/%s/sound/%s/%s/SE_Nc_%s.scd",ExPath,CutPath[1],CutPath[2],CutPath[2]);
-                cAddPathToDB(fullPass, archive, 2);
+            if (CutSign == null || CutSign.isEmpty()) {
+                continue;
             }
 
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
+            String[] CutPath = CutSign.split("/");
+
+            ExPath = CutPath[0];
+            CutPath[1] = CutPath[1].substring(0, 1).toUpperCase() + CutPath[1].substring(1, 3) + CutPath[1].substring(3, 4).toUpperCase() + CutPath[1].substring(4);
+            CutPath[2] = CutPath[1] + CutPath[2].substring(6);
+
+            archive = HashDatabase.getArchiveID(String.format("cut/%s/", ExPath));
+
+            String fullPass = String.format("cut/%s/%s/%s/%s.cutb",ExPath,CutPath[1],CutPath[2],CutPath[2]);
+            cAddPathToDB(fullPass, archive, 2);
+
+            //cut/ffxiv/sound/airfst/airfst00010/se_nc_airfst00010.scd
+            //fullPass = String.format("cut/%s/sound/%s/%s/SE_Nc_%s.scd",ExPath,CutPath[1],CutPath[2],CutPath[2])
+            //cAddPathToDB(fullPass, archive, 2)
         }
 
-        try {
-            HashDatabase.commit();
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-        HashDatabase.closeConnection();
+        HashDatabase.commit();
 
-        Utils.getGlobalLogger().info("SoundVoiceの検索完了");
+        Utils.getGlobalLogger().info("Cutsceneの検索完了");
     }
     /**
      * Mapハッシュ検索
      */
     public static void findMapHashes() {
-        byte[] exhData = null;
-        SqPack_IndexFile index = null;
-        SqPack_IndexFile index2 = null;
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\0a0000.win32.index", true);
-            index2 = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\060000.win32.index", true);
-            exhData = index.extractFile("exd/map.exh");
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
-        }
+        SqPack_IndexFile index = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", true);
+        SqPack_IndexFile index2 = SqPack_IndexFile.GetIndexFileForArchiveID("060000", true);
+        byte[] exhData = index.extractFile("exd/map.exh");
 
         if (exhData == null) {
             return;
@@ -914,11 +782,7 @@ public class HashFinding_Utils extends Component {
         EXDF_View mapView = new EXDF_View(index, "exd/map.exh", exhfFile);
 
         HashDatabase.beginConnection();
-        try {
-            HashDatabase.setAutoCommit(false);
-        } catch (SQLException e1) {
-            Utils.getGlobalLogger().error(e1);
-        }
+        HashDatabase.setAutoCommit(false);
 
         //noinspection ConstantConditions
         if (true){ //デバッグ用フラグ
@@ -941,7 +805,7 @@ public class HashFinding_Utils extends Component {
                 for (String mapEx :mapTexEx){
                     String mapPath = mapFolder + "/" + split[0] + split[1] + mapEx;
                     if (index2.findFile(mapPath) == 2) { //存在チェック
-                        HashDatabase.addPathToDB(mapPath, "060000", HashDatabase.globalConnection);
+                        HashDatabase.addPathToDB(mapPath, "060000");
                     }
                 }
             }
@@ -975,8 +839,8 @@ public class HashFinding_Utils extends Component {
 
                             if (index2.findFile(iconPath) == 2) { //存在チェック
                                 //ui/icon登録
-                                HashDatabase.addPathToDB(iconPath, "060000", HashDatabase.globalConnection);
-                                HashDatabase.addPathToDB(iconPath2, "060000", HashDatabase.globalConnection); //高画質用
+                                HashDatabase.addPathToDB(iconPath, "060000");
+                                HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
                             }
                             multiFlag = false;
                         }
@@ -990,20 +854,14 @@ public class HashFinding_Utils extends Component {
 
                 if (index2.findFile(iconPath) == 2) { //存在チェック
                     //ui/icon登録
-                    HashDatabase.addPathToDB(iconPath, "060000", HashDatabase.globalConnection);
-                    HashDatabase.addPathToDB(iconPath2, "060000", HashDatabase.globalConnection); //高画質用
+                    HashDatabase.addPathToDB(iconPath, "060000");
+                    HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
                 }
             }
             Utils.getGlobalLogger().info("Icon検索完了");
         }
 
-        try {
-            HashDatabase.commit();
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-        HashDatabase.closeConnection();
-
+        HashDatabase.commit();
     }
 
     /**
@@ -1011,30 +869,15 @@ public class HashFinding_Utils extends Component {
      */
     @SuppressWarnings("unused")
     public static void getModelsFromModelChara() {
-        byte[] exhData;
-        SqPack_IndexFile index;
-        EXDF_View viewer = null;
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\0a0000.win32.index", true);
-            sp_IndexFile = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\040000.win32.index", true);
-            exhData = index.extractFile("exd/ModelChara.exh");
-            viewer = new EXDF_View(index, "exd/ModelChara.exh", new EXHF_File(exhData));
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-
-        if (viewer == null) {
-            return;
-        }
+        SqPack_IndexFile index = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", true);
+        SqPack_IndexFile index2 = SqPack_IndexFile.GetIndexFileForArchiveID("040000", true);
+        byte[] exhData = index.extractFile("exd/ModelChara.exh");
+        EXDF_View viewer = new EXDF_View(index, "exd/ModelChara.exh", new EXHF_File(exhData));
 
         Utils.getGlobalLogger().info("ModelChara.exhを読み込みました");
 
         HashDatabase.beginConnection();
-        try {
-            HashDatabase.setAutoCommit(false);
-        } catch (SQLException e1) {
-            Utils.getGlobalLogger().error(e1);
-        }
+        HashDatabase.setAutoCommit(false);
 
         //for (int i = 3034; i < viewer.getTable().getRowCount(); i++) {
         for (int i = 3089; i < viewer.getTable().getRowCount(); i++) {
@@ -1070,7 +913,7 @@ public class HashFinding_Utils extends Component {
                     //chara/demihuman/d1024/obj/equipment/e0001/vfx/eff/ve0001.avfx
                     String avfxPath = String.format("%s%04d/obj/equipment/e%04d/vfx/eff/ve0001.avfx", typePath, model, base);
                     String atexPath = String.format("%s%04d/obj/equipment/e%04d/vfx/texture/", typePath, model, base);
-                    int pathCheck = sp_IndexFile.findFile(avfxPath);
+                    int pathCheck = index2.findFile(avfxPath);
                     if (pathCheck == 2){
                         HashDatabase.addPathToDB(avfxPath, "040000");
                         HashDatabase.addFolderToDB(atexPath, "040000");
@@ -1252,12 +1095,7 @@ public class HashFinding_Utils extends Component {
             }
         }
 
-        try {
-            HashDatabase.commit();
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-        HashDatabase.closeConnection();
+        HashDatabase.commit();
 
         Utils.getGlobalLogger().info("ModelChara.exhの検索完了");
     }
@@ -1268,18 +1106,12 @@ public class HashFinding_Utils extends Component {
      */
     @SuppressWarnings({"unused"})
     public static void getModelsFromItem() {
-        byte[] exhData = null;
-        SqPack_IndexFile index = null;
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\0a0000.win32.index", true);
-            sp_IndexFile = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\040000.win32.index", true);
-            exhData = index.extractFile("exd/Item.exh");
-            //TODO: NPC専用の装備モデルは「exd/ENpcDressUpDress.exh」から取得できるはずだが
-            // EXDF_Viewの作りが古いためデータがずれていて現在の所不可
-            // equipment,weapon:9000番以降
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
-        }
+        SqPack_IndexFile index = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", true);
+        SqPack_IndexFile index2 = SqPack_IndexFile.GetIndexFileForArchiveID("040000", true);
+        byte[] exhData = index.extractFile("exd/Item.exh");
+        //TODO: NPC専用の装備モデルは「exd/ENpcDressUpDress.exh」から取得できるはずだが
+        // EXDF_Viewの作りが古いためデータがずれていて現在の所不可
+        // equipment,weapon:9000番以降
 
         EXDF_View viewer;
         viewer = new EXDF_View(index, "exd/Item.exh", new EXHF_File(exhData));
@@ -1287,11 +1119,7 @@ public class HashFinding_Utils extends Component {
         Utils.getGlobalLogger().info("Item.exhを読み込みました");
 
         HashDatabase.beginConnection();
-        try {
-            HashDatabase.setAutoCommit(false);
-        } catch (SQLException e1) {
-            Utils.getGlobalLogger().error(e1);
-        }
+        HashDatabase.setAutoCommit(false);
 
         int[] charaID = new int[]{101,201,301,401,501,601,701,801,901,1001,1101,1201,1301,1401,1501,1801};
         //i = 0 から 登録した方が確実だが時間がかかりそうなので途中から
@@ -1348,19 +1176,14 @@ public class HashFinding_Utils extends Component {
                             do {
                                 //vw○○○.avfxファイルを検索して追加を試みる
                                 avfxPath = String.format("%s%04d/obj/body/b%04d/vfx/eff/vw%04d.avfx", typePath, modelNum, bodyNum, vfxNum);
-                                pathCheck = sp_IndexFile.findFile(avfxPath);
+                                pathCheck = index2.findFile(avfxPath);
                                 vfxNum++;
                             } while (vfxNum < 10 && pathCheck == 2);
 
                             if (pathCheck == 2){
                                 HashDatabase.addPathToDB(avfxPath, "040000");
-                                byte[] data = new byte[0];
-                                try {
-                                    data = sp_IndexFile.extractFile(avfxPath);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                                AVFX_File avfxFile = new AVFX_File(sp_IndexFile, data, sp_IndexFile.getEndian());
+                                byte[] data = index2.extractFile(avfxPath);
+                                AVFX_File avfxFile = new AVFX_File(index2, data, index2.getEndian());
                                 avfxFile.regHash();
 
                             }else if (pathCheck == 1){
@@ -1502,12 +1325,7 @@ public class HashFinding_Utils extends Component {
             }
         }
 
-        try {
-            HashDatabase.commit();
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-        HashDatabase.closeConnection();
+        HashDatabase.commit();
 
         Utils.getGlobalLogger().info("Item.exhの検索完了");
     }
@@ -1523,144 +1341,129 @@ public class HashFinding_Utils extends Component {
         EXDF_View viewer;
 
         HashDatabase.beginConnection();
-        try {
-            HashDatabase.setAutoCommit(false);
-        } catch (SQLException e1) {
-            Utils.getGlobalLogger().error(e1);
-        }
+        HashDatabase.setAutoCommit(false);
 
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\0a0000.win32.index", true);
-            sp_IndexFile = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\010000.win32.index", false);
+        index = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", true);
+        bgcommonIndex = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", false);
 
-            //庭具
-            exhData = index.extractFile("exd/HousingYardObject.exh");
-            viewer = new EXDF_View(index, "exd/HousingYardObject.exh", new EXHF_File(exhData));
+        //庭具
+        exhData = index.extractFile("exd/HousingYardObject.exh");
+        viewer = new EXDF_View(index, "exd/HousingYardObject.exh", new EXHF_File(exhData));
 
-            Utils.getGlobalLogger().info("HousingYardObject.exhを読み込みました");
+        Utils.getGlobalLogger().info("HousingYardObject.exhを読み込みました");
 
-            String typePath, equipSlot = null;
-            String imcPath, modelPath, pcbPath;
-            int pathCheck, result ;
+        String typePath, equipSlot = null;
+        String imcPath, modelPath, pcbPath;
+        int pathCheck, result ;
 
-            //i = 0 はデータなし
-            for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+        //i = 0 はデータなし
+        for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
 
-                int ModelKey = (int) viewer.getTable().getValueAt(i, 1);
+            int ModelKey = (int) viewer.getTable().getValueAt(i, 1);
 
-                Utils.getGlobalLogger().info("庭具:{}を調査しています", ModelKey);
+            Utils.getGlobalLogger().info("庭具:{}を調査しています", ModelKey);
 
-                //bgcommon/hou/outdoor/general/0225/asset/gar_b0_m0225.sgb
-                modelPath = String.format("bgcommon/hou/outdoor/general/%04d/asset/gar_b0_m%04d.sgb", ModelKey, ModelKey);
-                if (sp_IndexFile.findFile(modelPath) == 2){
+            //bgcommon/hou/outdoor/general/0225/asset/gar_b0_m0225.sgb
+            modelPath = String.format("bgcommon/hou/outdoor/general/%04d/asset/gar_b0_m%04d.sgb", ModelKey, ModelKey);
+            if (bgcommonIndex.findFile(modelPath) == 2){
 
-                    result = HashDatabase.addPathToDB(modelPath, "010000");
-                    if (result == 1) {
-                        //新規に登録した場合のみSGBファイルを解析する
-                        byte[] data2 = sp_IndexFile.extractFile(modelPath);
-                        SgbFile sgbFile = new SgbFile(sp_IndexFile, data2, sp_IndexFile.getEndian());
-                    }
-                    continue;
+                result = HashDatabase.addPathToDB(modelPath, "010000");
+                if (result == 1) {
+                    //新規に登録した場合のみSGBファイルを解析する
+                    byte[] data2 = bgcommonIndex.extractFile(modelPath);
+                    SgbFile sgbFile = new SgbFile(data2, bgcommonIndex.getEndian());
                 }
+                continue;
+            }
 
-                //assetのsgbファイルが存在しない場合
-                //bgcommon/hou/outdoor/general/0225/bgparts/gar_b0_m0225.mdl
-                //bgcommon/hou/outdoor/general/0224/collision/gar_b0_m0224.pcb
-                modelPath = String.format("bgcommon/hou/outdoor/general/%04d/bgparts/gar_b0_m%04d.mdl", ModelKey, ModelKey);
-                pathCheck = sp_IndexFile.findFile(modelPath);
-                if (pathCheck >= 1){
-                    if (pathCheck == 2) {
+            //assetのsgbファイルが存在しない場合
+            //bgcommon/hou/outdoor/general/0225/bgparts/gar_b0_m0225.mdl
+            //bgcommon/hou/outdoor/general/0224/collision/gar_b0_m0224.pcb
+            modelPath = String.format("bgcommon/hou/outdoor/general/%04d/bgparts/gar_b0_m%04d.mdl", ModelKey, ModelKey);
+            pathCheck = bgcommonIndex.findFile(modelPath);
+            if (pathCheck >= 1){
+                if (pathCheck == 2) {
+                    result = cAddPathToDB(modelPath, "010000", 2);
+                    if (result > 1) {
+                        continue; //ファイルが登録済みだった場合
+                    }
+                    //collision(ない場合も多い)
+                    modelPath = String.format("bgcommon/hou/outdoor/general/%04d/collision/gar_b0_m%04d.pcb", ModelKey, ModelKey);
+                    cAddPathToDB(modelPath, "010000", 2);
+                }
+                for (int cNum = 97; cNum <= 112; cNum++) {
+                    //a～zまでだと97-123 取りあえずa～pまで
+                    modelPath = String.format("bgcommon/hou/outdoor/general/%04d/bgparts/gar_b0_m%04d%s.mdl", ModelKey, ModelKey, (char)cNum);
+                    if (bgcommonIndex.findFile(modelPath) == 2) {
                         result = cAddPathToDB(modelPath, "010000", 2);
-                        if (result > 1) {
-                            continue; //ファイルが登録済みだった場合
+                        if (result != 1) {
+                            break;  //ファイルが登録済みまたは存在しない場合
                         }
                         //collision(ない場合も多い)
-                        modelPath = String.format("bgcommon/hou/outdoor/general/%04d/collision/gar_b0_m%04d.pcb", ModelKey, ModelKey);
+                        modelPath = String.format("bgcommon/hou/outdoor/general/%04d/collision/gar_b0_m%04d%s.pcb", ModelKey, ModelKey, (char) cNum);
                         cAddPathToDB(modelPath, "010000", 2);
                     }
-                    for (int cNum = 97; cNum <= 112; cNum++) {
-                        //a～zまでだと97-123 取りあえずa～pまで
-                        modelPath = String.format("bgcommon/hou/outdoor/general/%04d/bgparts/gar_b0_m%04d%s.mdl", ModelKey, ModelKey, (char)cNum);
-                        if (sp_IndexFile.findFile(modelPath) == 2) {
-                            result = cAddPathToDB(modelPath, "010000", 2);
-                            if (result != 1) {
-                                break;  //ファイルが登録済みまたは存在しない場合
-                            }
-                            //collision(ない場合も多い)
-                            modelPath = String.format("bgcommon/hou/outdoor/general/%04d/collision/gar_b0_m%04d%s.pcb", ModelKey, ModelKey, (char) cNum);
-                            cAddPathToDB(modelPath, "010000", 2);
-                        }
-                    }
-
                 }
+
             }
-            Utils.getGlobalLogger().info("庭具検索完了");
+        }
+        Utils.getGlobalLogger().info("庭具検索完了");
 
-            //家具
-            exhData = index.extractFile("exd/HousingFurniture.exh");
-            viewer = new EXDF_View(index, "exd/HousingFurniture.exh", new EXHF_File(exhData));
+        //家具
+        exhData = index.extractFile("exd/HousingFurniture.exh");
+        viewer = new EXDF_View(index, "exd/HousingFurniture.exh", new EXHF_File(exhData));
 
-            Utils.getGlobalLogger().info("HousingYardObject.exhを読み込みました");
+        Utils.getGlobalLogger().info("HousingYardObject.exhを読み込みました");
 
-            //i = 0 はデータなし
-            for (int i = 538; i < viewer.getTable().getRowCount(); i++) {
+        //i = 0 はデータなし
+        for (int i = 538; i < viewer.getTable().getRowCount(); i++) {
 
-                int ModelKey = (int) viewer.getTable().getValueAt(i, 1);
+            int ModelKey = (int) viewer.getTable().getValueAt(i, 1);
 
-                Utils.getGlobalLogger().info("家具:{}を調査しています", ModelKey);
+            Utils.getGlobalLogger().info("家具:{}を調査しています", ModelKey);
 
-                //bgcommon/hou/indoor/general/0982/asset/fun_b0_m0982.sgb
-                modelPath = String.format("bgcommon/hou/indoor/general/%04d/asset/fun_b0_m%04d.sgb", ModelKey, ModelKey);
-                if (sp_IndexFile.findFile(modelPath) == 2){
-                    HashDatabase.addPathToDB(modelPath, "010000");
-                    byte[] data2 = sp_IndexFile.extractFile(modelPath);
-                    SgbFile sgbFile = new SgbFile(sp_IndexFile, data2, sp_IndexFile.getEndian());
-                    continue;
+            //bgcommon/hou/indoor/general/0982/asset/fun_b0_m0982.sgb
+            modelPath = String.format("bgcommon/hou/indoor/general/%04d/asset/fun_b0_m%04d.sgb", ModelKey, ModelKey);
+            if (bgcommonIndex.findFile(modelPath) == 2){
+                HashDatabase.addPathToDB(modelPath, "010000");
+                byte[] data2 = bgcommonIndex.extractFile(modelPath);
+                SgbFile sgbFile = new SgbFile(data2, bgcommonIndex.getEndian());
+                continue;
+            }
+
+            //assetのsgbファイルが存在しない場合
+            modelPath = String.format("bgcommon/hou/outdoor/indoor/%04d/bgparts/fun_b0_m%04d.mdl", ModelKey, ModelKey);
+            pathCheck = bgcommonIndex.findFile(modelPath);
+            if (pathCheck >= 1){
+                if (pathCheck == 2) {
+                    result = cAddPathToDB(modelPath, "010000", 2);
+                    if (result > 1) {
+                        continue; //ファイルが登録済みだった場合
+                    }
+                    //collision(ない場合も多い)
+                    modelPath = String.format("bgcommon/hou/indoor/general/%04d/collision/fun_b0_m%04d.pcb", ModelKey, ModelKey);
+                    cAddPathToDB(modelPath, "010000", 2);
                 }
-
-                //assetのsgbファイルが存在しない場合
-                modelPath = String.format("bgcommon/hou/outdoor/indoor/%04d/bgparts/fun_b0_m%04d.mdl", ModelKey, ModelKey);
-                pathCheck = sp_IndexFile.findFile(modelPath);
-                if (pathCheck >= 1){
-                    if (pathCheck == 2) {
+                for (int cNum = 97; cNum <= 112; cNum++) {
+                    //a～zまでだと97-123 取りあえずa～pまで
+                    modelPath = String.format("bgcommon/hou/indoor/general/%04d/bgparts/fun_b0_m%04d%s.mdl", ModelKey, ModelKey, (char)cNum);
+                    if (bgcommonIndex.findFile(modelPath) == 2) {
                         result = cAddPathToDB(modelPath, "010000", 2);
-                        if (result > 1) {
-                            continue; //ファイルが登録済みだった場合
+                        if (result != 1) {
+                            break; //ファイルが登録済みまたは存在しない場合
                         }
                         //collision(ない場合も多い)
-                        modelPath = String.format("bgcommon/hou/indoor/general/%04d/collision/fun_b0_m%04d.pcb", ModelKey, ModelKey);
+                        modelPath = String.format("bgcommon/hou/indoor/general/%04d/collision/fun_b0_m%04d%s.pcb", ModelKey, ModelKey, (char) cNum);
                         cAddPathToDB(modelPath, "010000", 2);
                     }
-                    for (int cNum = 97; cNum <= 112; cNum++) {
-                        //a～zまでだと97-123 取りあえずa～pまで
-                        modelPath = String.format("bgcommon/hou/indoor/general/%04d/bgparts/fun_b0_m%04d%s.mdl", ModelKey, ModelKey, (char)cNum);
-                        if (sp_IndexFile.findFile(modelPath) == 2) {
-                            result = cAddPathToDB(modelPath, "010000", 2);
-                            if (result != 1) {
-                                break; //ファイルが登録済みまたは存在しない場合
-                            }
-                            //collision(ない場合も多い)
-                            modelPath = String.format("bgcommon/hou/indoor/general/%04d/collision/fun_b0_m%04d%s.pcb", ModelKey, ModelKey, (char) cNum);
-                            cAddPathToDB(modelPath, "010000", 2);
-                        }
-                    }
-
                 }
+
             }
-            Utils.getGlobalLogger().info("家具検索完了");
-
-
-
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
         }
+        Utils.getGlobalLogger().info("家具検索完了");
 
-        try {
-            HashDatabase.commit();
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-        HashDatabase.closeConnection();
+
+        HashDatabase.commit();
 
         Utils.getGlobalLogger().info("ハウジングモデルの検索完了");
     }
@@ -1670,18 +1473,11 @@ public class HashFinding_Utils extends Component {
      * ※○○○はdemihuman,monster,weapon等
      */
     public static void testAnimationWorkTable() {
-        SqPack_IndexFile index;
-        byte[] awtData = new byte[0];
 
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\040000.win32.index", true);
-            sp_IndexFile = index;
-            //awtData = index.extractFile("chara/xls/animation/animation_work_table-monster.awt");
-            //chara/xls/animation/animation_work_table-demihuman.awt
-            awtData = index.extractFile("chara/xls/animation/animation_work_table-weapon.awt");
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
-        }
+        SqPack_IndexFile index = SqPack_IndexFile.GetIndexFileForArchiveID("040000", true);
+        //awtData = index.extractFile("chara/xls/animation/animation_work_table-monster.awt");
+        //chara/xls/animation/animation_work_table-demihuman.awt
+        byte[] awtData = index.extractFile("chara/xls/animation/animation_work_table-weapon.awt");
 
         ByteBuffer bb = ByteBuffer.wrap(awtData);
         bb.order(ByteOrder.LITTLE_ENDIAN);
@@ -1766,15 +1562,9 @@ public class HashFinding_Utils extends Component {
      */
     public static void testPapLoadTable() {
         SqPack_IndexFile index;
-        byte[] pltData = new byte[0];
 
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\040000.win32.index", true);
-            sp_IndexFile = index;
-            pltData = index.extractFile("chara/xls/animation/papLoadTable.plt");
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
-        }
+        index = SqPack_IndexFile.GetIndexFileForArchiveID("040000", true);
+        byte[] pltData = index.extractFile("chara/xls/animation/papLoadTable.plt");
         // chara/xls/animation/paploadtable.pltからpap関係の文字列取得
         HashMap<Integer, String> papAnimationType = new HashMap<>();
         HashMap<Integer, String> papFilePathTable = new HashMap<>();   //ability/2ax_warrior/abl024 等
@@ -1966,47 +1756,39 @@ public class HashFinding_Utils extends Component {
     public static void findAnimationPAP_Hashes() {
         Utils.getGlobalLogger().info("ActionTimeline.exhを開いています...");
 
-        byte[] exhData;
-        SqPack_IndexFile index;
-        SqPack_IndexFile index2 = null;
         EXDF_View viewer;
         String papPath;
-        byte[] pltData = new byte[0];
+        byte[] pltData;
         ArrayList<String> ActionTimeline = new ArrayList<>();       //ActionTimelineリスト
         ArrayList<String> WeaponTimeLine = new ArrayList<>();       //WeaponTimeLineリスト
 
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\0a0000.win32.index", true);
-            index2 = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\040000.win32.index", true);
-            sp_IndexFile = index2;
-            exhData = index.extractFile("exd/ActionTimeline.exh");
-            viewer = new EXDF_View(index, "exd/ActionTimeline.exh", new EXHF_File(exhData));
-            for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                String actionTimeLine = String.format("%s", viewer.getTable().getValueAt(i, 7));
+        SqPack_IndexFile index = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", true);
+        SqPack_IndexFile index2 = SqPack_IndexFile.GetIndexFileForArchiveID("040000", true);
+        byte[] exhData = index.extractFile("exd/ActionTimeline.exh");
+        viewer = new EXDF_View(index, "exd/ActionTimeline.exh", new EXHF_File(exhData));
+        for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+            String actionTimeLine = String.format("%s", viewer.getTable().getValueAt(i, 7));
 
-                if (actionTimeLine == null || actionTimeLine.isEmpty() || actionTimeLine.contains("[SKL_ID]")) {
-                    continue;
-                }
-                ActionTimeline.add(actionTimeLine);
+            if (actionTimeLine == null || actionTimeLine.isEmpty() || actionTimeLine.contains("[SKL_ID]")) {
+                continue;
             }
-            Utils.getGlobalLogger().info("ActionTimeline.exhを読み込みました");
-            Utils.getGlobalLogger().info("WeaponTimeline.exhを開いています...");
-            exhData = index.extractFile("exd/WeaponTimeline.exh");
-            viewer = new EXDF_View(index, "exd/WeaponTimeline.exh", new EXHF_File(exhData));
-            for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                String weaponTimeLine = String.format("%s", viewer.getTable().getValueAt(i, 1));
-
-                if (weaponTimeLine == null || weaponTimeLine.isEmpty()) {
-                    continue;
-                }
-                WeaponTimeLine.add(weaponTimeLine);
-            }
-            Utils.getGlobalLogger().info("WeaponTimeline.exhを読み込みました");
-
-            pltData = index2.extractFile("chara/xls/animation/papLoadTable.plt");
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
+            ActionTimeline.add(actionTimeLine);
         }
+        Utils.getGlobalLogger().info("ActionTimeline.exhを読み込みました");
+        Utils.getGlobalLogger().info("WeaponTimeline.exhを開いています...");
+        exhData = index.extractFile("exd/WeaponTimeline.exh");
+        viewer = new EXDF_View(index, "exd/WeaponTimeline.exh", new EXHF_File(exhData));
+        for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+            String weaponTimeLine = String.format("%s", viewer.getTable().getValueAt(i, 1));
+
+            if (weaponTimeLine == null || weaponTimeLine.isEmpty()) {
+                continue;
+            }
+            WeaponTimeLine.add(weaponTimeLine);
+        }
+        Utils.getGlobalLogger().info("WeaponTimeline.exhを読み込みました");
+
+        pltData = index2.extractFile("chara/xls/animation/papLoadTable.plt");
 
         // chara/xls/animation/paploadtable.pltからpap関係の文字列取得
         ArrayList<String> BattleType = new ArrayList<>();       //bt_emp_emp..
@@ -2079,11 +1861,7 @@ public class HashFinding_Utils extends Component {
         } while (bb.position() < bb.capacity());
 
         HashDatabase.beginConnection();
-        try {
-            HashDatabase.setAutoCommit(false);
-        } catch (SQLException e1) {
-            Utils.getGlobalLogger().error(e1);
-        }
+        HashDatabase.setAutoCommit(false);
 
         int[] charaID = new int[]{101,201,301,401,501,601,701,801,901,1001,1101,1201,1301,1401,1501,1801};
         int[] npc_charaID = new int[]{104,204,504,604,704,804,1304,1404,9104,9204};
@@ -2607,7 +2385,7 @@ public class HashFinding_Utils extends Component {
                     for (int Body_ID = 1; Body_ID < 12; Body_ID++) {
                         //chara/monster/m0563/obj/body/b0001/texture/v01_m0563b0001_d.tex
                         papPath = String.format("chara/monster/m%04d/obj/body/b%04d/texture/v01_m%04db%04d_d.tex", id, Body_ID, id, Body_ID);
-                        if (sp_IndexFile.findFile(papPath) >= 1) {
+                        if (index2.findFile(papPath) >= 1) {
                             cAddPathToDB(papPath, "040000", 2);
                             papPath = String.format("chara/monster/m%04d/obj/body/b%04d/texture/v01_m%04db%04d_n.tex", id, Body_ID, id, Body_ID);
                             cAddPathToDB(papPath, "040000", 2);
@@ -2659,12 +2437,7 @@ public class HashFinding_Utils extends Component {
 
             if(false) {
                 //Demihumanスケルトン関係
-                byte[] awtData = new byte[0];
-                try {
-                    awtData = index2.extractFile("chara/xls/animation/animation_work_table-demihuman.awt");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                byte[] awtData = index2.extractFile("chara/xls/animation/animation_work_table-demihuman.awt");
 
                 bb = ByteBuffer.wrap(awtData);
                 bb.order(ByteOrder.LITTLE_ENDIAN);
@@ -3089,7 +2862,7 @@ public class HashFinding_Utils extends Component {
                     for (int Body_ID = 1; Body_ID < 330; Body_ID++) {
                         //chara/weapon/w0101/obj/body/b0001/texture/v01_w0101b0001_d.tex
                         papPath = String.format("chara/weapon/w%04d/obj/body/b%04d/texture/v01_w%04db%04d_d.tex", id, Body_ID, id, Body_ID);
-                        if (sp_IndexFile.findFile(papPath) >= 1) {
+                        if (index2.findFile(papPath) >= 1) {
                             cAddPathToDB(papPath, "040000", 2);
                             papPath = String.format("chara/weapon/w%04d/obj/body/b%04d/texture/v01_w%04db%04d_n.tex", id, Body_ID, id, Body_ID);
                             cAddPathToDB(papPath, "040000", 2);
@@ -3126,12 +2899,7 @@ public class HashFinding_Utils extends Component {
             }
         }
 
-        try {
-            HashDatabase.commit();
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-        HashDatabase.closeConnection();
+        HashDatabase.commit();
 
         Utils.getGlobalLogger().info("ActionTimelineの検索完了");
     }
@@ -3145,418 +2913,413 @@ public class HashFinding_Utils extends Component {
         byte[] estData;
         int[] charaID_All = new int[]{101,201,301,401,501,601,701,801,901,1001,1101,1201,1301,1401,1501,1801};
 
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\040000.win32.index", true);
-            sp_IndexFile = index;
-            //バイナリをみてもID等不明な場合
-            // 0x14 short : charaID
-            // 0x16 short : charaType
+        index = SqPack_IndexFile.GetIndexFileForArchiveID("040000", true);
+        //バイナリをみてもID等不明な場合
+        // 0x14 short : charaID
+        // 0x16 short : charaType
 
-            //顔スケルトン関係
-            if(true) {
-                estData = index.extractFile("chara/xls/charadb/FaceSkeletonTemplate.est");
-                ByteBuffer bb = ByteBuffer.wrap(estData);
-                bb.order(ByteOrder.LITTLE_ENDIAN);
+        //顔スケルトン関係
+        if(true) {
+            estData = index.extractFile("chara/xls/charadb/FaceSkeletonTemplate.est");
+            ByteBuffer bb = ByteBuffer.wrap(estData);
+            bb.order(ByteOrder.LITTLE_ENDIAN);
 
-                int estData_Num = bb.getInt(); //データ数
-                int[] SkeletonModelID = new int[estData_Num];
-                int[] charaID = new int[estData_Num];
-                int[] SkeletonID = new int[estData_Num];
+            int estData_Num = bb.getInt(); //データ数
+            int[] SkeletonModelID = new int[estData_Num];
+            int[] charaID = new int[estData_Num];
+            int[] SkeletonID = new int[estData_Num];
 
-                for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
-                    SkeletonModelID[SkeletonTable_ID] = bb.getShort(); //SkeletonModelID
-                    charaID[SkeletonTable_ID] = bb.getShort(); //Character ID
-                }
-
-                for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
-                    SkeletonID[SkeletonTable_ID] = bb.getShort(); //SkeletonID
-                }
-
-                for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
-                    //chara/human/c9104/obj/face/f0001/model/c9104f0001_fac.mdl
-                    String fullPath = String.format("chara/human/c%04d/obj/face/f%04d/model/c%04df%04d_fac.mdl"
-                            , charaID[SkeletonTable_ID], SkeletonModelID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonModelID[SkeletonTable_ID]);
-                    cAddPathToDB(fullPath, "040000");
-
-                    //chara/human/c9104/skeleton/face/f0002/skl_c9104f0002.sklb
-                    fullPath = String.format("chara/human/c%04d/obj/face/f%04d/skl_c%04df%04d.sklb"
-                            , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
-                    cAddPathToDB(fullPath, "040000");
-
-                    //faceアニメーション関係
-                    fullPath = String.format("chara/human/c%04d/animation/f%04d/resident/face.pap", charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
-                    int pathCheck = sp_IndexFile.findFile(fullPath);
-                    if (pathCheck == 2){
-                        //face.papが存在する時のみ
-                        HashDatabase.addPathToDB(fullPath, "040000");
-                        //ファイル名は違うがフォルダは多分あるはず
-                        fullPath = String.format("chara/human/c%04d/animation/f%04d/nonresident/angry_cl.pap", charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
-                        cAddPathToDB(fullPath, "040000");
-                        //ないかも
-                        fullPath = String.format("chara/human/c%04d/animation/f%04d/nonresident/cut/m_clench_cleye.pap", charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
-                        cAddPathToDB(fullPath, "040000");
-                        //ないかも
-                        fullPath = String.format("chara/human/c%04d/animation/f%04d/nonresident/emj/emj_kan.pap", charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
-                        cAddPathToDB(fullPath, "040000");
-                        //ないかも
-                        fullPath = String.format("chara/human/c%04d/animation/f%04d/nonresident/emot/angry.pap", charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
-                        cAddPathToDB(fullPath, "040000");
-                    }
-
-                }
-                Utils.getGlobalLogger().info("Face(顔) Skeleton検索完了");
+            for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
+                SkeletonModelID[SkeletonTable_ID] = bb.getShort(); //SkeletonModelID
+                charaID[SkeletonTable_ID] = bb.getShort(); //Character ID
             }
 
-            //FaceSkeletonTemplate.estで検索できなかった分の追加
-            if(false) {
-                int charID2 = 601;
-                for (int SkeletonID2 = 1; SkeletonID2 < 250; SkeletonID2++) {
+            for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
+                SkeletonID[SkeletonTable_ID] = bb.getShort(); //SkeletonID
+            }
+
+            for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
+                //chara/human/c9104/obj/face/f0001/model/c9104f0001_fac.mdl
+                String fullPath = String.format("chara/human/c%04d/obj/face/f%04d/model/c%04df%04d_fac.mdl"
+                        , charaID[SkeletonTable_ID], SkeletonModelID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonModelID[SkeletonTable_ID]);
+                cAddPathToDB(fullPath, "040000");
+
+                //chara/human/c9104/skeleton/face/f0002/skl_c9104f0002.sklb
+                fullPath = String.format("chara/human/c%04d/obj/face/f%04d/skl_c%04df%04d.sklb"
+                        , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
+                cAddPathToDB(fullPath, "040000");
+
+                //faceアニメーション関係
+                fullPath = String.format("chara/human/c%04d/animation/f%04d/resident/face.pap", charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
+                int pathCheck = index.findFile(fullPath);
+                if (pathCheck == 2){
+                    //face.papが存在する時のみ
+                    HashDatabase.addPathToDB(fullPath, "040000");
+                    //ファイル名は違うがフォルダは多分あるはず
+                    fullPath = String.format("chara/human/c%04d/animation/f%04d/nonresident/angry_cl.pap", charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
+                    cAddPathToDB(fullPath, "040000");
+                    //ないかも
+                    fullPath = String.format("chara/human/c%04d/animation/f%04d/nonresident/cut/m_clench_cleye.pap", charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
+                    cAddPathToDB(fullPath, "040000");
+                    //ないかも
+                    fullPath = String.format("chara/human/c%04d/animation/f%04d/nonresident/emj/emj_kan.pap", charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
+                    cAddPathToDB(fullPath, "040000");
+                    //ないかも
+                    fullPath = String.format("chara/human/c%04d/animation/f%04d/nonresident/emot/angry.pap", charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
+                    cAddPathToDB(fullPath, "040000");
+                }
+
+            }
+            Utils.getGlobalLogger().info("Face(顔) Skeleton検索完了");
+        }
+
+        //FaceSkeletonTemplate.estで検索できなかった分の追加
+        if(false) {
+            int charID2 = 601;
+            for (int SkeletonID2 = 1; SkeletonID2 < 250; SkeletonID2++) {
+                String fullPath;
+                //chara/human/c0501/skeleton/face/f0215/skl_c0501f0215.sklb
+                fullPath = String.format("chara/human/c%04d/skeleton/face/f%04d/skl_c%04df%04d.sklb"
+                        , charID2, SkeletonID2, charID2, SkeletonID2);
+                cAddPathToDB(fullPath, "040000");
+            }
+            Utils.getGlobalLogger().info("顔Skeleton追加検索完了");
+        }
+
+        //髪スケルトン関係
+        if(true) {
+            estData = index.extractFile("chara/xls/charadb/HairSkeletonTemplate.est");
+            ByteBuffer bb = ByteBuffer.wrap(estData);
+            bb.order(ByteOrder.LITTLE_ENDIAN);
+
+            int estData_Num = bb.getInt(); //データ数
+            int[] SkeletonModelID = new int[estData_Num];
+            int[] charaID = new int[estData_Num];
+            int[] SkeletonID = new int[estData_Num];
+
+            for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
+                SkeletonModelID[SkeletonTable_ID] = bb.getShort(); //SkeletonModelID
+                charaID[SkeletonTable_ID] = bb.getShort(); //Character ID
+            }
+
+            for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
+                SkeletonID[SkeletonTable_ID] = bb.getShort(); //SkeletonID
+            }
+
+            for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
+                //chara/human/c9104/obj/hair/h0202/model/c9104h0202_hir.mdl
+                String fullPath = String.format("chara/human/c%04d/obj/hair/h%04d/model/c%04dh%04d_hir.mdl"
+                        , charaID[SkeletonTable_ID], SkeletonModelID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonModelID[SkeletonTable_ID]);
+                cAddPathToDB(fullPath, "040000");
+
+                //chara/human/c9104/skeleton/hair/h0002/skl_c9104h0002.sklb
+                fullPath = String.format("chara/human/c%04d/obj/hair/h%04d/skl_c%04dh%04d.sklb"
+                        , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
+                cAddPathToDB(fullPath, "040000");
+                //chara/human/c9104/skeleton/hair/h0002/phy_c9104h0002.phyb
+                fullPath = String.format("chara/human/c%04d/obj/hair/h%04d/phy_c%04dh%04d.phyb"
+                        , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
+                cAddPathToDB(fullPath, "040000");
+            }
+            Utils.getGlobalLogger().info("Hair(髪型) Skeleton検索完了");
+        }
+
+        //胴スケルトン関係
+        if(true) {
+            estData = index.extractFile("chara/xls/charadb/extra_top.est");
+            ByteBuffer bb = ByteBuffer.wrap(estData);
+            bb.order(ByteOrder.LITTLE_ENDIAN);
+
+            int estData_Num = bb.getInt(); //データ数
+            int[] SkeletonModelID = new int[estData_Num];
+            int[] charaID = new int[estData_Num];
+            int[] SkeletonID = new int[estData_Num];
+
+            for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
+                SkeletonModelID[SkeletonTable_ID] = bb.getShort(); //SkeletonModelID
+                charaID[SkeletonTable_ID] = bb.getShort(); //Character ID
+            }
+
+            for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
+                SkeletonID[SkeletonTable_ID] = bb.getShort(); //SkeletonID
+            }
+
+            for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
+                //chara/human/c1801/obj/body/b0002/model/c1801b0002_top.mdl
+                //モデル無し
+                String fullPath;
+
+                //chara/human/c1501/skeleton/top/t0621/skl_c1501t0621.sklb
+                fullPath = String.format("chara/human/c%04d/skeleton/top/t%04d/skl_c%04dt%04d.sklb"
+                        , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
+                cAddPathToDB(fullPath, "040000");
+                //chara/human/c1501/skeleton/top/t0621/phy_c1501t0621.phyb
+                fullPath = String.format("chara/human/c%04d/skeleton/top/t%04d/phy_c%04dt%04d.phyb"
+                        , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
+                cAddPathToDB(fullPath, "040000");
+            }
+            Utils.getGlobalLogger().info("Top(胴) Skeleton検索完了");
+        }
+
+        //頭スケルトン関係
+        if(true) {
+            estData = index.extractFile("chara/xls/charadb/extra_met.est");
+            ByteBuffer bb = ByteBuffer.wrap(estData);
+            bb.order(ByteOrder.LITTLE_ENDIAN);
+
+            int estData_Num = bb.getInt(); //データ数
+            int[] SkeletonModelID = new int[estData_Num];
+            int[] charaID = new int[estData_Num];
+            int[] SkeletonID = new int[estData_Num];
+
+            for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
+                SkeletonModelID[SkeletonTable_ID] = bb.getShort(); //SkeletonModelID
+                charaID[SkeletonTable_ID] = bb.getShort(); //Character ID
+            }
+
+            for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
+                SkeletonID[SkeletonTable_ID] = bb.getShort(); //SkeletonID
+            }
+
+            for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
+                //chara/human/c1801/obj/body/b0002/model/c1801b0002_top.mdl
+                //モデル無し
+                String fullPath;
+
+                //chara/human/c1801/skeleton/met/m6103/skl_c1801m6103.sklb
+                fullPath = String.format("chara/human/c%04d/skeleton/met/m%04d/skl_c%04dm%04d.sklb"
+                        , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
+                cAddPathToDB(fullPath, "040000");
+                //chara/human/c1801/skeleton/met/m6103/phy_c1801m6103.phyb
+                fullPath = String.format("chara/human/c%04d/skeleton/met/m%04d/phy_c%04dm%04d.phyb"
+                        , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
+                cAddPathToDB(fullPath, "040000");
+            }
+            Utils.getGlobalLogger().info("Met(頭) Skeleton検索完了");
+        }
+
+        //extra_met.estで検索できなかった分の追加
+        if(true) {
+            for (int charID2 : charaID_All) {
+                for (int SkeletonID2 = 6100; SkeletonID2 < 6300; SkeletonID2++) {
                     String fullPath;
-                    //chara/human/c0501/skeleton/face/f0215/skl_c0501f0215.sklb
-                    fullPath = String.format("chara/human/c%04d/skeleton/face/f%04d/skl_c%04df%04d.sklb"
-                            , charID2, SkeletonID2, charID2, SkeletonID2);
-                    cAddPathToDB(fullPath, "040000");
-                }
-                Utils.getGlobalLogger().info("顔Skeleton追加検索完了");
-            }
-
-            //髪スケルトン関係
-            if(true) {
-                estData = index.extractFile("chara/xls/charadb/HairSkeletonTemplate.est");
-                ByteBuffer bb = ByteBuffer.wrap(estData);
-                bb.order(ByteOrder.LITTLE_ENDIAN);
-
-                int estData_Num = bb.getInt(); //データ数
-                int[] SkeletonModelID = new int[estData_Num];
-                int[] charaID = new int[estData_Num];
-                int[] SkeletonID = new int[estData_Num];
-
-                for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
-                    SkeletonModelID[SkeletonTable_ID] = bb.getShort(); //SkeletonModelID
-                    charaID[SkeletonTable_ID] = bb.getShort(); //Character ID
-                }
-
-                for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
-                    SkeletonID[SkeletonTable_ID] = bb.getShort(); //SkeletonID
-                }
-
-                for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
-                    //chara/human/c9104/obj/hair/h0202/model/c9104h0202_hir.mdl
-                    String fullPath = String.format("chara/human/c%04d/obj/hair/h%04d/model/c%04dh%04d_hir.mdl"
-                            , charaID[SkeletonTable_ID], SkeletonModelID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonModelID[SkeletonTable_ID]);
-                    cAddPathToDB(fullPath, "040000");
-
-                    //chara/human/c9104/skeleton/hair/h0002/skl_c9104h0002.sklb
-                    fullPath = String.format("chara/human/c%04d/obj/hair/h%04d/skl_c%04dh%04d.sklb"
-                            , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
-                    cAddPathToDB(fullPath, "040000");
-                    //chara/human/c9104/skeleton/hair/h0002/phy_c9104h0002.phyb
-                    fullPath = String.format("chara/human/c%04d/obj/hair/h%04d/phy_c%04dh%04d.phyb"
-                            , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
-                    cAddPathToDB(fullPath, "040000");
-                }
-                Utils.getGlobalLogger().info("Hair(髪型) Skeleton検索完了");
-            }
-
-            //胴スケルトン関係
-            if(true) {
-                estData = index.extractFile("chara/xls/charadb/extra_top.est");
-                ByteBuffer bb = ByteBuffer.wrap(estData);
-                bb.order(ByteOrder.LITTLE_ENDIAN);
-
-                int estData_Num = bb.getInt(); //データ数
-                int[] SkeletonModelID = new int[estData_Num];
-                int[] charaID = new int[estData_Num];
-                int[] SkeletonID = new int[estData_Num];
-
-                for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
-                    SkeletonModelID[SkeletonTable_ID] = bb.getShort(); //SkeletonModelID
-                    charaID[SkeletonTable_ID] = bb.getShort(); //Character ID
-                }
-
-                for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
-                    SkeletonID[SkeletonTable_ID] = bb.getShort(); //SkeletonID
-                }
-
-                for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
-                    //chara/human/c1801/obj/body/b0002/model/c1801b0002_top.mdl
-                    //モデル無し
-                    String fullPath;
-
-                    //chara/human/c1501/skeleton/top/t0621/skl_c1501t0621.sklb
-                    fullPath = String.format("chara/human/c%04d/skeleton/top/t%04d/skl_c%04dt%04d.sklb"
-                            , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
-                    cAddPathToDB(fullPath, "040000");
-                    //chara/human/c1501/skeleton/top/t0621/phy_c1501t0621.phyb
-                    fullPath = String.format("chara/human/c%04d/skeleton/top/t%04d/phy_c%04dt%04d.phyb"
-                            , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
-                    cAddPathToDB(fullPath, "040000");
-                }
-                Utils.getGlobalLogger().info("Top(胴) Skeleton検索完了");
-            }
-
-            //頭スケルトン関係
-            if(true) {
-                estData = index.extractFile("chara/xls/charadb/extra_met.est");
-                ByteBuffer bb = ByteBuffer.wrap(estData);
-                bb.order(ByteOrder.LITTLE_ENDIAN);
-
-                int estData_Num = bb.getInt(); //データ数
-                int[] SkeletonModelID = new int[estData_Num];
-                int[] charaID = new int[estData_Num];
-                int[] SkeletonID = new int[estData_Num];
-
-                for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
-                    SkeletonModelID[SkeletonTable_ID] = bb.getShort(); //SkeletonModelID
-                    charaID[SkeletonTable_ID] = bb.getShort(); //Character ID
-                }
-
-                for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
-                    SkeletonID[SkeletonTable_ID] = bb.getShort(); //SkeletonID
-                }
-
-                for (int SkeletonTable_ID = 0; SkeletonTable_ID < estData_Num; SkeletonTable_ID++) {
-                    //chara/human/c1801/obj/body/b0002/model/c1801b0002_top.mdl
-                    //モデル無し
-                    String fullPath;
-
                     //chara/human/c1801/skeleton/met/m6103/skl_c1801m6103.sklb
                     fullPath = String.format("chara/human/c%04d/skeleton/met/m%04d/skl_c%04dm%04d.sklb"
-                            , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
+                            , charID2, SkeletonID2, charID2, SkeletonID2);
                     cAddPathToDB(fullPath, "040000");
                     //chara/human/c1801/skeleton/met/m6103/phy_c1801m6103.phyb
                     fullPath = String.format("chara/human/c%04d/skeleton/met/m%04d/phy_c%04dm%04d.phyb"
-                            , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
+                            , charID2, SkeletonID2, charID2, SkeletonID2);
                     cAddPathToDB(fullPath, "040000");
                 }
-                Utils.getGlobalLogger().info("Met(頭) Skeleton検索完了");
             }
-
-            //extra_met.estで検索できなかった分の追加
-            if(true) {
-                for (int charID2 : charaID_All) {
-                    for (int SkeletonID2 = 6100; SkeletonID2 < 6300; SkeletonID2++) {
-                        String fullPath;
-                        //chara/human/c1801/skeleton/met/m6103/skl_c1801m6103.sklb
-                        fullPath = String.format("chara/human/c%04d/skeleton/met/m%04d/skl_c%04dm%04d.sklb"
-                                , charID2, SkeletonID2, charID2, SkeletonID2);
-                        cAddPathToDB(fullPath, "040000");
-                        //chara/human/c1801/skeleton/met/m6103/phy_c1801m6103.phyb
-                        fullPath = String.format("chara/human/c%04d/skeleton/met/m%04d/phy_c%04dm%04d.phyb"
-                                , charID2, SkeletonID2, charID2, SkeletonID2);
-                        cAddPathToDB(fullPath, "040000");
-                    }
-                }
-                Utils.getGlobalLogger().info("Met(頭) Skeleton追加検索完了");
-            }
-
-            //Demihumanスケルトン関係
-            if(true) {
-                byte[] awtData = index.extractFile("chara/xls/animation/animation_work_table-demihuman.awt");
-                ByteBuffer bb = ByteBuffer.wrap(awtData);
-                bb.order(ByteOrder.LITTLE_ENDIAN);
-                bb.getInt(); //twa
-                bb.getShort(); //不明 0x300
-                bb.getShort(); //不明 0x100
-                short awTable_Num = bb.getShort(); //テーブル数 0x02a6 = 678 1テーブル8バイト
-
-                bb.position(0x18); //ポインタをawTableの先頭に移動
-
-                //ここから8バイトのpapヘッダーテーブル(0x51A3×4 = 20899個)
-                for(int awTable_ID = 0; awTable_ID < awTable_Num; awTable_ID++){
-                    if ((bb.limit() - 7) < bb.position()){
-                        Utils.getGlobalLogger().info("バッファーオーバーフロー防止のため読み込み停止");
-                        break;
-                    }
-                    int charaID = bb.getShort() & 0xFFFF;          //Character ID
-                    short charaType = bb.getShort();        //charaType(0:human,1:monster,2:demi)
-                    bb.get();     //AnimationType_ID
-                    bb.get();     //Animation_ID
-                    bb.getShort();    //不明
-
-                    String charaTypeSign;
-                    String charaTypeFull;
-                    String fullPath;
-                    switch(charaType){
-                        case 0:
-                            charaTypeSign = "c";
-                            charaTypeFull = "human";
-                            break;
-                        case 1:
-                            charaTypeSign = "m";
-                            charaTypeFull = "monster";
-                            break;
-                        case 2:
-                            charaTypeSign = "d";
-                            charaTypeFull = "demihuman";
-                            break;
-                        case 3:
-                            charaTypeSign = "w";
-                            charaTypeFull = "weapon";
-                            break;
-                        default:
-                            charaTypeSign = String.valueOf(charaType);
-                            charaTypeFull = "unknown";
-                    }
-
-                    //chara/monster/m0432/skeleton/base/b0001/eid_m0432b0001.eid
-                    fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/eid_%s%04db0001.eid", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
-                    cAddPathToDB(fullPath, "040000");
-
-                    //chara/monster/m0432/skeleton/base/b0001/phy_m0432b0001.phyb
-                    fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/phy_%s%04db0001.phyb", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
-                    cAddPathToDB(fullPath, "040000");
-
-                    //chara/monster/m0432/skeleton/base/b0001/skl_m0432b0001.sklb
-                    fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/skl_%s%04db0001.sklb", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
-                    cAddPathToDB(fullPath, "040000");
-
-                    //chara/monster/m0432/skeleton/base/b0001/skl_m0432b0001.skp
-                    fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/skl_%s%04db0001.skp", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
-                    cAddPathToDB(fullPath, "040000");
-                }
-                Utils.getGlobalLogger().info("Demihumanスケルトン検索完了");
-            }
-
-            //Monsterスケルトン関係
-            if(true) {
-                byte[] awtData = index.extractFile("chara/xls/animation/animation_work_table-monster.awt");
-                ByteBuffer bb = ByteBuffer.wrap(awtData);
-                bb.order(ByteOrder.LITTLE_ENDIAN);
-                bb.getInt(); //twa
-                bb.getShort(); //不明 0x300
-                bb.getShort(); //不明 0x100
-                short awTable_Num = bb.getShort(); //テーブル数 0x02a6 = 678 1テーブル8バイト
-
-                bb.position(0x18); //ポインタをawTableの先頭に移動
-
-                //ここから8バイトのpapヘッダーテーブル(0x51A3×4 = 20899個)
-                for(int awTable_ID = 0; awTable_ID < awTable_Num; awTable_ID++){
-                    if ((bb.limit() - 7) < bb.position()){
-                        Utils.getGlobalLogger().info("バッファーオーバーフロー防止のため読み込み停止");
-                        break;
-                    }
-                    int charaID = bb.getShort() & 0xFFFF;          //Character ID
-                    short charaType = bb.getShort();        //charaType(0:human,1:monster,2:demi)
-                    bb.get();     //AnimationType_ID
-                    bb.get();     //Animation_ID
-                    bb.getShort();    //不明
-
-                    String charaTypeSign;
-                    String charaTypeFull;
-                    String fullPath;
-                    switch(charaType){
-                        case 0:
-                            charaTypeSign = "c";
-                            charaTypeFull = "human";
-                            break;
-                        case 1:
-                            charaTypeSign = "m";
-                            charaTypeFull = "monster";
-                            break;
-                        case 2:
-                            charaTypeSign = "d";
-                            charaTypeFull = "demihuman";
-                            break;
-                        case 3:
-                            charaTypeSign = "w";
-                            charaTypeFull = "weapon";
-                            break;
-                        default:
-                            charaTypeSign = String.valueOf(charaType);
-                            charaTypeFull = "unknown";
-                    }
-
-                    //chara/monster/m0432/skeleton/base/b0001/eid_m0432b0001.eid
-                    fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/eid_%s%04db0001.eid", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
-                    cAddPathToDB(fullPath, "040000");
-
-                    //chara/monster/m0432/skeleton/base/b0001/phy_m0432b0001.phyb
-                    fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/phy_%s%04db0001.phyb", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
-                    cAddPathToDB(fullPath, "040000");
-
-                    //chara/monster/m0432/skeleton/base/b0001/skl_m0432b0001.sklb
-                    fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/skl_%s%04db0001.sklb", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
-                    cAddPathToDB(fullPath, "040000");
-
-                    //chara/monster/m0432/skeleton/base/b0001/skl_m0432b0001.skp
-                    fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/skl_%s%04db0001.skp", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
-                    cAddPathToDB(fullPath, "040000");
-                }
-                Utils.getGlobalLogger().info("Monsterスケルトン検索完了");
-            }
-
-            //Weaponスケルトン関係
-            if(true) {
-                byte[] awtData = index.extractFile("chara/xls/animation/animation_work_table-weapon.awt");
-                ByteBuffer bb = ByteBuffer.wrap(awtData);
-                bb.order(ByteOrder.LITTLE_ENDIAN);
-                bb.getInt(); //twa
-                bb.getShort(); //不明 0x300
-                bb.getShort(); //不明 0x100
-                short awTable_Num = bb.getShort(); //テーブル数 0x02a6 = 678 1テーブル8バイト
-
-                bb.position(0x18); //ポインタをawTableの先頭に移動
-
-                //ここから8バイトのpapヘッダーテーブル(0x51A3×4 = 20899個)
-                for(int awTable_ID = 0; awTable_ID < awTable_Num; awTable_ID++){
-                    if ((bb.limit() - 7) < bb.position()){
-                        Utils.getGlobalLogger().info("バッファーオーバーフロー防止のため読み込み停止");
-                        break;
-                    }
-                    int charaID = bb.getShort() & 0xFFFF;          //Character ID
-                    short charaType = bb.getShort();        //charaType(0:human,1:monster,2:demi)
-                    bb.get();     //AnimationType_ID
-                    bb.get();     //Animation_ID
-                    bb.getShort();    //不明
-
-                    String charaTypeSign;
-                    String charaTypeFull;
-                    String fullPath;
-                    switch(charaType){
-                        case 0:
-                            charaTypeSign = "c";
-                            charaTypeFull = "human";
-                            break;
-                        case 1:
-                            charaTypeSign = "m";
-                            charaTypeFull = "monster";
-                            break;
-                        case 2:
-                            charaTypeSign = "d";
-                            charaTypeFull = "demihuman";
-                            break;
-                        case 3:
-                            charaTypeSign = "w";
-                            charaTypeFull = "weapon";
-                            break;
-                        default:
-                            charaTypeSign = String.valueOf(charaType);
-                            charaTypeFull = "unknown";
-                    }
-
-                    //chara/monster/m0432/skeleton/base/b0001/eid_m0432b0001.eid
-                    fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/eid_%s%04db0001.eid", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
-                    cAddPathToDB(fullPath, "040000");
-
-                    //chara/monster/m0432/skeleton/base/b0001/phy_m0432b0001.phyb
-                    fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/phy_%s%04db0001.phyb", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
-                    cAddPathToDB(fullPath, "040000");
-
-                    //chara/monster/m0432/skeleton/base/b0001/skl_m0432b0001.sklb
-                    fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/skl_%s%04db0001.sklb", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
-                    cAddPathToDB(fullPath, "040000");
-
-                    //chara/monster/m0432/skeleton/base/b0001/skl_m0432b0001.skp
-                    fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/skl_%s%04db0001.skp", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
-                    cAddPathToDB(fullPath, "040000");
-                }
-                Utils.getGlobalLogger().info("Weaponスケルトン検索完了");
-            }
-
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
+            Utils.getGlobalLogger().info("Met(頭) Skeleton追加検索完了");
         }
+
+        //Demihumanスケルトン関係
+        if(true) {
+            byte[] awtData = index.extractFile("chara/xls/animation/animation_work_table-demihuman.awt");
+            ByteBuffer bb = ByteBuffer.wrap(awtData);
+            bb.order(ByteOrder.LITTLE_ENDIAN);
+            bb.getInt(); //twa
+            bb.getShort(); //不明 0x300
+            bb.getShort(); //不明 0x100
+            short awTable_Num = bb.getShort(); //テーブル数 0x02a6 = 678 1テーブル8バイト
+
+            bb.position(0x18); //ポインタをawTableの先頭に移動
+
+            //ここから8バイトのpapヘッダーテーブル(0x51A3×4 = 20899個)
+            for(int awTable_ID = 0; awTable_ID < awTable_Num; awTable_ID++){
+                if ((bb.limit() - 7) < bb.position()){
+                    Utils.getGlobalLogger().info("バッファーオーバーフロー防止のため読み込み停止");
+                    break;
+                }
+                int charaID = bb.getShort() & 0xFFFF;          //Character ID
+                short charaType = bb.getShort();        //charaType(0:human,1:monster,2:demi)
+                bb.get();     //AnimationType_ID
+                bb.get();     //Animation_ID
+                bb.getShort();    //不明
+
+                String charaTypeSign;
+                String charaTypeFull;
+                String fullPath;
+                switch(charaType){
+                    case 0:
+                        charaTypeSign = "c";
+                        charaTypeFull = "human";
+                        break;
+                    case 1:
+                        charaTypeSign = "m";
+                        charaTypeFull = "monster";
+                        break;
+                    case 2:
+                        charaTypeSign = "d";
+                        charaTypeFull = "demihuman";
+                        break;
+                    case 3:
+                        charaTypeSign = "w";
+                        charaTypeFull = "weapon";
+                        break;
+                    default:
+                        charaTypeSign = String.valueOf(charaType);
+                        charaTypeFull = "unknown";
+                }
+
+                //chara/monster/m0432/skeleton/base/b0001/eid_m0432b0001.eid
+                fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/eid_%s%04db0001.eid", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
+                cAddPathToDB(fullPath, "040000");
+
+                //chara/monster/m0432/skeleton/base/b0001/phy_m0432b0001.phyb
+                fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/phy_%s%04db0001.phyb", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
+                cAddPathToDB(fullPath, "040000");
+
+                //chara/monster/m0432/skeleton/base/b0001/skl_m0432b0001.sklb
+                fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/skl_%s%04db0001.sklb", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
+                cAddPathToDB(fullPath, "040000");
+
+                //chara/monster/m0432/skeleton/base/b0001/skl_m0432b0001.skp
+                fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/skl_%s%04db0001.skp", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
+                cAddPathToDB(fullPath, "040000");
+            }
+            Utils.getGlobalLogger().info("Demihumanスケルトン検索完了");
+        }
+
+        //Monsterスケルトン関係
+        if(true) {
+            byte[] awtData = index.extractFile("chara/xls/animation/animation_work_table-monster.awt");
+            ByteBuffer bb = ByteBuffer.wrap(awtData);
+            bb.order(ByteOrder.LITTLE_ENDIAN);
+            bb.getInt(); //twa
+            bb.getShort(); //不明 0x300
+            bb.getShort(); //不明 0x100
+            short awTable_Num = bb.getShort(); //テーブル数 0x02a6 = 678 1テーブル8バイト
+
+            bb.position(0x18); //ポインタをawTableの先頭に移動
+
+            //ここから8バイトのpapヘッダーテーブル(0x51A3×4 = 20899個)
+            for(int awTable_ID = 0; awTable_ID < awTable_Num; awTable_ID++){
+                if ((bb.limit() - 7) < bb.position()){
+                    Utils.getGlobalLogger().info("バッファーオーバーフロー防止のため読み込み停止");
+                    break;
+                }
+                int charaID = bb.getShort() & 0xFFFF;          //Character ID
+                short charaType = bb.getShort();        //charaType(0:human,1:monster,2:demi)
+                bb.get();     //AnimationType_ID
+                bb.get();     //Animation_ID
+                bb.getShort();    //不明
+
+                String charaTypeSign;
+                String charaTypeFull;
+                String fullPath;
+                switch(charaType){
+                    case 0:
+                        charaTypeSign = "c";
+                        charaTypeFull = "human";
+                        break;
+                    case 1:
+                        charaTypeSign = "m";
+                        charaTypeFull = "monster";
+                        break;
+                    case 2:
+                        charaTypeSign = "d";
+                        charaTypeFull = "demihuman";
+                        break;
+                    case 3:
+                        charaTypeSign = "w";
+                        charaTypeFull = "weapon";
+                        break;
+                    default:
+                        charaTypeSign = String.valueOf(charaType);
+                        charaTypeFull = "unknown";
+                }
+
+                //chara/monster/m0432/skeleton/base/b0001/eid_m0432b0001.eid
+                fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/eid_%s%04db0001.eid", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
+                cAddPathToDB(fullPath, "040000");
+
+                //chara/monster/m0432/skeleton/base/b0001/phy_m0432b0001.phyb
+                fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/phy_%s%04db0001.phyb", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
+                cAddPathToDB(fullPath, "040000");
+
+                //chara/monster/m0432/skeleton/base/b0001/skl_m0432b0001.sklb
+                fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/skl_%s%04db0001.sklb", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
+                cAddPathToDB(fullPath, "040000");
+
+                //chara/monster/m0432/skeleton/base/b0001/skl_m0432b0001.skp
+                fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/skl_%s%04db0001.skp", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
+                cAddPathToDB(fullPath, "040000");
+            }
+            Utils.getGlobalLogger().info("Monsterスケルトン検索完了");
+        }
+
+        //Weaponスケルトン関係
+        if(true) {
+            byte[] awtData = index.extractFile("chara/xls/animation/animation_work_table-weapon.awt");
+            ByteBuffer bb = ByteBuffer.wrap(awtData);
+            bb.order(ByteOrder.LITTLE_ENDIAN);
+            bb.getInt(); //twa
+            bb.getShort(); //不明 0x300
+            bb.getShort(); //不明 0x100
+            short awTable_Num = bb.getShort(); //テーブル数 0x02a6 = 678 1テーブル8バイト
+
+            bb.position(0x18); //ポインタをawTableの先頭に移動
+
+            //ここから8バイトのpapヘッダーテーブル(0x51A3×4 = 20899個)
+            for(int awTable_ID = 0; awTable_ID < awTable_Num; awTable_ID++){
+                if ((bb.limit() - 7) < bb.position()){
+                    Utils.getGlobalLogger().info("バッファーオーバーフロー防止のため読み込み停止");
+                    break;
+                }
+                int charaID = bb.getShort() & 0xFFFF;          //Character ID
+                short charaType = bb.getShort();        //charaType(0:human,1:monster,2:demi)
+                bb.get();     //AnimationType_ID
+                bb.get();     //Animation_ID
+                bb.getShort();    //不明
+
+                String charaTypeSign;
+                String charaTypeFull;
+                String fullPath;
+                switch(charaType){
+                    case 0:
+                        charaTypeSign = "c";
+                        charaTypeFull = "human";
+                        break;
+                    case 1:
+                        charaTypeSign = "m";
+                        charaTypeFull = "monster";
+                        break;
+                    case 2:
+                        charaTypeSign = "d";
+                        charaTypeFull = "demihuman";
+                        break;
+                    case 3:
+                        charaTypeSign = "w";
+                        charaTypeFull = "weapon";
+                        break;
+                    default:
+                        charaTypeSign = String.valueOf(charaType);
+                        charaTypeFull = "unknown";
+                }
+
+                //chara/monster/m0432/skeleton/base/b0001/eid_m0432b0001.eid
+                fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/eid_%s%04db0001.eid", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
+                cAddPathToDB(fullPath, "040000");
+
+                //chara/monster/m0432/skeleton/base/b0001/phy_m0432b0001.phyb
+                fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/phy_%s%04db0001.phyb", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
+                cAddPathToDB(fullPath, "040000");
+
+                //chara/monster/m0432/skeleton/base/b0001/skl_m0432b0001.sklb
+                fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/skl_%s%04db0001.sklb", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
+                cAddPathToDB(fullPath, "040000");
+
+                //chara/monster/m0432/skeleton/base/b0001/skl_m0432b0001.skp
+                fullPath = String.format("chara/%s/%s%04d/skeleton/base/b0001/skl_%s%04db0001.skp", charaTypeFull, charaTypeSign, charaID, charaTypeSign, charaID);
+                cAddPathToDB(fullPath, "040000");
+            }
+            Utils.getGlobalLogger().info("Weaponスケルトン検索完了");
+        }
+
     }
 
     /**
@@ -3567,133 +3330,117 @@ public class HashFinding_Utils extends Component {
     public static void findCollisionHashes() {
         SqPack_IndexFile index;
 
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\010000.win32.index", false);
-            sp_IndexFile = index;
+        index = SqPack_IndexFile.GetIndexFileForArchiveID("010000", false);
+        bgcommonIndex = index;
 
-            SqPack_IndexFile.SqPack_Folder[] folders = index.getPackFolders();
+        SqPack_Folder[] folders = index.getPackFolders();
 
-            for (SqPack_IndexFile.SqPack_Folder spPack_folder : folders){
-                SqPack_File[] files = spPack_folder.getFiles();
-                for (SqPack_File sqPack_file : files) {
-                    String folderName = spPack_folder.getName();
+        for (SqPack_Folder spPack_folder : folders){
+            SqPack_File[] files = spPack_folder.getFiles();
+            for (SqPack_File sqPack_file : files) {
+                String folderName = spPack_folder.getName();
 
-                    String fileName = sqPack_file.getName();
-                    if (fileName != null && folderName != null) {
-                        if (fileName.endsWith(".mdl")) {
-                            //bgcommon/world/cut/057/bgparts/w_cut_057_01a.mdl
-                            //bgcommon/world/cut/057/collision/w_cut_057_01a.pcb
-                            folderName = folderName.replace("bgparts","collision");
-                            fileName = fileName.replace(".mdl",".pcb");
-                            String fullPath = folderName + "/" + fileName;
-                            cAddPathToDB(fullPath, "010000");
+                String fileName = sqPack_file.getName();
+                if (fileName != null && folderName != null) {
+                    if (fileName.endsWith(".mdl")) {
+                        //bgcommon/world/cut/057/bgparts/w_cut_057_01a.mdl
+                        //bgcommon/world/cut/057/collision/w_cut_057_01a.pcb
+                        folderName = folderName.replace("bgparts","collision");
+                        fileName = fileName.replace(".mdl",".pcb");
+                        String fullPath = folderName + "/" + fileName;
+                        cAddPathToDB(fullPath, "010000");
 
-                        }
                     }
-
                 }
+
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
         Utils.getGlobalLogger().info("Collisionファイル検索完了");
     }
 
     @SuppressWarnings("unused")
     public static void openEveryModel() {
-        try {
-            SqPack_IndexFile currentIndex = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\040000.win32.index", false);
+        SqPack_IndexFile currentIndex = SqPack_IndexFile.GetIndexFileForArchiveID("040000", false);
 
-            for (int i = 0; i < currentIndex.getPackFolders().length; i++) {
-                SqPack_Folder folder = currentIndex.getPackFolders()[i];
-                for (int j = 0; j < folder.getFiles().length; j++) {
-                    if (folder.getFiles()[j].getName().contains(".mdl")) {
-                        Utils.getGlobalLogger().info("=> {}モデルを取得", folder.getFiles()[j].getName());
-                        Model m = new Model(folder.getName() + "/" + folder.getFiles()[j].getName(), currentIndex, currentIndex.extractFile(folder.getFiles()[j].dataOffset, null), currentIndex.getEndian());
-                        for (int x = 0; x < m.getNumVariants(); x++) {
-                            m.loadVariant(x);
-                        }
+        for (int i = 0; i < currentIndex.getPackFolders().length; i++) {
+            SqPack_Folder folder = currentIndex.getPackFolders()[i];
+            for (int j = 0; j < folder.getFiles().length; j++) {
+                if (folder.getFiles()[j].getName().contains(".mdl")) {
+                    Utils.getGlobalLogger().info("=> {}モデルを取得", folder.getFiles()[j].getName());
+                    Model m = new Model(folder.getName() + "/" + folder.getFiles()[j].getName(), currentIndex, currentIndex.extractFile(folder.getFiles()[j].dataOffset, null), currentIndex.getEndian());
+                    for (int x = 0; x < m.getNumVariants(); x++) {
+                        m.loadVariant(x);
                     }
                 }
             }
-
-        } catch (IOException e2) {
-            Utils.getGlobalLogger().error(e2);
         }
+
     }
 
     public static void openEveryCutb() {
-        try {
-            SqPack_IndexFile currentIndex = new SqPack_IndexFile(FileTools.ArchiveID2IndexFilePath("030300"), false);
+        SqPack_IndexFile currentIndex = SqPack_IndexFile.GetIndexFileForArchiveID("030300", false);
 
-            for (int i = 0; i < currentIndex.getPackFolders().length; i++) {
-                SqPack_Folder folder = currentIndex.getPackFolders()[i];
-                for (int j = 0; j < folder.getFiles().length; j++) {
-                    if (folder.getFiles()[j].getName().contains(".cutb")) {
-                        Utils.getGlobalLogger().info("=> {}を調査", folder.getFiles()[j].getName());
-                        String CutSceneBlock_File = folder.getName() + "/" + folder.getFiles()[j].getName();
-                        byte[] data = currentIndex.extractFile(CutSceneBlock_File);
+        for (int i = 0; i < currentIndex.getPackFolders().length; i++) {
+            SqPack_Folder folder = currentIndex.getPackFolders()[i];
+            for (int j = 0; j < folder.getFiles().length; j++) {
+                if (folder.getFiles()[j].getName().contains(".cutb")) {
+                    Utils.getGlobalLogger().info("=> {}を調査", folder.getFiles()[j].getName());
+                    String CutSceneBlock_File = folder.getName() + "/" + folder.getFiles()[j].getName();
+                    byte[] data = currentIndex.extractFile(CutSceneBlock_File);
 
-                        @SuppressWarnings("unused")
-                        CutbFile cutbFile = new CutbFile(currentIndex, data, currentIndex.getEndian());
-                    }
+                    @SuppressWarnings("unused")
+                    CutbFile cutbFile = new CutbFile(currentIndex, data, currentIndex.getEndian());
                 }
             }
-
-        } catch (IOException e2) {
-            Utils.getGlobalLogger().error(e2);
         }
+
     }
     @SuppressWarnings("unused")
     public static void findStains() {
-        try {
-            SqPack_IndexFile currentIndex = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\040000.win32.index", false);
+        SqPack_IndexFile currentIndex = SqPack_IndexFile.GetIndexFileForArchiveID("040000", false);
 
-            for (int i = 0; i < currentIndex.getPackFolders().length; i++) {
-                SqPack_Folder folder = currentIndex.getPackFolders()[i];
-                String folderName = folder.getName();
-                if (folderName.contains("equipment") && folderName.contains("material/v")) {
-                    String newFolder = folderName + "/staining";
-                    //Check if exists
-                    int folderHash = HashDatabase.computeCRC(newFolder.getBytes(), 0, newFolder.getBytes().length);
-                    for (int j = 0; j < currentIndex.getPackFolders().length; j++) {
-                        SqPack_Folder folder2 = currentIndex.getPackFolders()[j];
-                        if (folder2.getId() == folderHash) {
+        for (int i = 0; i < currentIndex.getPackFolders().length; i++) {
+            SqPack_Folder folder = currentIndex.getPackFolders()[i];
+            String folderName = folder.getName();
+            if (folderName.contains("equipment") && folderName.contains("material/v")) {
+                String newFolder = folderName + "/staining";
+                //Check if exists
+                int folderHash = HashDatabase.computeCRC(newFolder.getBytes(), 0, newFolder.getBytes().length);
+                for (int j = 0; j < currentIndex.getPackFolders().length; j++) {
+                    SqPack_Folder folder2 = currentIndex.getPackFolders()[j];
+                    if (folder2.getId() == folderHash) {
 
-                            for (int y = 0; y < folder2.getFiles().length; y++) {
-                                SqPack_File file = folder2.getFiles()[y];
+                        for (int y = 0; y < folder2.getFiles().length; y++) {
+                            SqPack_File file = folder2.getFiles()[y];
 
-                                if (!file.getName().endsWith(".tex") && !file.getName().endsWith(".mtrl")) {
-                                    continue;
-                                }
-
-                                if (file.getName().contains(".tex")) {
-                                    for (int x = 1; x <= 85; x++) {
-                                        cAddPathToDB(newFolder + "/" + file.getName().replace(".tex", String.format("_s%04d.tex", x)), "040000");
-                                    }
-
-                                    for (int x = 101; x <= 120; x++) {
-                                        cAddPathToDB(newFolder + "/" + file.getName().replace(".tex", String.format("_s%04d.tex", x)), "040000");
-                                    }
-                                } else if (file.getName().contains(".mtrl")) {
-                                    for (int x = 1; x <= 85; x++) {
-                                        cAddPathToDB(newFolder + "/" + file.getName().replace(".mtrl", String.format("_s%04d.mtrl", x)), "040000");
-                                    }
-
-                                    for (int x = 101; x <= 120; x++) {
-                                        cAddPathToDB(newFolder + "/" + file.getName().replace(".mtrl", String.format("_s%04d.mtrl", x)), "040000");
-                                    }
-                                }
+                            if (!file.getName().endsWith(".tex") && !file.getName().endsWith(".mtrl")) {
+                                continue;
                             }
 
+                            if (file.getName().contains(".tex")) {
+                                for (int x = 1; x <= 85; x++) {
+                                    cAddPathToDB(newFolder + "/" + file.getName().replace(".tex", String.format("_s%04d.tex", x)), "040000");
+                                }
+
+                                for (int x = 101; x <= 120; x++) {
+                                    cAddPathToDB(newFolder + "/" + file.getName().replace(".tex", String.format("_s%04d.tex", x)), "040000");
+                                }
+                            } else if (file.getName().contains(".mtrl")) {
+                                for (int x = 1; x <= 85; x++) {
+                                    cAddPathToDB(newFolder + "/" + file.getName().replace(".mtrl", String.format("_s%04d.mtrl", x)), "040000");
+                                }
+
+                                for (int x = 101; x <= 120; x++) {
+                                    cAddPathToDB(newFolder + "/" + file.getName().replace(".mtrl", String.format("_s%04d.mtrl", x)), "040000");
+                                }
+                            }
                         }
+
                     }
                 }
             }
-
-        } catch (IOException e2) {
-            Utils.getGlobalLogger().error(e2);
         }
+
     }
 
 
@@ -3716,30 +3463,32 @@ public class HashFinding_Utils extends Component {
      * @param regMode 1:フォルダ名の一致のみでも登録する。2:ファイル名・パスが完全一致した時のみ登録
      * @return 登録結果 0:登録失敗 1:登録成功 2:ファイル名変更 3:ファイルパス変更 4:登録済みのため何もしない
      */
-    private static int cAddPathToDB(String fullPath, String archive,int regMode){
+    private static int cAddPathToDB(String fullPath, String archive, int regMode){
         int result = 0;
-        int pathCheck = sp_IndexFile.findFile(fullPath);
+        SqPack_IndexFile temp_IndexFile = SqPack_IndexFile.GetIndexFileForArchiveID(archive, false);
+
+        if (temp_IndexFile == null){
+            return 0;
+        }
+
+        int pathCheck = temp_IndexFile.findFile(fullPath);
         if (pathCheck == 2){
             result = HashDatabase.addPathToDB(fullPath, archive);
 
             if (fullPath.endsWith(".mdl")) {
                 try {
-                    byte[] data = sp_IndexFile.extractFile(fullPath);
-                    Model tempModel = new Model(fullPath, sp_IndexFile, data, sp_IndexFile.getEndian());
+                    byte[] data = temp_IndexFile.extractFile(fullPath);
+                    Model tempModel = new Model(fullPath, temp_IndexFile, data, temp_IndexFile.getEndian());
                     tempModel.loadVariant(variant); //mdlファイルに関連するmtrlとtexの登録を試みる。
                 } catch (Exception modelException) {
                     modelException.printStackTrace();
                 }
             }
             if (fullPath.endsWith(".cutb")) {
-                try {
-                    byte[] data = sp_IndexFile.extractFile(fullPath);
+                byte[] data = temp_IndexFile.extractFile(fullPath);
 
-                    @SuppressWarnings("unused")
-                    CutbFile cutbFile = new CutbFile(sp_IndexFile, data, sp_IndexFile.getEndian());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                @SuppressWarnings("unused")
+                CutbFile cutbFile = new CutbFile(temp_IndexFile, data, temp_IndexFile.getEndian());
             }
 
         }else if (pathCheck == 1 && regMode == 1){

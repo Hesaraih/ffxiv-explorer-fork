@@ -107,30 +107,25 @@ public class Material extends Game_File {
                 //texファイルの登録
                 HashDatabase.addPathToDB(s, currentIndex.getName());
 
-                try {
-                    byte[] extracted = currentIndex.extractFile(folderName, fileString);
-                    if (extracted == null) {
-                        continue;
-                    }
+                byte[] extracted = currentIndex.extractFile(folderName, fileString);
+                if (extracted == null) {
+                    continue;
+                }
 
-                    if ((fileString.endsWith("_d.tex") || fileString.contains("catchlight")) && diffuse == null) {
-                        //拡散光
-                        diffuse = new Texture_File(extracted, endian);
-                    } else if (fileString.endsWith("_n.tex") && normal == null) {
-                        //法線マップ
-                        normal = new Texture_File(extracted, endian);
-                    } else if (fileString.endsWith("_s.tex") && specular == null) {
-                        //鏡面光
-                        specular = new Texture_File(extracted, endian);
-                    } else if (fileString.endsWith("_m.tex")) {
-                        //アルファマスク
-                        mask = new Texture_File(extracted, endian);
-                    } else {
-                        colorSet = new Texture_File(extracted, endian);
-                    }
-
-                } catch (IOException e) {
-                    Utils.getGlobalLogger().error(e);
+                if ((fileString.endsWith("_d.tex") || fileString.contains("catchlight")) && diffuse == null) {
+                    //拡散光
+                    diffuse = new Texture_File(extracted, endian);
+                } else if (fileString.endsWith("_n.tex") && normal == null) {
+                    //法線マップ
+                    normal = new Texture_File(extracted, endian);
+                } else if (fileString.endsWith("_s.tex") && specular == null) {
+                    //鏡面光
+                    specular = new Texture_File(extracted, endian);
+                } else if (fileString.endsWith("_m.tex")) {
+                    //アルファマスク
+                    mask = new Texture_File(extracted, endian);
+                } else {
+                    colorSet = new Texture_File(extracted, endian);
                 }
 
             }

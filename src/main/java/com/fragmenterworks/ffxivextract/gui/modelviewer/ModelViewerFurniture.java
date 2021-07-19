@@ -223,21 +223,15 @@ class ModelViewerFurniture extends JPanel {
             }
 
             String modelPath = null;
-            byte[] modelData = null;
-            try {
 
-                if (entries.get(selected).modelType == ModelFurnitureEntry.TYPE_FURNITURE) {
-                    modelPath = String.format("bgcommon/hou/indoor/general/%04d/bgparts/fun_b0_m%04d.mdl", entries.get(selected).model, entries.get(selected).model);
-                } else if (entries.get(selected).modelType == ModelFurnitureEntry.TYPE_YARDOBJECT) {
-                    modelPath = String.format("bgcommon/hou/outdoor/general/%04d/bgparts/gar_b0_m%04d.mdl", entries.get(selected).model, entries.get(selected).model);
-                }
-
-                modelData = modelIndexFile.extractFile(Objects.requireNonNull(modelPath));
-
-
-            } catch (IOException e) {
-                Utils.getGlobalLogger().error(e);
+            if (entries.get(selected).modelType == ModelFurnitureEntry.TYPE_FURNITURE) {
+                modelPath = String.format("bgcommon/hou/indoor/general/%04d/bgparts/fun_b0_m%04d.mdl", entries.get(selected).model, entries.get(selected).model);
+            } else if (entries.get(selected).modelType == ModelFurnitureEntry.TYPE_YARDOBJECT) {
+                modelPath = String.format("bgcommon/hou/outdoor/general/%04d/bgparts/gar_b0_m%04d.mdl", entries.get(selected).model, entries.get(selected).model);
             }
+
+            byte[] modelData = modelIndexFile.extractFile(Objects.requireNonNull(modelPath));
+
 
             if (modelData != null) {
                 HashDatabase.addPathToDB(modelPath, "040000");

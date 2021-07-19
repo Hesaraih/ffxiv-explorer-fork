@@ -2,7 +2,6 @@ package com.fragmenterworks.ffxivextract.gui;
 
 import com.fragmenterworks.ffxivextract.Constants;
 import com.fragmenterworks.ffxivextract.Strings;
-import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile;
 import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile.SqPack_File;
 import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile.SqPack_Folder;
@@ -10,40 +9,25 @@ import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile.SqPack_Folder;
 import javax.swing.*;
 import javax.xml.bind.DatatypeConverter;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.io.IOException;
 import java.net.URL;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-@SuppressWarnings("serial")
 class SearchWindow extends JDialog {
-
-    JMenuBar menu = new JMenuBar();
 
     // FILE IO
 	private final SqPack_IndexFile currentIndexFile;
     private final ISearchComplete searchCallback;
 
-    // UI
-	private final JPanel pnlSearchString;
-    private final JPanel pnlSearchBytes;
     private final JRadioButton rbtnSearchString;
 	private final JRadioButton rbtnSearchBytes;
-    private final JLabel txtSearchLabel;
-	private final JLabel txtSearchLabel2;
     private final JTextField txtStringToSearch;
 	private final JTextField txtBytesToSearch;
-    JButton btnBrowse;
     private final ButtonGroup searchGroup = new ButtonGroup();
-
-    private final JPanel pnlButtons;
-    private final JButton btnSearch;
-	private final JButton btnClose;
 
     // SAVED SEARCH
 	private boolean lastSearchWasString;
@@ -56,6 +40,7 @@ class SearchWindow extends JDialog {
         super(parent, ModalityType.APPLICATION_MODAL);
         this.setTitle(Strings.DIALOG_TITLE_SEARCH);
         URL imageURL = getClass().getResource("/frameicon.png");
+        assert imageURL != null;
         ImageIcon image = new ImageIcon(imageURL);
         this.setIconImage(image.getImage());
         this.searchCallback = searchCallback;
@@ -65,9 +50,10 @@ class SearchWindow extends JDialog {
         // String search
         GridBagLayout layout = new GridBagLayout();
         //pnlSearchString = new JPanel(new GridBagLayout());
-        pnlSearchString = new JPanel(layout);
+        // UI
+        JPanel pnlSearchString = new JPanel(layout);
 
-        txtSearchLabel = new JLabel(Strings.SEARCH_FRAMETITLE_BYSTRING);
+        JLabel txtSearchLabel = new JLabel(Strings.SEARCH_FRAMETITLE_BYSTRING);
         txtStringToSearch = new JTextField(lastString == null ? "" : lastString);
         txtStringToSearch.setPreferredSize(new Dimension(200, txtSearchLabel
                 .getPreferredSize().height+6));
@@ -87,8 +73,8 @@ class SearchWindow extends JDialog {
         pnlSearchString.add(txtStringToSearch);
 
         // Byte search
-        pnlSearchBytes = new JPanel(new GridBagLayout());
-        txtSearchLabel2 = new JLabel(Strings.SEARCH_FRAMETITLE_BYBYTES);
+        JPanel pnlSearchBytes = new JPanel(new GridBagLayout());
+        JLabel txtSearchLabel2 = new JLabel(Strings.SEARCH_FRAMETITLE_BYBYTES);
         txtBytesToSearch = new JTextField();
         txtBytesToSearch.setPreferredSize(new Dimension(200, txtSearchLabel2
                 .getPreferredSize().height+6));
@@ -103,14 +89,12 @@ class SearchWindow extends JDialog {
         gbc.gridy = 1;
         layout.setConstraints(txtBytesToSearch, gbc);
         pnlSearchString.add(txtBytesToSearch);
-        //pnlSearchBytes.add(rbtnSearchBytes);
-        //pnlSearchBytes.add(txtBytesToSearch);
 
         // Buttons
-        pnlButtons = new JPanel();
+        JPanel pnlButtons = new JPanel();
         pnlButtons.setLayout(new BoxLayout(pnlButtons, BoxLayout.X_AXIS));
-        btnSearch = new JButton(Strings.BUTTONNAMES_SEARCH);
-        btnClose = new JButton(Strings.BUTTONNAMES_CLOSE);
+        JButton btnSearch = new JButton(Strings.BUTTONNAMES_SEARCH);
+        JButton btnClose = new JButton(Strings.BUTTONNAMES_CLOSE);
         pnlButtons.add(btnSearch);
         pnlButtons.add(btnClose);
 
@@ -131,62 +115,43 @@ class SearchWindow extends JDialog {
 
         getRootPane().setDefaultButton(btnSearch);
 
-        rbtnSearchString.addActionListener(new ActionListener() {
+        rbtnSearchString.addActionListener(e -> {
+            if (rbtnSearchString.isSelected()) {
+                txtStringToSearch.setEnabled(true);
+                txtBytesToSearch.setEnabled(false);
 
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (rbtnSearchString.isSelected()) {
-                    txtStringToSearch.setEnabled(true);
-                    txtBytesToSearch.setEnabled(false);
-
-                }
             }
         });
-        rbtnSearchBytes.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (rbtnSearchBytes.isSelected()) {
-                    txtStringToSearch.setEnabled(false);
-                    txtBytesToSearch.setEnabled(true);
-                }
+        rbtnSearchBytes.addActionListener(e -> {
+            if (rbtnSearchBytes.isSelected()) {
+                txtStringToSearch.setEnabled(false);
+                txtBytesToSearch.setEnabled(true);
             }
         });
 
-        ActionListener doSearchAction = new ActionListener() {
+        ActionListener doSearchAction = e -> {
+            SearchWindow.this.setTitle("Searching...");
+            if (searchGroup.getSelection().getActionCommand()
+                    .equals("string")) {
+                doStringSearch(txtStringToSearch.getText());
+            } else if (searchGroup.getSelection().getActionCommand()
+                    .equals("bytes")) {
 
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                SearchWindow.this.setTitle("Searching...");
-                if (searchGroup.getSelection().getActionCommand()
-                        .equals("string")) {
-                    doStringSearch(txtStringToSearch.getText());
-                } else if (searchGroup.getSelection().getActionCommand()
-                        .equals("bytes")) {
-
-                    if (txtBytesToSearch.getText().length() % 2 != 0) {
-                        JOptionPane.showMessageDialog(SearchWindow.this,
-                                "The byte string must be divisible by 2.",
-                                "Byte String Error",
-                                JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-
-                    doBytesSearch(txtBytesToSearch.getText());
+                if (txtBytesToSearch.getText().length() % 2 != 0) {
+                    JOptionPane.showMessageDialog(SearchWindow.this,
+                            "The byte string must be divisible by 2.",
+                            "Byte String Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
                 }
-                SearchWindow.this.setTitle(Strings.DIALOG_TITLE_SEARCH);
+
+                doBytesSearch(txtBytesToSearch.getText());
             }
+            SearchWindow.this.setTitle(Strings.DIALOG_TITLE_SEARCH);
         };
 
         btnSearch.addActionListener(doSearchAction);
-        btnClose.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                setVisible(false);
-
-            }
-        });
+        btnClose.addActionListener(e -> setVisible(false));
 
         txtBytesToSearch.registerKeyboardAction(doSearchAction, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0, false), JComponent.WHEN_FOCUSED);
         txtStringToSearch.registerKeyboardAction(doSearchAction, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0, false), JComponent.WHEN_FOCUSED);
@@ -195,24 +160,18 @@ class SearchWindow extends JDialog {
             public void keyTyped(KeyEvent e) {
                 char c = e.getKeyChar();
 
-                if ((c >= 'a' && c <= 'f'))
+                if ((c >= 'a' && c <= 'f')) {
                     return;
-                if ((c >= 'A' && c <= 'F'))
-                    return;
-                else if (Character.isDigit(e.getKeyChar()))
-                    return;
-                else
-                    e.consume();
+                }
+                if ((c < 'A' || c > 'F')) {
+                    if (!Character.isDigit(e.getKeyChar())) {
+                        e.consume();
+                    }
+                }
             }
         });
 
-        getRootPane().registerKeyboardAction(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                setVisible(false);
-            }
-        }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
+        getRootPane().registerKeyboardAction(arg0 -> setVisible(false), KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
 
         getContentPane().add(pnlRoot);
         pack();
@@ -226,65 +185,63 @@ class SearchWindow extends JDialog {
             for (int j = lastFile; j < f.getFiles().length; j++) {
                 SqPack_File fi = f.getFiles()[j];
                 byte[] data;
-                try {
-                    data = currentIndexFile.extractFile(fi.dataOffset, null);
-                    if (data == null)
-                        continue;
+                data = currentIndexFile.extractFile(fi.dataOffset, null);
+                if (data == null) {
+                    continue;
+                }
 
-                    boolean breakOutOfFile = false;
-                    for (int i2 = 0; i2 < data.length - string.length(); i2++) {
-                        for (int j2 = 0; j2 < string.length(); j2++) {
-                            if (Character.toLowerCase(data[i2 + j2]) == Character
-                                    .toLowerCase(string.charAt(j2))) {
-                                if (j2 == string.length() - 1) {
+                boolean breakOutOfFile = false;
+                for (int i2 = 0; i2 < data.length - string.length(); i2++) {
+                    for (int j2 = 0; j2 < string.length(); j2++) {
+                        if (Character.toLowerCase(data[i2 + j2]) == Character
+                                .toLowerCase(string.charAt(j2))) {
+                            if (j2 == string.length() - 1) {
 
-                                    if (Constants.DEBUG) {
-                                        System.out.println(String.format(
-                                                "Folder: %08X",
-                                                f.getId()));
-                                        System.out.println(String.format(
-                                                "File: %08X",
-                                                fi.getId()));
-                                        System.out.println("---");
-                                    }
-                                    Object[] options = {"Continue", "Open",
-                                            "Stop Search"};
+                                if (Constants.DEBUG) {
+                                    System.out.printf(
+                                            "Folder: %08X%n",
+                                            f.getId());
+                                    System.out.printf(
+                                            "File: %08X%n",
+                                            fi.getId());
+                                    System.out.println("---");
+                                }
+                                Object[] options = {"Continue", "Open",
+                                        "Stop Search"};
 
-                                    int n = JOptionPane.showOptionDialog(
-                                            this,
-                                            "Found result in folder: "
-                                                    + f.getName() + ", file: "
-                                                    + fi.getName(),
-                                            "Searching through DAT...",
-                                            JOptionPane.YES_NO_CANCEL_OPTION,
-                                            JOptionPane.QUESTION_MESSAGE, null,
-                                            options, options[2]);
-                                    switch (n) {
-                                        case 0:
-                                            breakOutOfFile = true;
-                                            break;
-                                        case 1:
-                                            lastFolder = i + 1;
-                                            lastFile = j + 1;
-                                            searchCallback.onSearchChosen(fi);
-                                            this.setVisible(false);
-                                            return;
-                                        case 2:
-                                            searchCallback.onSearchChosen(null);
-                                            setVisible(false);
-                                            return;
-                                    }
+                                int n = JOptionPane.showOptionDialog(
+                                        this,
+                                        "Found result in folder: "
+                                                + f.getName() + ", file: "
+                                                + fi.getName(),
+                                        "Searching through DAT...",
+                                        JOptionPane.YES_NO_CANCEL_OPTION,
+                                        JOptionPane.QUESTION_MESSAGE, null,
+                                        options, options[2]);
+                                switch (n) {
+                                    case 0:
+                                        breakOutOfFile = true;
+                                        break;
+                                    case 1:
+                                        lastFolder = i + 1;
+                                        lastFile = j + 1;
+                                        searchCallback.onSearchChosen(fi);
+                                        this.setVisible(false);
+                                        return;
+                                    case 2:
+                                        searchCallback.onSearchChosen(null);
+                                        setVisible(false);
+                                        return;
+                                }
 
-                                } else {
-								}
-                            } else
-                                break;
-                        }
-                        if (breakOutOfFile)
+                            }
+                        } else {
                             break;
+                        }
                     }
-                } catch (IOException e) {
-                    Utils.getGlobalLogger().error(e);
+                    if (breakOutOfFile) {
+                        break;
+                    }
                 }
 
             }
@@ -311,67 +268,63 @@ class SearchWindow extends JDialog {
             for (int j = lastFile; j < f.getFiles().length; j++) {
                 SqPack_File fi = f.getFiles()[j];
                 byte[] data;
-                try {
-                    data = currentIndexFile.extractFile(fi.dataOffset, null);
+                data = currentIndexFile.extractFile(fi.dataOffset, null);
 
-                    if (data == null)
-                        continue;
+                if (data == null) {
+                    continue;
+                }
 
-                    ByteBuffer dataBB = ByteBuffer.wrap(data);
+                ByteBuffer dataBB = ByteBuffer.wrap(data);
 
-                    boolean breakOutOfFile = false;
+                boolean breakOutOfFile = false;
 
-                    while (!breakOutOfFile) {
-                        try {
-                            dataBB.get(compareBuffer);
-                            dataBB.position(dataBB.position()
-                                    - compareBuffer.length + 1);
-                            if (Arrays.equals(compareBuffer, searchArray)) {
-                                if (Constants.DEBUG) {
-                                    System.out.println(String.format(
-                                            "Folder: %08X",
-                                            f.getId()));
-                                    System.out.println(String.format(
-                                            "File: %08X",
-                                            fi.getId()));
-                                    System.out.println("---");
-                                }
-
-                                Object[] options = {"Continue", "Open",
-                                        "Stop Search"};
-
-                                int n = JOptionPane.showOptionDialog(
-                                        this,
-                                        "Found result in folder: "
-                                                + f.getName() + ", file: "
-                                                + fi.getName(),
-                                        "Searching through DAT...",
-                                        JOptionPane.YES_NO_CANCEL_OPTION,
-                                        JOptionPane.QUESTION_MESSAGE, null,
-                                        options, options[2]);
-                                switch (n) {
-                                    case 0:
-                                        breakOutOfFile = true;
-                                        break;
-                                    case 1:
-                                        lastFolder = i + 1;
-                                        lastFile = j + 1;
-                                        searchCallback.onSearchChosen(fi);
-                                        this.setVisible(false);
-                                        return;
-                                    case 2:
-                                        searchCallback.onSearchChosen(null);
-                                        this.dispose();
-                                        return;
-                                }
+                while (!breakOutOfFile) {
+                    try {
+                        dataBB.get(compareBuffer);
+                        dataBB.position(dataBB.position()
+                                - compareBuffer.length + 1);
+                        if (Arrays.equals(compareBuffer, searchArray)) {
+                            if (Constants.DEBUG) {
+                                System.out.printf(
+                                        "Folder: %08X%n",
+                                        f.getId());
+                                System.out.printf(
+                                        "File: %08X%n",
+                                        fi.getId());
+                                System.out.println("---");
                             }
-                        } catch (BufferUnderflowException e) {
-                            break;
-                        }
-                    }
 
-                } catch (IOException e) {
-                    Utils.getGlobalLogger().error(e);
+                            Object[] options = {"Continue", "Open",
+                                    "Stop Search"};
+
+                            int n = JOptionPane.showOptionDialog(
+                                    this,
+                                    "Found result in folder: "
+                                            + f.getName() + ", file: "
+                                            + fi.getName(),
+                                    "Searching through DAT...",
+                                    JOptionPane.YES_NO_CANCEL_OPTION,
+                                    JOptionPane.QUESTION_MESSAGE, null,
+                                    options, options[2]);
+                            switch (n) {
+                                case 0:
+                                    breakOutOfFile = true;
+                                    break;
+                                case 1:
+                                    lastFolder = i + 1;
+                                    lastFile = j + 1;
+                                    searchCallback.onSearchChosen(fi);
+                                    this.setVisible(false);
+                                    return;
+                                case 2:
+                                    searchCallback.onSearchChosen(null);
+                                    this.dispose();
+                                    return;
+                            }
+                        }
+                    } catch (BufferUnderflowException e) {
+                        break;
+                    }
                 }
 
             }
@@ -384,10 +337,11 @@ class SearchWindow extends JDialog {
     }
 
     public void searchAgain() {
-        if (lastSearchWasString)
+        if (lastSearchWasString) {
             doStringSearch(lastString);
-        else
+        } else {
             doBytesSearch(lastString);
+        }
     }
 
     public interface ISearchComplete {

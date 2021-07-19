@@ -3,12 +3,10 @@ package com.fragmenterworks.ffxivextract.gui.outfitter;
 import com.fragmenterworks.ffxivextract.Strings;
 import com.fragmenterworks.ffxivextract.gui.components.EXDF_View;
 import com.fragmenterworks.ffxivextract.gui.modelviewer.Loading_Dialog;
-import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.models.EXHF_File;
 import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile;
 
 import javax.swing.*;
-import java.io.IOException;
 import java.net.URL;
 import java.util.Objects;
 
@@ -31,16 +29,6 @@ public class OutfitterWindow extends JFrame {
         this.parent = parent;
         this.sqPackPath = sqPackPath;
 
-    }
-
-    @SuppressWarnings("unused")
-    public SqPack_IndexFile getExdIndexFile() {
-        return exdIndexFile;
-    }
-
-    @SuppressWarnings("unused")
-    public SqPack_IndexFile getModelIndexFile() {
-        return modelIndexFile;
     }
 
     private String getSqpackPath() {
@@ -70,21 +58,14 @@ public class OutfitterWindow extends JFrame {
         protected Void doInBackground() {
 
 
-            try {
-                dialog.nextFile(0, "..\\game\\sqpack\\ffxiv\\0a0000.win32.index");
-                exdIndexFile = new SqPack_IndexFile(getSqpackPath() + "\\game\\sqpack\\ffxiv\\0a0000.win32.index", true);
-                dialog.nextFile(1, "..\\game\\sqpack\\ffxiv\\040000.win32.index");
-                modelIndexFile = new SqPack_IndexFile(getSqpackPath() + "\\game\\sqpack\\ffxiv\\040000.win32.index", true);
-                dialog.nextFile(2, "Loading initial models...");
-                EXHF_File exhfFile = new EXHF_File(exdIndexFile.extractFile("exd/item.exh"));
-                EXDF_View itemView = new EXDF_View(exdIndexFile, "exd/item.exh", exhfFile);
-                getContentPane().add(new Outfitter(modelIndexFile, itemView));
-            } catch (IOException e1) {
-                Utils.getGlobalLogger().error(e1);
-                getContentPane().removeAll();
-                getContentPane().add(new JLabel("Error: Could not find game files. Is DAT path correct?"));
-                return null;
-            }
+            dialog.nextFile(0, "..\\game\\sqpack\\ffxiv\\0a0000.win32.index");
+            exdIndexFile = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", true);
+            dialog.nextFile(1, "..\\game\\sqpack\\ffxiv\\040000.win32.index");
+            modelIndexFile = SqPack_IndexFile.GetIndexFileForArchiveID("040000", true);
+            dialog.nextFile(2, "Loading initial models...");
+            EXHF_File exhfFile = new EXHF_File(exdIndexFile.extractFile("exd/item.exh"));
+            EXDF_View itemView = new EXDF_View(exdIndexFile, "exd/item.exh", exhfFile);
+            getContentPane().add(new Outfitter(modelIndexFile, itemView));
             return null;
         }
 

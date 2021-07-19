@@ -25,7 +25,6 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -630,17 +629,10 @@ class Outfitter extends JPanel {
             return;
         }
 
-        String modelPath = null;
-        byte[] modelData = null;
-
         int characterNumber = currentBody * 100 + 1;
 
-        try {
-            modelPath = String.format("chara/human/c%04d/obj/body/b%04d/model/c%04db%04d_top.mdl", characterNumber, id, characterNumber, id);
-            modelData = modelIndexFile.extractFile(modelPath);
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
-        }
+        String modelPath = String.format("chara/human/c%04d/obj/body/b%04d/model/c%04db%04d_top.mdl", characterNumber, id, characterNumber, id);
+        byte[] modelData = modelIndexFile.extractFile(modelPath);
 
         if (modelData != null) {
             HashDatabase.addPathToDB(modelPath, "040000");
@@ -661,17 +653,10 @@ class Outfitter extends JPanel {
             return;
         }
 
-        String modelPath = null;
-        byte[] modelData = null;
-
         int characterNumber = currentBody * 100 + 1;
 
-        try {
-            modelPath = String.format("chara/human/c%04d/obj/hair/h%04d/model/c%04dh%04d_hir.mdl", characterNumber, id, characterNumber, id);
-            modelData = modelIndexFile.extractFile(modelPath);
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
-        }
+        String modelPath = String.format("chara/human/c%04d/obj/hair/h%04d/model/c%04dh%04d_hir.mdl", characterNumber, id, characterNumber, id);
+        byte[] modelData = modelIndexFile.extractFile(modelPath);
 
         if (modelData != null) {
             HashDatabase.addPathToDB(modelPath, "040000");
@@ -692,17 +677,10 @@ class Outfitter extends JPanel {
             return;
         }
 
-        String modelPath = null;
-        byte[] modelData = null;
-
         int characterNumber = currentBody * 100 + 1;
 
-        try {
-            modelPath = String.format("chara/human/c%04d/obj/face/f%04d/model/c%04df%04d_fac.mdl", characterNumber, id, characterNumber, id);
-            modelData = modelIndexFile.extractFile(modelPath);
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
-        }
+        String modelPath = String.format("chara/human/c%04d/obj/face/f%04d/model/c%04df%04d_fac.mdl", characterNumber, id, characterNumber, id);
+        byte[] modelData = modelIndexFile.extractFile(modelPath);
 
         if (modelData != null) {
             HashDatabase.addPathToDB(modelPath, "040000");
@@ -723,17 +701,10 @@ class Outfitter extends JPanel {
             return;
         }
 
-        String modelPath = null;
-        byte[] modelData = null;
-
         int characterNumber = currentBody * 100 + 1;
 
-        try {
-            modelPath = String.format("chara/human/c%04d/obj/tail/t%04d/model/c%04dt%04d_til.mdl", characterNumber, id, characterNumber, id);
-            modelData = modelIndexFile.extractFile(modelPath);
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
-        }
+        String modelPath = String.format("chara/human/c%04d/obj/tail/t%04d/model/c%04dt%04d_til.mdl", characterNumber, id, characterNumber, id);
+        byte[] modelData = modelIndexFile.extractFile(modelPath);
 
         if (modelData != null) {
             HashDatabase.addPathToDB(modelPath, "040000");
@@ -751,42 +722,34 @@ class Outfitter extends JPanel {
 
         int slot;
         String modelPath = null;
-        byte[] modelData = null;
 
         ModelItemEntry currentItem;
         if (selected != -1) {
-            try {
-                String[] model1Split = ((String) itemView.getTable().getValueAt(selected, EXDDef.INDEX_ITEM_MODEL1)).split(",");
-                @SuppressWarnings("unused")
-                String[] model2Split = ((String) itemView.getTable().getValueAt(selected, EXDDef.INDEX_ITEM_MODEL1)).split(",");
+            String[] model1Split = ((String) itemView.getTable().getValueAt(selected, EXDDef.INDEX_ITEM_MODEL1)).split(",");
 
-                slot = (Integer) itemView.getTable().getValueAt(selected, EXDDef.INDEX_ITEM_SLOT);
+            slot = (Integer) itemView.getTable().getValueAt(selected, EXDDef.INDEX_ITEM_SLOT);
 
-                String name = (String) itemView.getTable().getValueAt(selected, EXDDef.INDEX_ITEM_NAME);
-                int id = Integer.parseInt(model1Split[0].trim());
+            String name = (String) itemView.getTable().getValueAt(selected, EXDDef.INDEX_ITEM_NAME);
+            int id = Integer.parseInt(model1Split[0].trim());
 
-                boolean isWeapon = slot == 0 || slot == 1 || slot == 2 || slot == 13;
+            boolean isWeapon = slot == 0 || slot == 1 || slot == 2 || slot == 13;
 
-                int model;
-                if (!isWeapon) {
-                    model = Integer.parseInt(model1Split[2].trim());
-                } else {
-                    model = Integer.parseInt(model1Split[1].trim());
-                }
-                int varient;
-                if (!isWeapon) {
-                    varient = Integer.parseInt(model1Split[1].trim());
-                } else {
-                    varient = Integer.parseInt(model1Split[2].trim());
-                }
-
-                int type = slot;
-
-                currentItem = new ModelItemEntry(name, id, model, varient, type);
-            } catch (Exception e) {
-                Utils.getGlobalLogger().error(e);
-                return;
+            int model;
+            if (!isWeapon) {
+                model = Integer.parseInt(model1Split[2].trim());
+            } else {
+                model = Integer.parseInt(model1Split[1].trim());
             }
+            int varient;
+            if (!isWeapon) {
+                varient = Integer.parseInt(model1Split[1].trim());
+            } else {
+                varient = Integer.parseInt(model1Split[2].trim());
+            }
+
+            int type = slot;
+
+            currentItem = new ModelItemEntry(name, id, model, varient, type);
         } else //Load small clothes
         {
             slot = modelSlot;
@@ -799,63 +762,58 @@ class Outfitter extends JPanel {
 
         int characterNumber = ((charNumberOverride == -1 ? currentBody * 100 + 1 : charNumberOverride));
 
-        try {
-
-            switch (slot) {
-                case 13:
-                case 0:
-                case 1:
-                case 2:
-                    modelPath = String.format("chara/weapon/w%04d/obj/body/b%04d/model/w%04db%04d.mdl", currentItem.id, currentItem.model, currentItem.id, currentItem.model);
-                    break;
-                case 3:
-                    modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_met.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 4:
-                case 21:
-                case 20:
-                case 19:
-                case 16:
-                case 15:
-                    modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_top.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 5:
-                    modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_glv.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 6:
-                case 7:
-                case 18:
-                    modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_dwn.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 8:
-                    modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_sho.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 9:
-                    modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_ear.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 10:
-                    modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_nek.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 11:
-                    modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_wrs.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 12:
-                    modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_ril.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 50:
-                    modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_rir.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-            }
-
-            if (modelPath == null) {
-                Utils.getGlobalLogger().error("モデルパスを作成できませんでした。");
-                return;
-            }
-
-            modelData = modelIndexFile.extractFile(modelPath);
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
+        switch (slot) {
+            case 13:
+            case 0:
+            case 1:
+            case 2:
+                modelPath = String.format("chara/weapon/w%04d/obj/body/b%04d/model/w%04db%04d.mdl", currentItem.id, currentItem.model, currentItem.id, currentItem.model);
+                break;
+            case 3:
+                modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_met.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 4:
+            case 21:
+            case 20:
+            case 19:
+            case 16:
+            case 15:
+                modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_top.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 5:
+                modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_glv.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 6:
+            case 7:
+            case 18:
+                modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_dwn.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 8:
+                modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_sho.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 9:
+                modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_ear.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 10:
+                modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_nek.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 11:
+                modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_wrs.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 12:
+                modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_ril.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 50:
+                modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_rir.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
         }
+
+        if (modelPath == null) {
+            Utils.getGlobalLogger().error("モデルパスを作成できませんでした。");
+            return;
+        }
+
+        byte[] modelData = modelIndexFile.extractFile(modelPath);
 
         if (modelData == null && (characterNumber != 101 && characterNumber != 201)) {
             if (currentBody % 2 == 0) {

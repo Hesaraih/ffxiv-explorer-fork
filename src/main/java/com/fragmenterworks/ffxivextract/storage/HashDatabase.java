@@ -20,25 +20,16 @@ public class HashDatabase {
     public static void init() throws ClassNotFoundException {
         Class.forName("org.sqlite.JDBC");
 
-        Connection connection = null;
         try {
-            // create a database connection
             if (globalConnection == null) {
-                try {
-                    connection = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
-                } catch (Exception e) {
-                    Utils.getGlobalLogger().error(e);
-                    return;
-                }
-            }else{
-                connection = globalConnection;
+                beginConnection();
             }
 
             files = new HashMap<>();
             folders = new HashMap<>();
 
-            PreparedStatement fileq = connection.prepareStatement("select hash, name from filenames");
-            PreparedStatement folderq = connection.prepareStatement("select hash, path from folders");
+            PreparedStatement fileq = globalConnection.prepareStatement("select hash, name from filenames");
+            PreparedStatement folderq = globalConnection.prepareStatement("select hash, path from folders");
 
             ResultSet rs = fileq.executeQuery();
             while (rs.next()) {
@@ -56,24 +47,17 @@ public class HashDatabase {
         } catch (SQLException e) {
             // エラーメッセージが「メモリ不足」の場合は、データベースファイルが見つからない可能性があります
             Utils.getGlobalLogger().error(e);
-        } finally {
-            try {
-                if (connection != null) {
-                    connection.close();
-                }
-            } catch (SQLException e) {
-                // 接続のクローズに失敗
-                Utils.getGlobalLogger().error(e);
-            }
         }
     }
 
     public static int getHashDBVersion() {
         String version = "-1";
-        Connection connection = null;
         try {
-            connection = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
-            Statement statement = connection.createStatement();
+            if (globalConnection == null) {
+                beginConnection();
+            }
+
+            Statement statement = globalConnection.createStatement();
             ResultSet rs = statement.executeQuery("select * from dbinfo where type = 'version'");
 
             while (rs.next()) {
@@ -85,14 +69,6 @@ public class HashDatabase {
         } catch (SQLException e) {
             Utils.getGlobalLogger().error(e);
             return -1;
-        } finally {
-            try {
-                if (connection != null) {
-                    connection.close();
-                }
-            } catch (SQLException e) {
-                Utils.getGlobalLogger().error(e);
-            }
         }
 
         return Integer.parseInt(version);
@@ -117,18 +93,11 @@ public class HashDatabase {
      * @return 登録結果 0:登録失敗 1:登録成功 2:ファイル名変更 3:ファイルパス変更 4:登録済みのため何もしない
      */
     public static int addFolderToDB(String folderName, String archive, boolean ForcedDB) {
-        Connection conn;
         if (globalConnection == null) {
-            try {
-                conn = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
-            } catch (Exception e) {
-                Utils.getGlobalLogger().error(e);
-                return 0;
-            }
-        }else{
-            conn = globalConnection;
+            beginConnection();
         }
-        return addPathToDB(folderName, archive, conn, ForcedDB,true);
+
+        return addPathToDB(folderName, archive, ForcedDB, true);
      }
 
     /**
@@ -139,34 +108,18 @@ public class HashDatabase {
      * @return 登録結果 0:登録失敗 1:登録成功 2:ファイル名変更 3:ファイルパス変更 4:登録済みのため何もしない
      */
     public static int addPathToDB(String fullPath, String archive) {
-        Connection conn;
         if (globalConnection == null) {
-            try {
-                conn = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
-            } catch (Exception e) {
-                Utils.getGlobalLogger().error(e);
-                return 0;
-            }
-        }else{
-            conn = globalConnection;
+            beginConnection();
         }
 
-        return addPathToDB(fullPath, archive, conn,false);
+        return addPathToDB(fullPath, archive,false);
     }
 
-    /**
-     * hashlist.dbにファイルを追加(互換性保持用)
-     * @param fullPath フルパス名
-     * @param archive Indexファイル名
-     * @param conn データベースのコネクタ
-     * @return 登録結果 0:登録失敗 1:登録成功 2:ファイル名変更 3:ファイルパス変更 4:登録済みのため何もしない
-     */
-    public static int addPathToDB(String fullPath, String archive, Connection conn) {
-        return addPathToDB(fullPath, archive, conn,false);
-    }
-
-    public static int addPathToDB(String fullPath, String archive, Connection conn, boolean ForcedDB) {
-        return addPathToDB(fullPath, archive, conn, ForcedDB,false);
+    public static int addPathToDB(String fullPath, String archive, boolean ForcedDB) {
+        if (globalConnection == null) {
+            beginConnection();
+        }
+        return addPathToDB(fullPath, archive, ForcedDB,false);
     }
 
     /**
@@ -174,11 +127,10 @@ public class HashDatabase {
      * dbに追加するために使用 パスとファイル名に分割し自動的にハッシュ
      * @param fullPath フルパス名
      * @param archive Indexファイル名
-     * @param conn データベースのコネクタ
      * @param ForcedDB 強制追加モード true:強制上書き追加、false:hashが一致していた場合追加しない
      * @return 登録結果 0:登録失敗 1:登録成功 2:ファイル名変更 3:ファイルパス変更 4:登録済みのため何もしない
      */
-    public static int addPathToDB(String fullPath, String archive, Connection conn, boolean ForcedDB, boolean IsFolder) {
+    public static int addPathToDB(String fullPath, String archive, boolean ForcedDB, boolean IsFolder) {
 
         String folder;
         String filename = "";
@@ -280,17 +232,12 @@ public class HashDatabase {
             archive = getArchiveID(fullPath);
         }
 
-        if (conn == null){
-            try {
-                conn = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
-            } catch (Exception e) {
-                Utils.getGlobalLogger().error(e);
-                return 0;
-            }
+        if (globalConnection == null) {
+            beginConnection();
         }
 
         try {
-            Statement statement = conn.createStatement();
+            Statement statement = globalConnection.createStatement();
             statement.setQueryTimeout(30); //タイムアウトを30秒に設定
             if (!IsFileOnly) {
                 statement.executeUpdate(String.format("insert or ignore into folders values(%d, '%s', 0, '%s', '%s')", folderHash, folder, archive, Constants.DB_VERSION_CODE));
@@ -371,12 +318,10 @@ public class HashDatabase {
      */
     public static void importDatabase(File selectedFile) {
 
-        HashDatabase.beginConnection();
-        try {
-            HashDatabase.setAutoCommit(false);
-        } catch (SQLException e1) {
-            Utils.getGlobalLogger().error(e1);
+        if (globalConnection == null) {
+            beginConnection();
         }
+        HashDatabase.setAutoCommit(false);
 
         HashMap<Long, String> tmpFiles = new HashMap<>();
         HashMap<Long, String> tmpFileNameArchives = new HashMap<>();
@@ -385,9 +330,8 @@ public class HashDatabase {
         int fileCount = 0;
         int folderCount = 0;
         try {
-            Connection connection = DriverManager.getConnection("jdbc:sqlite:" + selectedFile.getAbsolutePath());
-            PreparedStatement fileq = connection.prepareStatement("select hash, name, archive from filenames");
-            PreparedStatement folderq = connection.prepareStatement("select hash, path from folders");
+            PreparedStatement fileq = globalConnection.prepareStatement("select hash, name, archive from filenames");
+            PreparedStatement folderq = globalConnection.prepareStatement("select hash, path from folders");
 
             ResultSet rs = fileq.executeQuery();
             while (rs.next()) {
@@ -443,12 +387,7 @@ public class HashDatabase {
             Utils.getGlobalLogger().error("パスを追加しようとしてエラーが発生しました。", exc);
         }
 
-        try {
-            HashDatabase.commit();
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-        HashDatabase.closeConnection();
+        HashDatabase.commit();
 
         Utils.getGlobalLogger().info("Added {} new folders and {} new files from {} to current database.", folderCount, fileCount, selectedFile.getAbsolutePath());
     }
@@ -460,12 +399,10 @@ public class HashDatabase {
      */
     public static int importFilePaths(File selectedFile) {
 
-        HashDatabase.beginConnection();
-        try {
-            HashDatabase.setAutoCommit(false);
-        } catch (SQLException e1) {
-            Utils.getGlobalLogger().error(e1);
+        if (globalConnection == null) {
+            beginConnection();
         }
+        HashDatabase.setAutoCommit(false);
 
         int count = 0;
         try {
@@ -481,7 +418,7 @@ public class HashDatabase {
                         fullPath = line.substring(indexof + 2);
                     }
 
-                    if (HashDatabase.addPathToDB(fullPath, getArchiveID(fullPath), HashDatabase.globalConnection,true) == 1) {
+                    if (HashDatabase.addPathToDB(fullPath, getArchiveID(fullPath), true) == 1) {
                         count++;
                     }
                 } catch (java.lang.StringIndexOutOfBoundsException e) {
@@ -493,12 +430,7 @@ public class HashDatabase {
             return count * -1;
         }
 
-        try {
-            HashDatabase.commit();
-        } catch (SQLException e) {
-            Utils.getGlobalLogger().error(e);
-        }
-        HashDatabase.closeConnection();
+        HashDatabase.commit();
 
         return count;
     }
@@ -511,29 +443,22 @@ public class HashDatabase {
             BufferedReader br = new BufferedReader(new FileReader(path));
             String line;
 
-            HashDatabase.beginConnection();
-            try {
-                HashDatabase.setAutoCommit(false);
-            } catch (SQLException e1) {
-                Utils.getGlobalLogger().error(e1);
+            if (globalConnection == null) {
+                beginConnection();
             }
+            HashDatabase.setAutoCommit(false);
 
             while ((line = br.readLine()) != null) {
                 if (line.equals("")) {
                     continue;
                 }
 
-                HashDatabase.addPathToDB(line, getArchiveID(line), HashDatabase.globalConnection);
+                HashDatabase.addPathToDB(line, getArchiveID(line));
 
                 numAdded++;
             }
 
-            try {
-                HashDatabase.commit();
-            } catch (SQLException e) {
-                Utils.getGlobalLogger().error(e);
-            }
-            HashDatabase.closeConnection();
+            HashDatabase.commit();
 
             br.close();
         } catch (IOException e) {
@@ -571,12 +496,10 @@ public class HashDatabase {
             file.readInt();
             long lastStartPosition;
 
-            HashDatabase.beginConnection();
-            try {
-                HashDatabase.setAutoCommit(false);
-            } catch (SQLException e1) {
-                Utils.getGlobalLogger().error(e1);
+            if (globalConnection == null) {
+                beginConnection();
             }
+            HashDatabase.setAutoCommit(false);
 
             // EOFに達するまで読みこむ
             while (true) {
@@ -609,12 +532,7 @@ public class HashDatabase {
                 file.skipBytes(0x108);
             }
 
-            try {
-                HashDatabase.commit();
-            } catch (SQLException e) {
-                Utils.getGlobalLogger().error(e);
-            }
-            HashDatabase.closeConnection();
+            HashDatabase.commit();
 
             file.close();
         } catch (IOException e) {
@@ -624,7 +542,9 @@ public class HashDatabase {
 
     public static void beginConnection() {
         try {
-            globalConnection = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
+            if (globalConnection == null) {
+                globalConnection = DriverManager.getConnection("jdbc:sqlite:./hashlist.db");
+            }
         } catch (SQLException e) {
             Utils.getGlobalLogger().error(e);
         }
@@ -641,6 +561,10 @@ public class HashDatabase {
 
     public static String getFolder(long hash) {
         return folders.getOrDefault(hash, null);
+    }
+
+    public static String getFolder2(long hash) {
+        return folders.getOrDefault(hash, String.format("~%x", hash));
     }
 
     public static String getFileName(long hash) {
@@ -692,6 +616,10 @@ public class HashDatabase {
      * @param hash ファイルのハッシュ値
      */
     public static void flagFileNameAsUsed(int hash) {
+        if (globalConnection == null) {
+            beginConnection();
+        }
+
         try {
             Statement statement = globalConnection.createStatement();
             statement.setQueryTimeout(30); // set timeout to 30 sec.
@@ -717,25 +645,33 @@ public class HashDatabase {
 
     /**
      * SQLの自動更新の状態変更
-     * @param flag True:自動更新する  、False:自働更新しない(トランザクションに記録しておく)
-     * @throws SQLException SQLエラー
+     * @param flag true:自動更新する  、false:自働更新しない(トランザクションに記録しておく)
      */
-    public static void setAutoCommit(boolean flag) throws SQLException {
+    public static void setAutoCommit(boolean flag){
         if (globalConnection != null) {
-            globalConnection.setAutoCommit(flag);
+            try {
+                globalConnection.setAutoCommit(flag);
+            } catch (SQLException e) {
+                Utils.getGlobalLogger().error(e);
+            }
         }
     }
 
     /**
      * SQLデータベースのトランザクションを終了しデータをDBに反映
-     * @throws SQLException SQLエラー
      */
-    public static void commit() throws SQLException {
+    public static void commit(){
         if (globalConnection != null) {
-            globalConnection.commit();
+            try {
+                globalConnection.commit();
+                globalConnection.setAutoCommit(true);
+            } catch (SQLException e) {
+                Utils.getGlobalLogger().error(e);
+            }
         }
     }
 
+    //region CRCテーブル
     // Hashing
     private static final int[] crc_table_0f085d0 = new int[]{0x00000000, 0x77073096,
             0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F, 0xE963A535,
@@ -946,4 +882,5 @@ public class HashDatabase {
             0x2C6FDE2C, 0x94D3B949, 0x090481F0, 0xB1B8E695, 0xA30D497B,
             0x1BB12E1E, 0x43D23E48, 0xFB6E592D, 0xE9DBF6C3, 0x516791A6,
             0xCCB0A91F, 0x740CCE7A, 0x66B96194, 0xDE0506F1};
+    //endregion
 }

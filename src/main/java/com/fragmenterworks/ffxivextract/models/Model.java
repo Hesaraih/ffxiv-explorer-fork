@@ -52,9 +52,6 @@ public class Model extends Game_File {
 
     private boolean isVRAMLoaded = false;
 
-    //別のアーカイブの資料が必要な場合
-    private SqPack_IndexFile bgCommonIndex;
-
     private int imcPartsKey = 0;
     private int currentVariant = 1;
 
@@ -389,13 +386,9 @@ public class Model extends Game_File {
             }
 
             animFile = null;
-            try {
-                byte[] animData = currentIndex.extractFile(animationPath);
-                if (animData != null) {
-                    animFile = new PAP_File(currentIndex, animData, endian);
-                }
-            } catch (IOException e) {
-                Utils.getGlobalLogger().error("Couldn't find animation @ {}", animationPath, e);
+            byte[] animData = currentIndex.extractFile(animationPath);
+            if (animData != null) {
+                animFile = new PAP_File(currentIndex, animData, endian);
             }
 
             if (animFile != null && skeletonFile != null) {
@@ -449,22 +442,15 @@ public class Model extends Game_File {
         String imcFolderPath = String.format("%s", modelPath.substring(0, modelPath.indexOf("model") - 1));
         String fileString = imcFolderPath.substring(imcFolderPath.lastIndexOf("/") + 1) + ".imc";
         String imcPath = imcFolderPath + "/" + fileString;
-        try {
-            byte[] data = currentIndex.extractFile(imcPath);
+        byte[] data = currentIndex.extractFile(imcPath);
 
-            if (data == null) {
-                return null;
-            }
-            //imcファイルの登録
-            HashDatabase.addPathToDB(imcPath, currentIndex.getName());
-
-            return new IMC_File(data, endian);
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error("IMCファイル{}を開けませんでした", imcPath, e);
+        if (data == null) {
+            return null;
         }
+        //imcファイルの登録
+        HashDatabase.addPathToDB(imcPath, currentIndex.getName());
 
-        return null;
-
+        return new IMC_File(data, endian);
     }
 
     public void loadVariant(int variantNumber) {
@@ -540,38 +526,28 @@ public class Model extends Game_File {
                     }
                 }
 
-                try {
-                    SqPack_IndexFile indexToUse = currentIndex;
-                    byte[] materialData = currentIndex.extractFile(materialFolderPath, fileString);
+                SqPack_IndexFile indexToUse = currentIndex;
+                byte[] materialData = currentIndex.extractFile(materialFolderPath, fileString);
 
-                    //見つからない場合は、他のアーカイブを確認してください
-                    if (materialData == null) {
-                        //bgcommonが必要な場合は、開きます
-                        if (materialFolderPath.startsWith("bgcommon")) {
-                            if (bgCommonIndex == null) {
-                                String path = currentIndex.getPath();
-                                if (path.lastIndexOf("/") != -1) {
-                                    path = path.substring(0, path.lastIndexOf("/sqpack"));
-                                } else {
-                                    path = path.substring(0, path.lastIndexOf("\\sqpack"));
-                                }
-                                path += "/sqpack/ffxiv/010000.win32.index";
-                                bgCommonIndex = new SqPack_IndexFile(path, true);
-                            }
+                //見つからない場合は、他のアーカイブを確認してください
+                if (materialData == null) {
 
-                            materialData = bgCommonIndex.extractFile(materialFolderPath, fileString);
-                            indexToUse = bgCommonIndex;
-                        }
+                    //bgcommonが必要な場合は、開きます
+                    if (materialFolderPath.startsWith("bgcommon")) {
+                        String archive = HashDatabase.getArchiveID(materialFolderPath);
+                        //別のアーカイブの資料が必要な場合
+                        SqPack_IndexFile bgCommonIndex = SqPack_IndexFile.GetIndexFileForArchiveID(archive, false);
+
+                        materialData = bgCommonIndex.extractFile(materialFolderPath, fileString);
+                        indexToUse = bgCommonIndex;
                     }
+                }
 
-                    if (materialData != null) {
-                        //Materialの初期化とtexファイルの登録をここで実施
-                        materials[i] = new Material(materialFolderPath, indexToUse, materialData, endian);
-                        //mtrlファイルの登録
-                        HashDatabase.addPathToDB(materialFolderPath + "/" + fileString, indexToUse.getName());
-                    }
-                } catch (IOException e) {
-                    Utils.getGlobalLogger().error(e);
+                if (materialData != null) {
+                    //Materialの初期化とtexファイルの登録をここで実施
+                    materials[i] = new Material(materialFolderPath, indexToUse, materialData, endian);
+                    //mtrlファイルの登録
+                    HashDatabase.addPathToDB(materialFolderPath + "/" + fileString, indexToUse.getName());
                 }
 
             }
@@ -589,12 +565,8 @@ public class Model extends Game_File {
 
             HashDatabase.addPathToDB(materialFolderPath, "040000");
 
-            try {
-                //Materialの初期化とtexファイルの登録をここで実施
-                materials[bodyMaterialSpot] = new Material(materialFolderPath, currentIndex, currentIndex.extractFile(materialFolderPath, s), getEndian());
-            } catch (IOException e) {
-                Utils.getGlobalLogger().error(e);
-            }
+            //Materialの初期化とtexファイルの登録をここで実施
+            materials[bodyMaterialSpot] = new Material(materialFolderPath, currentIndex, currentIndex.extractFile(materialFolderPath, s), getEndian());
 
         }
     }

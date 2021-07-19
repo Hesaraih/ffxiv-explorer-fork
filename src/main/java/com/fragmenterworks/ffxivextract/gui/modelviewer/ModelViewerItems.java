@@ -21,7 +21,6 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Objects;
@@ -423,7 +422,6 @@ class ModelViewerItems extends JPanel {
         }
 
         String modelPath = null;
-        byte[] modelData = null;
         ModelItemEntry currentItem = filteredEntries.get(selected);
 
         int characterNumber;
@@ -433,55 +431,50 @@ class ModelViewerItems extends JPanel {
             characterNumber = charNumberOverride;
         }
 
-        try {
-
-            switch (currentCategory) {
-                case 0: //調理品(モデルあり)、その他アイテム(モデル無し)
-                case 1: //片手武器(メインスロット用)
-                case 2: //片手武器(サブスロット用)
-                case 13: //両手武器(メイン装備可、サブ装備不可)
-                case 14: //片手武器(メインとサブスロットのどちらでも可)(二刀流？)
-                    modelPath = String.format("chara/weapon/w%04d/obj/body/b%04d/model/w%04db%04d.mdl", currentItem.id, currentItem.model, currentItem.id, currentItem.model);
-                    break;
-                case 3: //頭防具
-                    modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_met.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 4: //胴防具
-                case 15: //胴防具(頭装備不可)
-                case 16: //胴防具(手脚足装備不可)
-                case 19: //胴防具(頭手脚足装備不可)
-                case 20: //胴防具(手脚装備不可)
-                case 21: //胴防具(脚足装備不可)
-                    modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_top.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 5: //手防具
-                    modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_glv.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 7: //脚防具
-                case 18: //脚防具(足装備不可)
-                    modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_dwn.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 8: //足防具
-                    modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_sho.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 9: //耳飾り
-                    modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_ear.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 10: //首飾り
-                    modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_nek.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 11: //腕輪
-                    modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_wrs.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-                case 12: //指輪
-                    modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_rir.mdl", currentItem.id, characterNumber, currentItem.id);
-                    break;
-            }
-
-            modelData = modelIndexFile.extractFile(Objects.requireNonNull(modelPath));
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error(e);
+        switch (currentCategory) {
+            case 0: //調理品(モデルあり)、その他アイテム(モデル無し)
+            case 1: //片手武器(メインスロット用)
+            case 2: //片手武器(サブスロット用)
+            case 13: //両手武器(メイン装備可、サブ装備不可)
+            case 14: //片手武器(メインとサブスロットのどちらでも可)(二刀流？)
+                modelPath = String.format("chara/weapon/w%04d/obj/body/b%04d/model/w%04db%04d.mdl", currentItem.id, currentItem.model, currentItem.id, currentItem.model);
+                break;
+            case 3: //頭防具
+                modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_met.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 4: //胴防具
+            case 15: //胴防具(頭装備不可)
+            case 16: //胴防具(手脚足装備不可)
+            case 19: //胴防具(頭手脚足装備不可)
+            case 20: //胴防具(手脚装備不可)
+            case 21: //胴防具(脚足装備不可)
+                modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_top.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 5: //手防具
+                modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_glv.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 7: //脚防具
+            case 18: //脚防具(足装備不可)
+                modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_dwn.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 8: //足防具
+                modelPath = String.format("chara/equipment/e%04d/model/c%04de%04d_sho.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 9: //耳飾り
+                modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_ear.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 10: //首飾り
+                modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_nek.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 11: //腕輪
+                modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_wrs.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
+            case 12: //指輪
+                modelPath = String.format("chara/accessory/a%04d/model/c%04da%04d_rir.mdl", currentItem.id, characterNumber, currentItem.id);
+                break;
         }
+
+        byte[] modelData = modelIndexFile.extractFile(Objects.requireNonNull(modelPath));
 
         if (modelData == null && (characterNumber != 101 && characterNumber != 201)) {
             if (currentBody % 2 == 0) {
