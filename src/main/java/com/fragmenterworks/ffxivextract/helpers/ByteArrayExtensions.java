@@ -11,15 +11,19 @@ public class ByteArrayExtensions {
      * @return 文字列
      */
     public static String ReadString(ByteBuffer bb, int offset){
-        if (offset > bb.capacity()){
+        //文字データ読み取り時にメインバッファの読み取りポインターの位置を変えたくないため
+        //コピーしたバッファで読み取る
+        ByteBuffer bbCopy = bb.duplicate();
+
+        if (offset > bbCopy.capacity()){
             return "";
         }
 
-        bb.position(offset);
+        bbCopy.position(offset);
         StringBuilder byteStringBld;
         byteStringBld = new StringBuilder();
-        while (bb.position() < bb.capacity()) {
-            byte c = bb.get();
+        while (bbCopy.position() < bbCopy.capacity()) {
+            byte c = bbCopy.get();
             if (c < 0x20) {
                 break;
             } else {
