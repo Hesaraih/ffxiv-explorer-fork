@@ -1,11 +1,9 @@
 package com.fragmenterworks.ffxivextract.models;
 
-import com.fragmenterworks.ffxivextract.Constants;
 import com.fragmenterworks.ffxivextract.helpers.ByteArrayExtensions;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.storage.HashDatabase;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -17,19 +15,7 @@ import java.util.EnumSet;
  */
 public class LvbFile extends Game_File {
 
-    @SuppressWarnings("unused")
-    public String entryName;
-    @SuppressWarnings("unused")
-    public String modelName;
-    @SuppressWarnings("unused")
-    public String collisionName;
-
     private String archive = "";
-
-    //他のファイルを見つけるために使用されます
-    private static SqPack_IndexFile currentIndex; //現在表示中または呼び出し元のIndexファイル
-    private static SqPack_IndexFile bgcommonIndex;
-    private static SqPack_IndexFile vfxIndex;
 
     //region Struct
     public static class HeaderData {
@@ -71,9 +57,8 @@ public class LvbFile extends Game_File {
      * @param data sgbデータ
      * @param endian エンディアンの種類
      */
-    public LvbFile(SqPack_IndexFile index, byte[] data, ByteOrder endian){
+    public LvbFile(byte[] data, ByteOrder endian){
         super(endian);
-        currentIndex = index;
         loadSGB(data);
     }
 
@@ -408,11 +393,13 @@ public class LvbFile extends Game_File {
 
             Name = ByteArrayExtensions.ReadString(bb, strOffset + Header.NameOffset);
             String mdlFilePath = ByteArrayExtensions.ReadString(bb, strOffset + Header.ModelFileOffset);
-            SqPack_IndexFile tempIndex = currentIndex;
+            SqPack_IndexFile tempIndex;
             if(mdlFilePath.length() != 0){
                 if(cAddPathToDB(mdlFilePath) == 1) {
-                    if (archive.equals("010000")){
-                        tempIndex = bgcommonIndex;
+                    tempIndex = SqPack_IndexFile.GetIndexFileForArchiveID(archive, false);
+
+                    if (tempIndex == null){
+                        return;
                     }
 
                     if (mdlFilePath.endsWith(".mdl")) {
@@ -425,14 +412,14 @@ public class LvbFile extends Game_File {
                     }else if (mdlFilePath.endsWith(".sgb")){
                         try {
                             byte[] data = tempIndex.extractFile(mdlFilePath);
-                            Gimmick = new LvbFile(tempIndex, data, tempIndex.getEndian());
+                            Gimmick = new LvbFile(data, tempIndex.getEndian());
                         } catch (Exception modelException) {
                             Utils.getGlobalLogger().error(modelException);
                         }
                     }else if (mdlFilePath.endsWith(".essb")){
                         try {
                             byte[] data = tempIndex.extractFile(mdlFilePath);
-                            new ENVB_File(tempIndex, data, tempIndex.getEndian());
+                            new ENVB_File(data, tempIndex.getEndian());
                         } catch (Exception modelException) {
                             Utils.getGlobalLogger().error(modelException);
                         }
@@ -465,16 +452,15 @@ public class LvbFile extends Game_File {
             bb.position(offset);
             Header.ServerDataOffset1 = bb.getInt();
             Header.EntryID1 = bb.getInt();
-            int strOffset = bb.position();
             Header.Unknown1 = bb.getInt();
             Header.Unknown2 = bb.getInt();
             Header.SumID = bb.getInt();
             Header.Offset3 = bb.getInt();
             Header.ServerDataOffset2 = bb.getInt();
 
-            nvmFileName = ByteArrayExtensions.ReadString(bb, Header.ServerDataOffset1);
-            ModelFile2 = ByteArrayExtensions.ReadString(bb, strOffset + Header.Offset3);
-            nvxFileName = ByteArrayExtensions.ReadString(bb, strOffset + Header.ServerDataOffset2);
+            nvmFileName = ByteArrayExtensions.ReadString(bb, offset + Header.ServerDataOffset1);
+            ModelFile2 = ByteArrayExtensions.ReadString(bb, offset + Header.Offset3);
+            nvxFileName = ByteArrayExtensions.ReadString(bb, offset + Header.ServerDataOffset2);
 
             Utils.getGlobalLogger().trace("NaviMesh");
         }
@@ -518,12 +504,14 @@ public class LvbFile extends Game_File {
             ModelFilePath = ByteArrayExtensions.ReadString(bb, offset + Header.ModelFileOffset);
             CollisionFilePath = ByteArrayExtensions.ReadString(bb, offset + Header.CollisionFileOffset);
 
-            SqPack_IndexFile tempIndex = currentIndex;
+            SqPack_IndexFile tempIndex;
 
             if(ModelFilePath.length() != 0){
                 if(cAddPathToDB(ModelFilePath) == 1) {
-                    if (archive.equals("010000")){
-                        tempIndex = bgcommonIndex;
+                    tempIndex = SqPack_IndexFile.GetIndexFileForArchiveID(archive, false);
+
+                    if (tempIndex == null){
+                        return;
                     }
 
                     try {
@@ -537,13 +525,15 @@ public class LvbFile extends Game_File {
 
             if(CollisionFilePath.length() != 0){
                 if(cAddPathToDB(CollisionFilePath) == 1) {
-                    if (archive.equals("010000")){
-                        tempIndex = bgcommonIndex;
+                    tempIndex = SqPack_IndexFile.GetIndexFileForArchiveID(archive, false);
+
+                    if (tempIndex == null){
+                        return;
                     }
 
                     try {
                         byte[] data = tempIndex.extractFile(CollisionFilePath);
-                        CollisionFile = new PcbFile(tempIndex, data, tempIndex.getEndian());
+                        CollisionFile = new PcbFile(data, tempIndex.getEndian());
                     } catch (Exception CollisionException) {
                         Utils.getGlobalLogger().error(CollisionException);
                     }
@@ -587,14 +577,16 @@ public class LvbFile extends Game_File {
             String sgbFileName = ByteArrayExtensions.ReadString(bb, offset + Header.GimmickFileOffset);
             if(sgbFileName.length() != 0){
                 if(cAddPathToDB(sgbFileName) == 1) {
-                    SqPack_IndexFile tempIndex = currentIndex;
-                    if (archive.equals("010000")){
-                        tempIndex = bgcommonIndex;
+                    SqPack_IndexFile tempIndex;
+                    tempIndex = SqPack_IndexFile.GetIndexFileForArchiveID(archive, false);
+
+                    if (tempIndex == null){
+                        return;
                     }
 
                     try {
                         byte[] data = tempIndex.extractFile(sgbFileName);
-                        Gimmick = new LvbFile(tempIndex, data, tempIndex.getEndian());
+                        Gimmick = new LvbFile(data, tempIndex.getEndian());
                     } catch (Exception modelException) {
                         Utils.getGlobalLogger().error(modelException);
                     }
@@ -714,11 +706,10 @@ public class LvbFile extends Game_File {
             AvfxFilePath = ByteArrayExtensions.ReadString(bb, offset + Header.AvfxFileOffset);
             if(AvfxFilePath.length() != 0){
                 if(cAddPathToDB(AvfxFilePath) == 1) {
-                    SqPack_IndexFile tempIndex = currentIndex;
-                    if (archive.equals("010000")){
-                        tempIndex = bgcommonIndex;
-                    }else if (archive.equals("080000")){
-                        tempIndex = vfxIndex;
+                    SqPack_IndexFile tempIndex = SqPack_IndexFile.GetIndexFileForArchiveID(archive, false);
+
+                    if (tempIndex == null){
+                        return;
                     }
 
                     try {
@@ -923,42 +914,45 @@ public class LvbFile extends Game_File {
     }
 
     public enum LvbGroupEntryType {
-        Unknown(0),
-        Model (1),
-        Light(3),
-        Vfx(4),
-        PositionMarker(5),
-        Gimmick(6),
-        Sound(7),
-        EventNpc(8),
-        BattleNpc(9),
-        Aetheryte(12),
-        EnvSpace(13),
-        Gathering(14),
-        SharedGroup15(15),// secondary variable is set to 13
-        Treasure(16),
-        Weapon(39),
-        PopRange(40),
-        ExitRange(41),
-        MapRange(43),
-        NaviMeshRange(44),
-        EventObject(45),
-        EnvLocation(47),
-        EventRange(49),
-        QuestMarker(51),
-        CollisionBox(57),
-        DoorRange(58),
-        LineVfx(59),
-        ClientPath(65),
-        ServerPath(66),
-        GimmickRange(67),
-        TargetMarker(68),
-        ChairMarker(69),
-        ClickableRange(70),
-        PrefetchRange(71),
-        FateRange(72),
-        SphereCastRange(75),
-        ZoneMap(86);
+        BgParts(0x00),
+        //Keep this for backwards compatibility
+        Model (0x01),
+        Light(0x03),
+        Vfx(0x04),
+        PositionMarker(0x05),
+        Gimmick(0x06),
+        Sound(0x07),
+        EventNpc(0x08),
+        BattleNpc(0x09),
+        Aetheryte(0x0c),
+        EnvSpace(0x0d),
+        Gathering(0x0e),
+        SharedGroup15(0x0f),// secondary variable is set to 13
+        Treasure(0x10),
+        Weapon(0x27),
+        PopRange(0x29),
+        ExitRange(0x2a),
+        MapRange(0x2b),
+        NaviMeshRange(0x2c),
+        EventObject(0x2d),
+        EnvLocation(0x2f),
+        EventRange(0x31),
+        QuestMarker(0x33),
+        CollisionBox(0x39),
+        DoorRange(0x3a),
+        LineVfx(0x3b),
+        ClientPath(0x41),
+        ServerPath(0x42),
+        GimmickRange(0x43),
+        TargetMarker(0x44),
+        ChairMarker(0x45),
+        ClickableRange(0x46),
+        PrefetchRange(0x47),
+        FateRange(0x48),
+        SphereCastRange(0x4b),
+        SharedGroup83(0x53),
+        ZoneMap(0x56),
+        UnknownType( 0xffff);
 
         private final int id;
 
@@ -972,7 +966,8 @@ public class LvbFile extends Game_File {
                     return type;
                 }
             }
-            return Unknown;
+            Utils.getGlobalLogger().info(String.format("未知のEntryType : %s", value));
+            return UnknownType;
         }
 
         public int getId() {
@@ -1038,42 +1033,11 @@ public class LvbFile extends Game_File {
      */
     @SuppressWarnings("SameParameterValue")
     private int cAddPathToDB(String fullPath, String archive, int regMode){
-        SqPack_IndexFile sp_IndexFile;
-        SqPack_IndexFile temp_IndexFile = currentIndex;
-
         int result = 0;
+        SqPack_IndexFile temp_IndexFile = SqPack_IndexFile.GetIndexFileForArchiveID(archive, false);
 
-        if (currentIndex.getName().equals(archive)) {
-            temp_IndexFile = currentIndex;
-        } else if (archive.equals("010000")){
-            if(bgcommonIndex == null) {
-                try {
-                    bgcommonIndex = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\010000.win32.index", false);
-                    temp_IndexFile = bgcommonIndex;
-                } catch (IOException e) {
-                    Utils.getGlobalLogger().error(e);
-                }
-            }else{
-                temp_IndexFile = bgcommonIndex;
-            }
-        } else if (archive.equals("080000")){
-            if(vfxIndex == null) {
-                try {
-                    vfxIndex = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\080000.win32.index", false);
-                    temp_IndexFile = vfxIndex;
-                } catch (IOException e) {
-                    Utils.getGlobalLogger().error(e);
-                }
-            }else{
-                temp_IndexFile = vfxIndex;
-            }
-        } else {
-            try {
-                sp_IndexFile = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\" + archive + ".win32.index", true);
-                temp_IndexFile = sp_IndexFile;
-            } catch (IOException e) {
-                Utils.getGlobalLogger().error(e);
-            }
+        if (temp_IndexFile == null){
+            return 0;
         }
 
         int pathCheck = temp_IndexFile.findFile(fullPath);
@@ -1085,7 +1049,7 @@ public class LvbFile extends Game_File {
                 if (fullPath.endsWith(".envb")) {
                     try {
                         byte[] data = temp_IndexFile.extractFile(fullPath);
-                        new ENVB_File(temp_IndexFile, data, temp_IndexFile.getEndian());
+                        new ENVB_File(data, temp_IndexFile.getEndian());
                     } catch (Exception e) {
                         Utils.getGlobalLogger().error(e);
                     }
