@@ -6,7 +6,6 @@ import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.models.uldStuff.*;
 import com.fragmenterworks.ffxivextract.storage.HashDatabase;
 
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
@@ -140,16 +139,12 @@ public class ULD_File extends Game_File {
      */
     public static void main(String[] args) {
         SqPack_IndexFile index;
-        try {
-            index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\060000.win32.index", true);
-            byte[] data = index.extractFile("ui/uld/botanistgame.uld");
+        index = new SqPack_IndexFile(Constants.datPath + "\\game\\sqpack\\ffxiv\\060000.win32.index", true);
+        byte[] data = index.extractFile("ui/uld/botanistgame.uld");
 
-            @SuppressWarnings("unused")
-            ULD_File uld = new ULD_File(index, data, ByteOrder.LITTLE_ENDIAN);
+        @SuppressWarnings("unused")
+        ULD_File uld = new ULD_File(index, data, ByteOrder.LITTLE_ENDIAN);
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     /**
