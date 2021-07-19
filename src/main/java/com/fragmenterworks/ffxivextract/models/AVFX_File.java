@@ -4,7 +4,6 @@ import com.fragmenterworks.ffxivextract.helpers.FileTools;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.storage.HashDatabase;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -14,7 +13,14 @@ public class AVFX_File extends Game_File {
     //他のファイルを見つけるために使用されます
     private final SqPack_IndexFile currentIndex;
 
-    private final int fileSize;
+    //region Struct
+    public static class HeaderData {
+        public String Magic1;  // CUTB
+        public int FileSize;   //uint
+    }
+    //endregion
+
+    public HeaderData Header;
     private final ArrayList<AVFX_Packet> packets = new ArrayList<>();
 
     public AVFX_File(SqPack_IndexFile index, byte[] data, ByteOrder endian) {
@@ -23,57 +29,66 @@ public class AVFX_File extends Game_File {
         bb.order(endian);
         currentIndex = index;
 
-        String sig = getString(bb,4); //ファイルシグネチャ(reverseでAVFX)
-        if (sig.equals("XFVA")) {
-            fileSize = bb.getInt(); //シグネチャとサイズデータ(int)を除いたデータサイズ
+        Header = new HeaderData();
+
+        byte[] signature = new byte[4];
+        bb.get(signature);
+        Header.Magic1 = new String(signature).trim(); //ファイルシグネチャ(reverseでAVFX)
+        if (Header.Magic1.equals("XFVA")) {
+            Header.FileSize = bb.getInt(); //シグネチャとサイズデータ(int)を除いたデータサイズ
 
             while (bb.hasRemaining()) {
                 packets.add(new AVFX_Packet(bb));
             }
         }else{
-            fileSize = bb.capacity();
+            Header.FileSize = bb.capacity();
         }
     }
 
-    public int getFileSize() {
-        return fileSize;
-    }
+    public static class AVFX_Packet {
+        public static class HeaderData{
+            public String TagName;
+            public int DataSize;
+        }
 
-    static class AVFX_Packet {
+        public HeaderData Header = new HeaderData();
+
         final byte[] tag = new byte[4];
         int dataSize;
         final byte[] data;
 
-        AVFX_Packet(ByteBuffer inBuff) {
-            inBuff.get(tag);  //データタイプシグネチャ(xeT ,reV ,PFDbなど)
+        AVFX_Packet(ByteBuffer bb) {
+            bb.get(tag);  //データタイプシグネチャ(xeT ,reV ,PFDbなど)
+            Header.TagName = new StringBuffer(new String(tag)).reverse().toString().trim();
 
-            dataSize = inBuff.getInt(); //シグネチャとサイズデータ(int)を除いたデータサイズ
-            if(dataSize > inBuff.limit()){
+            Header.DataSize = bb.getInt(); //シグネチャとサイズデータ(int)を除いたデータサイズ
+            dataSize = Header.DataSize;
+            if(Header.DataSize > bb.limit()){
                 //なんらかのエラーが発生してる時ここに誘導
                 data = new byte[0];
                 return;
             }
 
-            //文字列のデータサイズはすべて違います
-            if (tag[0] == 0x78 && tag[1] == 0x65 && tag[2] == 0x54) {
-                //xeT :テキスト格納ブロックのシグネチャ(reverseでTex)
+            //パス文字列のデータサイズは実際のサイズ+空データ(1～3byte)で4の倍数になるように調整されている
+            if (Header.TagName.equals("Tex")) {
+                //テクスチャファイルのパス
                 int increment = 0;
-                int curPos = inBuff.position();
-                inBuff.position(curPos + dataSize); //byteバッファの読み込み開始アドレスをデータサイズ分進める
+                int BaseOffset = bb.position();
+                bb.position(BaseOffset + Header.DataSize); //byteバッファの読み込み開始アドレスをデータサイズ分進める
 
-                while (inBuff.hasRemaining() && inBuff.get() == 0x0) {
+                while (bb.hasRemaining() && bb.get() == 0x0) {
                     //文字列末尾の0x00データを検索
                     increment++;
                 }
 
                 dataSize += increment;
 
-                inBuff.position(curPos);
+                bb.position(BaseOffset);
             }
             //End this hack
 
             data = new byte[dataSize];
-            inBuff.get(data);
+            bb.get(data);
 
         }
 
@@ -110,21 +125,18 @@ public class AVFX_File extends Game_File {
         for (AVFX_Packet ap : packets){
             String apTag = new StringBuffer(new String(ap.tag)).reverse().toString().trim();
             if (apTag.equals("Tex")){
+                //テクスチャファイル関係
                 String fullPath = new String(ap.data).trim();
                 String archive = HashDatabase.getArchiveID(fullPath);
                 if (fileCheck) {
-                    int pathCheck = 0;
+                    int pathCheck;
                     if (currentIndex.getName().equals(archive)){
                         pathCheck = currentIndex.findFile(fullPath);
                     }else {
-                        try {
-                            if (index == null || !index.getName().equals(archive)) {
-                                index = new SqPack_IndexFile(FileTools.ArchiveID2IndexFilePath(archive), true);
-                            }
-                            pathCheck = index.findFile(fullPath);
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        if (index == null || !index.getName().equals(archive)) {
+                            index = new SqPack_IndexFile(FileTools.ArchiveID2IndexFilePath(archive), true);
                         }
+                        pathCheck = index.findFile(fullPath);
                     }
                     if (pathCheck == 2) {
                         HashDatabase.addPathToDB(fullPath, archive);
@@ -219,17 +231,4 @@ public class AVFX_File extends Game_File {
         packets.forEach(ap -> Utils.getGlobalLogger().trace(ap));
     }
 
-    /**
-     * Convenience function for reading a fixed length string from a ByteBuffer
-     *
-     * @param buffer     The buffer to read from
-     * @param byteLength The number of bytes to read
-     * @return A new non-trimmed string read from the given buffer with the given length.
-     */
-    @SuppressWarnings("SameParameterValue")
-    private static String getString(ByteBuffer buffer, int byteLength) {
-        byte[] input = new byte[byteLength];
-        buffer.get(input);
-        return new String(input);
-    }
 }
