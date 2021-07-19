@@ -15,6 +15,12 @@ public class Utils {
         return logger;
     }
 
+    public static void DummyLog(String Message){
+        //デバッグ用 メモ
+        @SuppressWarnings("unused")
+        String text = Message + "";
+    }
+
     /**
      * 単精度（32ビット）浮動小数点値を半精度（16ビット）に変換します。
      * <p>
@@ -24,7 +30,8 @@ public class Utils {
      * @return 半精度浮動小数点値
      */
     public static float convertHalfToFloat(short half) {
-        switch ((int) half) {
+        int num = Short.toUnsignedInt(half);
+        switch (num) {
             case 0x0000:
                 return 0f;
             case 0x8000:
