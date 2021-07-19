@@ -1,6 +1,5 @@
 package com.fragmenterworks.ffxivextract.gui.components;
 
-import com.fragmenterworks.ffxivextract.Constants;
 import com.fragmenterworks.ffxivextract.models.IGraphicsElement;
 import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile;
 import com.fragmenterworks.ffxivextract.models.TextureSet;
@@ -93,12 +92,12 @@ public class ULD_View extends JPanel {
         add(pnlFileList, BorderLayout.CENTER);
         pnlFileList.setLayout(new BoxLayout(pnlFileList, BoxLayout.X_AXIS));
 
-        currentIndex = uldFile.spIndex;
+        //currentIndex = uldFile.spIndex;
         //JScrollPane scrollPane = new JScrollPane()
         //pnlFileList.add(scrollPane)
 
         try {
-            ULD_File_Renderer renderer = new ULD_File_Renderer(Constants.datPath + "\\game\\sqpack\\ffxiv", uldFile);
+            ULD_File_Renderer renderer = new ULD_File_Renderer(uldFile);
 
             //width = renderer.getWidth();
             JLabel lblPic = new JLabel();
