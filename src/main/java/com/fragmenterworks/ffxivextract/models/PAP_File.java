@@ -75,13 +75,17 @@ public class PAP_File extends Game_File {
         }
 
         //HAVOK FILE
+        bb.position(Header.HavokDataOffset);
         HavokData = new byte[Header.ParametersOffset - Header.HavokDataOffset];
         bb.get(HavokData);
 
         //FOOTER
         Parameters = new byte[bb.capacity() - Header.ParametersOffset];
+        bb.position(Header.ParametersOffset);
         bb.get(Parameters);
-        tmbFile = new TmbFile(currentIndex, Parameters, currentIndex.getEndian());
+        if (Parameters.length != 0) {
+            tmbFile = new TmbFile(Parameters, currentIndex.getEndian());
+        }
     }
 
     public static class PapAnimation {
