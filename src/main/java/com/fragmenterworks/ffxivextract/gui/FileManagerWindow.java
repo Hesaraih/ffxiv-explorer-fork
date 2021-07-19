@@ -741,11 +741,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
             lblOffsetValue.setText(String.format("0x%08X", realOffset) + " (Dat: " + datNum + ")");
             lblHashValue.setText(String.format("0x%08X", fileTree.getSelectedFiles().get(0).getId()));
 
-            try {
-                lblContentTypeValue.setText("" + currentIndexFile.getContentType(fileTree.getSelectedFiles().get(0).getOffset()));
-            } catch (IOException ioe) {
-                lblContentTypeValue.setText("Content Type Error");
-            }
+            lblContentTypeValue.setText("" + currentIndexFile.getContentType(fileTree.getSelectedFiles().get(0).getOffset()));
         }
 
         if (splitPane.getRightComponent() instanceof JTabbedPane) {
@@ -771,34 +767,18 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
 
         byte[] data;
         int contentType;
-        try {
-            contentType = currentIndexFile.getContentType(file.getOffset());
+        contentType = currentIndexFile.getContentType(file.getOffset());
 
-            //プレースホルダーの場合は、気にしないでください
-            if (contentType == 0x01) {
-                JLabel lblFNFError = new JLabel("このファイルは現在プレースホルダーで、データはありません。");
-                tabs.addTab("データなし", lblFNFError);
-                hexView.setBytes(null);
-                splitPane.setRightComponent(tabs);
-                return;
-            }
-
-            data = currentIndexFile.extractFile(file.dataOffset, null);
-        } catch (FileNotFoundException eFNF) {
-            Utils.getGlobalLogger().error("{}のデータ{}が見つかりませんでした", currentIndexFile.getDatNum(file.getOffset()), file.getName(), eFNF);
-            JLabel lblFNFError = new JLabel("このファイルのデータがありません!");
-            tabs.addTab("Extractエラー", lblFNFError);
-            hexView.setBytes(null);
-            splitPane.setRightComponent(tabs);
-            return;
-        } catch (IOException e) {
-            Utils.getGlobalLogger().error("ファイル{}を抽出できませんでした", file.getName(), e);
-            JLabel lblLoadError = new JLabel("ファイルの抽出で何かが間違っています");
-            tabs.addTab("Extractエラー", lblLoadError);
+        //プレースホルダーの場合は、気にしないでください
+        if (contentType == 0x01) {
+            JLabel lblFNFError = new JLabel("このファイルは現在プレースホルダーで、データはありません。");
+            tabs.addTab("データなし", lblFNFError);
             hexView.setBytes(null);
             splitPane.setRightComponent(tabs);
             return;
         }
+
+        data = currentIndexFile.extractFile(file.dataOffset, null);
 
         //disable opengl for BE packs
         boolean threeDee = !currentIndexFile.isBigEndian();
@@ -833,6 +813,8 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
             return;
         }
 
+        String folderName = HashDatabase.getFolder2(file.getId2());
+
         //ファイル名クリック時の動作(ファイル種別毎に分岐)
         if (data.length >= 3 && checkMagic(data, "EXDF")) {
             if (exhfComponent == null || !exhfComponent.isSame(file.getName())) {
@@ -845,17 +827,19 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
             }
             tabs.addTab("EXHF File", exhfComponent);
         } else if (data.length >= 4 && checkMagic(data, "ENVB")) {
-            new ENVB_File(currentIndexFile, data, currentIndexFile.getEndian());
+            new ENVB_File(data, currentIndexFile.getEndian());
         } else if (data.length >= 4 && checkMagic(data, "ESSB")) {
-            new ENVB_File(currentIndexFile, data, currentIndexFile.getEndian());
+            new ENVB_File(data, currentIndexFile.getEndian());
         } else if (data.length >= 4 && checkMagic(data, "OBSB")) {
-            new ENVB_File(currentIndexFile, data, currentIndexFile.getEndian());
+            new ENVB_File(data, currentIndexFile.getEndian());
         } else if (data.length >= 8 && checkMagic(data, "SEDBSSCF")) {
             Sound_View scdComponent;
             scdComponent = new Sound_View(new SCD_File(data, currentIndexFile.getEndian()));
             tabs.addTab("SCD File", scdComponent);
         } else if (data.length >= 4 && checkMagic(data, "CUTB")) {
             new CutbFile(currentIndexFile, data, currentIndexFile.getEndian());
+        } else if (data.length >= 4 && checkMagic(data, "dzg")) {
+            new GzdFile(data, currentIndexFile.getEndian(), folderName + "/" + file.getName2());
         } else if (data.length >= 4 && checkMagic(data, "XFVA")) {
             //avfxファイル
             AVFX_File avfxFile = new AVFX_File(currentIndexFile, data, currentIndexFile.getEndian());
@@ -869,10 +853,10 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
             tabs.addTab("テクスチャ", imageComponent);
         } else if (data.length >= 4 && checkMagic(data, "LGB1")) {
             //lgbファイル
-            new LgbFile(currentIndexFile, data, currentIndexFile.getEndian());
+            new LgbFile(data, currentIndexFile.getEndian());
         } else if (data.length >= 4 && checkMagic(data, "LVB1")) {
             //lvbファイル
-            new LvbFile(currentIndexFile, data, currentIndexFile.getEndian());
+            new LvbFile(data, currentIndexFile.getEndian());
         } else if (data.length >= 4 && checkMagic(data, "LCB1")) {
             //lcbファイル
             new LcbFile(data, currentIndexFile.getEndian());
@@ -891,6 +875,9 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
         } else if (data.length >= 4 && checkMagic(data, "pap ")) {
             PAP_View papView = new PAP_View(new PAP_File(currentIndexFile, data, currentIndexFile.getEndian()));
             tabs.addTab("アニメーションファイル", papView);
+        } else if (data.length >= 4 && file.getName().endsWith(".pcb")) {
+            Utils.DummyLog("collision関係");
+            new PcbFile(data, currentIndexFile.getEndian(),folderName + "/" + file.getName2());
         } else if (data.length >= 4 && checkMagic(data, "ShCd")) {
             Shader_View shaderView = new Shader_View(new SHCD_File(data, currentIndexFile.getEndian()));
             tabs.addTab("シェーダーファイル", shaderView);
@@ -903,9 +890,9 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
             tabs.addTab("モデル情報ファイル", imcView);
         } else if (data.length >= 4 && checkMagic(data, "SGB1")) {
             //sgbファイル
-            new SgbFile(currentIndexFile, data, currentIndexFile.getEndian());
+            new SgbFile(data, currentIndexFile.getEndian(), folderName + "/" + file.getName2());
         } else if (data.length >= 4 && checkMagic(data, "TMLB")) {
-            new TmbFile(currentIndexFile, data, currentIndexFile.getEndian());
+            new TmbFile(data, currentIndexFile.getEndian());
         } else if (data.length >= 4 && checkMagic(data, "uldh")) {
             //uldファイル
             ULD_View uldView = new ULD_View(new ULD_File(currentIndexFile, data, currentIndexFile.getEndian()));
@@ -1090,7 +1077,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
             try {
                 HashDatabase.beginConnection();
                 currentIndexFile = new SqPack_IndexFile(selectedFile.getAbsolutePath(), prgLoadingBar, lblLoadingBarString);
-                HashDatabase.closeConnection();
+                SqPack_IndexFile.cachedIndexes.put(currentIndexFile.getName(), currentIndexFile);
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(FileManagerWindow.this,
                         "このインデックスファイルを開くときにエラーが発生しました。",
