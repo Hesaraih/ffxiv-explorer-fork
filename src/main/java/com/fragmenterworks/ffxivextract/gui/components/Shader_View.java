@@ -79,14 +79,14 @@ public class Shader_View extends JPanel {
             hexView.setBytes(shader.getShaderBytecode());
 
             for (ParameterInfo pi : shader.getShaderHeader().paramInfo) {
-                Utils.getGlobalLogger().debug("名前: {}, ID: {}", pi.parameterName, String.format("0x%04X", pi.id));
+                Utils.getGlobalLogger().info("名前: {}, ID: {}", pi.parameterName, String.format("0x%04X", pi.id));
             }
         } else {
             processCTable(i, shaderPack.getShaderType(i), shaderPack.getConstantTable(i));
             hexView.setBytes(shaderPack.getShaderBytecode(i));
 
             for (ParameterInfo pi : shaderPack.getShaderHeader(i).paramInfo) {
-                Utils.getGlobalLogger().debug("名前: {}, ID: {}", pi.parameterName, String.format("0x%04X", pi.id));
+                Utils.getGlobalLogger().info("名前: {}, ID: {}", pi.parameterName, String.format("0x%04X", pi.id));
             }
         }
     }
@@ -99,25 +99,28 @@ public class Shader_View extends JPanel {
             root.setUserObject("Pixel Shader");
         }
 
-        for (int i = 0; i < cTable.constantInfo.length; i++) {
-            String paramId = "";
+        if (cTable != null){
+            for (int i = 0; i < cTable.constantInfo.length; i++) {
+                String paramId = "";
 
-            if (shader == null) {
-                for (int j = 0; j < shaderPack.getShaderHeader(num).paramInfo.length; j++) {
-                    if (shaderPack.getShaderHeader(num).paramInfo[j].parameterName.equals(cTable.constantInfo[i].Name)) {
-                        paramId = String.format("0x%x", shaderPack.getShaderHeader(num).paramInfo[j].id);
-                        break;
+                if (shader == null) {
+                    for (int j = 0; j < shaderPack.getShaderHeader(num).paramInfo.length; j++) {
+                        if (shaderPack.getShaderHeader(num).paramInfo[j].parameterName.equals(cTable.constantInfo[i].Name)) {
+                            paramId = String.format("0x%x", shaderPack.getShaderHeader(num).paramInfo[j].id);
+                            break;
+                        }
                     }
                 }
-            }
-            DefaultMutableTreeNode node = new DefaultMutableTreeNode(cTable.constantInfo[i].Name + "[" + cTable.constantInfo[i].TypeInfo.Columns + "x" + cTable.constantInfo[i].TypeInfo.Rows + "]" + " Index: " + cTable.constantInfo[i].RegisterIndex + ", ParamId: " + paramId);
-            root.add(node);
+                DefaultMutableTreeNode node = new DefaultMutableTreeNode(cTable.constantInfo[i].Name + "[" + cTable.constantInfo[i].TypeInfo.Columns + "x" + cTable.constantInfo[i].TypeInfo.Rows + "]" + " Index: " + cTable.constantInfo[i].RegisterIndex + ", ParamId: " + paramId);
+                root.add(node);
 
-            for (int j = 0; j < cTable.constantInfo[i].TypeInfo.StructMemberInfo.length; j++) {
-                DefaultMutableTreeNode node2 = new DefaultMutableTreeNode(cTable.constantInfo[i].TypeInfo.StructMemberInfo[j].Name + "[" + cTable.constantInfo[i].TypeInfo.StructMemberInfo[j].TypeInfo.Columns + "x" + cTable.constantInfo[i].TypeInfo.StructMemberInfo[j].TypeInfo.Rows + "]");
-                node.add(node2);
+                for (int j = 0; j < cTable.constantInfo[i].TypeInfo.StructMemberInfo.length; j++) {
+                    DefaultMutableTreeNode node2 = new DefaultMutableTreeNode(cTable.constantInfo[i].TypeInfo.StructMemberInfo[j].Name + "[" + cTable.constantInfo[i].TypeInfo.StructMemberInfo[j].TypeInfo.Columns + "x" + cTable.constantInfo[i].TypeInfo.StructMemberInfo[j].TypeInfo.Rows + "]");
+                    node.add(node2);
+                }
             }
         }
+
         treeParameters = new JTree(root);
         panel.removeAll();
         panel.add(treeParameters);

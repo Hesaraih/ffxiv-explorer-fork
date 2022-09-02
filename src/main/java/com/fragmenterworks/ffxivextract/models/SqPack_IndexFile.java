@@ -176,7 +176,11 @@ public class SqPack_IndexFile {
 
                 noFolder = true;
                 packFolders = new SqPack_Folder[1];
-                packFolders[0] = new SqPack_Folder(0, (pathToIndex.contains("index2") ? 2 : 1) * segments[0].getSize() / 0x10, segments[0].getOffset());
+                if (pathToIndex.contains("index2")) {
+                    packFolders[0] = new SqPack_Folder(0, 2 * segments[0].getSize() / 0x10, segments[0].getOffset());
+                } else {
+                    packFolders[0] = new SqPack_Folder(0, segments[0].getSize() / 0x10, segments[0].getOffset());
+                }
 
                 ref.seek(segments[0].getOffset());
 
@@ -189,6 +193,7 @@ public class SqPack_IndexFile {
 
                         packFolders[0].getFiles()[i] = new SqPack_File(id, id2, dataOffset, false);
                     } else {
+                        //index2の読み込み
                         long dataOffset = ref.readInt();
                         packFolders[0].getFiles()[i] = new SqPack_File(id, -1, dataOffset, false);
                     }
@@ -219,7 +224,12 @@ public class SqPack_IndexFile {
                 } else {
                     noFolder = true;
                     packFolders = new SqPack_Folder[1];
-                    packFolders[0] = new SqPack_Folder(0, (pathToIndex.contains("index2") ? 2 : 1) * segments[0].getSize() / 0x10, segments[0].getOffset());
+                    if (pathToIndex.contains("index2")) {
+                        packFolders[0] = new SqPack_Folder(0, 2 * segments[0].getSize() / 0x10, segments[0].getOffset());
+                    } else {
+                        //index1の場合
+                        packFolders[0] = new SqPack_Folder(0, segments[0].getSize() / 0x10, segments[0].getOffset());
+                    }
                     unHashedFiles += packFolders[0].readFiles(ref, pathToIndex.contains("index2"));
                 }
             }
@@ -271,7 +281,7 @@ public class SqPack_IndexFile {
             ref.readInt(); // 不明：4byteスキップ
             bref.readInt(); // 不明：4byteスキップ
 
-            // ヘッダータイプを取得します。インデックスは2である必要があります
+            // ヘッダータイプを取得します。インデックスは2である必要があります(アドレス：0x14)
             int type = ref.readInt();
             int bType = bref.readInt();
 
@@ -550,7 +560,7 @@ public class SqPack_IndexFile {
         /**
          * ファイル名読み込み
          * @param id ファイルまたはフルパスのハッシュ値
-         * @param id2 Index2のハッシュ値
+         * @param id2 フォルダのハッシュ値(index2の場合「-1」)
          * @param offset オフセット
          * @param loadNames ファイル名の読み込み可否
          */

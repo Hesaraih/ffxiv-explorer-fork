@@ -14,10 +14,17 @@ public class ShaderHeader {
         this.type = type;
         shaderBytecodeOffset = bb.getInt();
         shaderBytecodeSize = bb.getInt();
-        int numConstants = bb.getShort();
-        int numSamplers = bb.getShort();
+        int numConstants = Short.toUnsignedInt(bb.getShort());
+        int numSamplers = Short.toUnsignedInt(bb.getShort());
+        int BaseOffset = bb.position();
         int numX = bb.getShort();
         int numY = bb.getShort();
+        if (numX < 0 || numY < 0){
+            bb.position(BaseOffset);
+            numX = 0;
+            numY = 0;
+        }
+
 
         //Read in parameter info
         paramInfo = new ParameterInfo[numConstants + numSamplers + numX + numY];

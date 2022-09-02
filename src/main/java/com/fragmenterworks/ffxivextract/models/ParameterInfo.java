@@ -16,8 +16,8 @@ public class ParameterInfo {
         id = bb.getInt();
         stringOffset = bb.getInt();
         stringSize = bb.getInt();
-        registerIndex = bb.getShort();
-        registerCount = bb.getShort();
+        registerIndex = Short.toUnsignedInt(bb.getShort());
+        registerCount = Short.toUnsignedInt(bb.getShort());
 
     }
 
