@@ -5,7 +5,7 @@ import com.fragmenterworks.ffxivextract.helpers.GLHelper;
 import com.fragmenterworks.ffxivextract.helpers.HavokNative;
 import com.fragmenterworks.ffxivextract.helpers.ImageDecoding.ImageDecodingException;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
-import com.fragmenterworks.ffxivextract.models.IMC_File.VarianceInfo;
+import com.fragmenterworks.ffxivextract.models.IMC_File.ImcVariant;
 import com.fragmenterworks.ffxivextract.models.directx.DX9VertexElement;
 import com.fragmenterworks.ffxivextract.shaders.*;
 import com.fragmenterworks.ffxivextract.storage.HashDatabase;
@@ -458,7 +458,7 @@ public class Model extends Game_File {
 
         int materialNumber = -1;
         if (imcFile != null) {
-            materialNumber = imcFile.parts.get(imcPartsKey).variants.get(currentVariant).materialNumber;
+            materialNumber = imcFile._Parts.get(imcPartsKey).Variants.get(currentVariant).Variant;
         }
 
         if (modelPath == null || modelPath.contains("null") || (!modelPath.contains("chara") && !modelPath.contains("bg"))) {
@@ -601,12 +601,12 @@ public class Model extends Game_File {
         if (imcFile == null) {
             return -1;
         } else {
-            return imcFile.getNumVariances();
+            return imcFile.getCount();
         }
     }
 
     @SuppressWarnings("unused")
-    public ArrayList<VarianceInfo> getVariantsList() {
+    public ArrayList<ImcVariant> getVariantsList() {
         if (imcFile == null) {
             return null;
         } else {
@@ -656,7 +656,7 @@ public class Model extends Game_File {
                             continue;
                         }
                     } else {
-                        if ((imcFile.getVarianceInfo(currentVariant).partVisibiltyMask & fullMask) != fullMask) {
+                        if ((imcFile.getVarianceInfo(currentVariant).PartVisibilityMask & fullMask) != fullMask) {
                             continue;
                         }
                     }
@@ -670,33 +670,35 @@ public class Model extends Game_File {
                     boolean isNormalized = GLHelper.isNormalized(element.datatype);
 
                     //バッファのオフセットとサイズを設定します
-                    ByteBuffer origin = mesh.vertBuffers[element.stream].duplicate();
-                    origin.position(element.offset);
-                    int size = mesh.BytesPerVertexPerBuffer[element.stream];
+                    if (element.stream < mesh.vertBuffers.length) {
+                        ByteBuffer origin = mesh.vertBuffers[element.stream].duplicate();
+                        origin.position(element.offset);
+                        int size = mesh.BytesPerVertexPerBuffer[element.stream];
 
-                    //ポインタのセット
-                    switch (element.usage) {
-                        case 0://位置
-                            gl.glVertexAttribPointer(shader.getAttribPosition(), components, datatype, isNormalized, size, origin);
-                            break;
-                        case 1://Blending Weight
-                            gl.glVertexAttribIPointer(shader.getAttribBlendWeight(), components, datatype, size, origin);
-                            break;
-                        case 2://Blend Indices
-                            gl.glVertexAttribIPointer(shader.getAttribBlendIndex(), components, datatype, size, origin);
-                            break;
-                        case 3://Normal
-                            gl.glVertexAttribPointer(shader.getAttribNormal(), components, datatype, isNormalized, size, origin);
-                            break;
-                        case 4://Texture Coordinates
-                            gl.glVertexAttribPointer(shader.getAttribTexCoord(), components, datatype, isNormalized, size, origin);
-                            break;
-                        case 6://Tangent
-                            gl.glVertexAttribPointer(shader.getAttribTangent(), components, datatype, isNormalized, size, origin);
-                            break;
-                        case 7://色
-                            gl.glVertexAttribPointer(shader.getAttribColor(), components, datatype, isNormalized, size, origin);
-                            break;
+                        //ポインタのセット
+                        switch (element.usage) {
+                            case 0://位置
+                                gl.glVertexAttribPointer(shader.getAttribPosition(), components, datatype, isNormalized, size, origin);
+                                break;
+                            case 1://Blending Weight
+                                gl.glVertexAttribIPointer(shader.getAttribBlendWeight(), components, datatype, size, origin);
+                                break;
+                            case 2://Blend Indices
+                                gl.glVertexAttribIPointer(shader.getAttribBlendIndex(), components, datatype, size, origin);
+                                break;
+                            case 3://Normal
+                                gl.glVertexAttribPointer(shader.getAttribNormal(), components, datatype, isNormalized, size, origin);
+                                break;
+                            case 4://Texture Coordinates
+                                gl.glVertexAttribPointer(shader.getAttribTexCoord(), components, datatype, isNormalized, size, origin);
+                                break;
+                            case 6://Tangent
+                                gl.glVertexAttribPointer(shader.getAttribTangent(), components, datatype, isNormalized, size, origin);
+                                break;
+                            case 7://色
+                                gl.glVertexAttribPointer(shader.getAttribColor(), components, datatype, isNormalized, size, origin);
+                                break;
+                        }
                     }
                 }
 

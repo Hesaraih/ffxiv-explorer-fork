@@ -107,6 +107,10 @@ public class Material extends Game_File {
                 //texファイルの登録
                 HashDatabase.addPathToDB(s, currentIndex.getName());
 
+                if (folderName.startsWith("chara/human/") && !fileString.startsWith("--")){
+                    HashDatabase.addPathToDB(folderName + "/--" + fileString, currentIndex.getName());
+                }
+
                 byte[] extracted = currentIndex.extractFile(folderName, fileString);
                 if (extracted == null) {
                     continue;
@@ -256,6 +260,7 @@ public class Material extends Game_File {
         return textureIds;
     }
 
+    @SuppressWarnings("unused")
     public int getFileSize() {
         return fileSize;
     }
