@@ -224,7 +224,6 @@ public class HashDatabase {
             }
         }else{
             Utils.getGlobalLogger().info("{}をエントリーに追加しています", fullPath);
-            result = 1;
         }
 
 
