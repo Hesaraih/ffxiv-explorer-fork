@@ -4,7 +4,6 @@ import com.fragmenterworks.ffxivextract.helpers.JOrbisPlayer;
 import com.fragmenterworks.ffxivextract.helpers.MSADPCM_Decode;
 import com.fragmenterworks.ffxivextract.helpers.Utils;
 import com.fragmenterworks.ffxivextract.models.SCD_File;
-import com.fragmenterworks.ffxivextract.models.SCD_File.SCD_Sound_Info;
 
 import javax.sound.sampled.*;
 import javax.swing.*;
@@ -48,15 +47,14 @@ public class Sound_View extends JPanel {
 
             if (!e.getValueIsAdjusting()) {
 
-                SCD_Sound_Info info = file.getSoundInfo(tblSoundEntryList.getSelectedRow());
+                SCD_File.ScdEntryHeader info = file.EntryHeaders[tblSoundEntryList.getSelectedRow()];
                 if (info != null) {
                     oggPlayer.stop();
-
-                    if (info.dataType == 0x0C) {
+                    if (info.Codec == SCD_File.ScdCodec.MSADPCM) {
                         final byte[] header = file.getADPCMHeader(tblSoundEntryList.getSelectedRow());
                         final byte[] body = file.getADPCMData(tblSoundEntryList.getSelectedRow());
                         new Thread(() -> playMsAdpcm(header, body)).start();
-                    } else if (info.dataType == 0x06) {
+                    } else if (info.Codec == SCD_File.ScdCodec.OGG) {
                         final byte[] body = file.getConverted(tblSoundEntryList.getSelectedRow());
                         new Thread(() -> playOgg(body)).start();
                     }
@@ -89,7 +87,7 @@ public class Sound_View extends JPanel {
 
         final SCD_File file;
         final String[] columns = {"Index", "File Size", "Data Type", "Frequency",
-                "Num Channels", "Loop Start", "Loop End"};
+                "Num Channels", "Loop Start", "Loop End", "Aux Chunk"};
 
         SCDTableModel(SCD_File file) {
             this.file = file;
@@ -113,7 +111,8 @@ public class Sound_View extends JPanel {
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
 
-            SCD_Sound_Info info = file.getSoundInfo(rowIndex);
+            //SCD_Sound_Info info = file.getSoundInfo(rowIndex);
+            SCD_File.ScdEntryHeader info = file.EntryHeaders[rowIndex];
 
             if (info == null) {
                 if (columnIndex == 0)
@@ -127,29 +126,21 @@ public class Sound_View extends JPanel {
             if (columnIndex == 0)
                 return rowIndex;
             else if (columnIndex == 1)
-                return info.fileSize;
+                return info.DataSize;
             else if (columnIndex == 2) {
-                switch (info.dataType) {
-                    case 0x06:
-                        return "OGG";
-                    case 0x0C:
-                        return "MS-ADPCM";
-                    case 0x07:
-                        return "PS3";
-                    default:
-                        return Integer.toHexString(info.dataType);
-                }
+                return info.Codec.toString();
             } else if (columnIndex == 3)
-                return info.frequency;
+                return info.Frequency;
             else if (columnIndex == 4)
-                return info.numChannels;
+                return info.ChannelCount;
             else if (columnIndex == 5)
-                return info.loopStart;
+                return info.LoopStartSample;
             else if (columnIndex == 6)
-                return info.loopEnd;
+                return info.LoopEndSample;
+            else if (columnIndex == 7)
+                return info.AuxChunkCount;
             else
                 return "";
-//            return "";
         }
 
     }
