@@ -31,18 +31,19 @@ public class ULD_File extends Game_File {
     private static final SparseArray<Class<? extends GraphicsNodeTypeData>> graphicsTypes = new SparseArray<>();
 
     /**
-     * List of parsers for COHD nodes
+     * COHD ノードのパーサーのリスト
      */
     private static final SparseArray<Class<? extends COHDEntryType>> cohdTypes = new SparseArray<>();
 
     /*
-     * Initialize default parsers
+     * デフォルトのパーサーを初期化する
      */
     static {
         putGraphicsType(1, GraphicsNodeTypeData_1.class);
         putGraphicsType(2, GraphicsNodeTypeData_2.class);
         putGraphicsType(3, GraphicsNodeTypeData_3.class);
         putGraphicsType(4, GraphicsNodeTypeData_4.class);
+        putGraphicsType(5, GraphicsNodeTypeData_5.class);
 
         putCOHDType(1, COHDEntryType_Graphics.class);
         putCOHDType(2, COHDEntryType_Frame.class);
@@ -57,7 +58,7 @@ public class ULD_File extends Game_File {
     public ULDH uldHeader;
 
     /**
-     * Parses the given ULD data pool
+     * 指定された ULD データ プールを解析します
      *
      * @param data 使用するデータプール
      */
@@ -71,32 +72,32 @@ public class ULD_File extends Game_File {
     }
 
     /**
-     * Adds a new Graphical node parser
+     * 新しいグラフィカル ノード パーサーを追加します
      *
-     * @param kind      The type identifier to associate with the new handler
-     * @param nodeClass The node handler for the given identifier
+     * @param kind      新しいハンドラーに関連付ける型識別子
+     * @param nodeClass 指定された識別子のノード ハンドラー
      */
     private static void putGraphicsType(int kind, Class<? extends GraphicsNodeTypeData> nodeClass) {
         graphicsTypes.put(kind, nodeClass);
     }
 
     /**
-     * Adds a new COHD Node parser
+     * 新しい COHD ノード パーサーを追加します
      *
-     * @param kind      The type identifier to associate with the new handler
-     * @param nodeClass The node handler for the given identifier
+     * @param kind      新しいハンドラーに関連付ける型識別子
+     * @param nodeClass 指定された識別子のノード ハンドラー
      */
     private static void putCOHDType(int kind, Class<? extends COHDEntryType> nodeClass) {
         cohdTypes.put(kind, nodeClass);
     }
 
     /**
-     * Looks up a parser for the given type and returns a new instance with parsed data according to type.
-     * Available parsers should have previously been added by a call to putGraphicsType
+     * 指定された型のパーサーを検索し、型に従って解析されたデータを含む新しいインスタンスを返します。
+     * 利用可能なパーサーは、putGraphicsType への呼び出しによって事前に追加されている必要があります。
      *
-     * @param type The type identifier to find handler for
-     * @param data The data pool to use
-     * @return A new instance of parsed data for the given type
+     * @param type ハンドラーを見つけるための型識別子
+     * @param data 使用するデータプール
+     * @return 指定されたタイプの解析済みデータの新しいインスタンス
      */
     public static GraphicsNodeTypeData getGraphicsNodeByType(int type, ByteBuffer data) {
         Class<? extends GraphicsNodeTypeData> aClass = graphicsTypes.get(type);
@@ -112,12 +113,12 @@ public class ULD_File extends Game_File {
     }
 
     /**
-     * Looks up a parser for the given type and returns a new instance with parsed data according to type.
-     * Available parsers should have previously been added by a call to putCOHDType
+     * 指定された型のパーサーを検索し、型に従って解析されたデータを含む新しいインスタンスを返します。
+     * 使用可能なパーサーは、putCOHDType への呼び出しによって事前に追加されている必要があります。
      *
-     * @param type The type identifier to find handler for
-     * @param data The data pool to use
-     * @return A new instance of parsed data for the given type
+     * @param type ハンドラーを見つけるための型識別子
+     * @param data 使用するデータプール
+     * @return 指定されたタイプの解析済みデータの新しいインスタンス
      */
     public static COHDEntryType getCOHDNodeByType(int type, ByteBuffer data) {
         Class<? extends COHDEntryType> aClass = cohdTypes.get(type);
@@ -133,9 +134,9 @@ public class ULD_File extends Game_File {
     }
 
     /**
-     * Main routine for testing parsing
+     * 解析テストするためのメインルーチン
      *
-     * @param args Program arguments.
+     * @param args プログラムの引数
      */
     public static void main(String[] args) {
         SqPack_IndexFile index;
@@ -148,11 +149,11 @@ public class ULD_File extends Game_File {
     }
 
     /**
-     * Convenience function for reading a fixed length string from a ByteBuffer
+     * ByteBuffer から固定長文字列を読み取るための関数
      *
-     * @param buffer     The buffer to read from
-     * @param byteLength The number of bytes to read
-     * @return A new non-trimmed string read from the given buffer with the given length.
+     * @param buffer     読み取りバッファ
+     * @param byteLength 読み取るバイト数
+     * @return 指定されたバッファから指定された長さで読み取られた、トリミングされていない新しい文字列。
      */
     private static String getString(ByteBuffer buffer, int byteLength) {
         byte[] input = new byte[byteLength];
@@ -211,9 +212,9 @@ public class ULD_File extends Game_File {
         public WDHD wdhd;
 
         /**
-         * Initializes this ATKH by parsing the given data pool
+         * 指定されたデータ プールを解析して、ATKH を初期化します。
          *
-         * @param data The data pool to use
+         * @param data 使用するデータプール
          */
         ATKH(ByteBuffer data) {
             int atkhOffset = data.position();
@@ -266,7 +267,7 @@ public class ULD_File extends Game_File {
         public String ashd_Ver = "1.00";
 
         /**
-         * @param data The data pool to use
+         * @param data 使用するデータプール
          */
         ASHD(ByteBuffer data) {
             boolean multiFlag = false;
@@ -283,9 +284,17 @@ public class ULD_File extends Game_File {
                     //ファイル登録
                     String archive = HashDatabase.getArchiveID(path);
                     if (!archive.equals("*")) {
-                        if (currentIndex.findFile(path) == 2) {
-                            HashDatabase.addPathToDB(path, archive);
+                        cAddPathToDB(path, archive,2);
+
+                        if (!path.contains("_hr1")){
+                            String folder = path.substring(0, path.lastIndexOf('/'));
+                            String filename = path.substring(path.lastIndexOf('/') + 1);
+                            String texName = filename.substring(0, filename.lastIndexOf('.'));
+                            String fullPath = String.format("%s/%s_hr1.tex", folder, texName);
+                            cAddPathToDB(fullPath, archive);
+
                         }
+
                     }
                 }
             }else if (signature.equals("ashd0101")) {
@@ -297,6 +306,7 @@ public class ULD_File extends Game_File {
                     //ファイルブロックは0x38byte (index:4byte,filePath:0x2Cbyte,iconID:4byte,不明:4byte)
                     int index = data.getInt();
                     String path = getString(data, 0x2c).trim();
+                    String archive = HashDatabase.getArchiveID(path);
                     int iconID = data.getInt();
                     data.getInt(); //不明 通常0、時々3が入っている
                     //ファイルパスがiconIDの時、ファイルパスを生成
@@ -320,8 +330,9 @@ public class ULD_File extends Game_File {
 
                                     //ui/icon登録
                                     if (currentIndex.findFile(iconPath) == 2) {
-                                        HashDatabase.addPathToDB(iconPath, "060000");
-                                        HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
+                                        archive = HashDatabase.getArchiveID(iconPath);
+                                        cAddPathToDB(iconPath, archive);
+                                        cAddPathToDB(iconPath2, archive); //高画質用
                                     }
 
                                     multiFlag = false;
@@ -332,7 +343,8 @@ public class ULD_File extends Game_File {
                             }
                         }
                         if (currentIndex.findFile(iconPath) == 2) {
-                            HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
+                            archive = HashDatabase.getArchiveID(iconPath);
+                            cAddPathToDB(iconPath2, archive); //高画質用
                         }
                         //高画質表示したい時は以下でiconPath2をpathに代入
                         path = iconPath;
@@ -342,10 +354,15 @@ public class ULD_File extends Game_File {
                     }
 
                     //ファイル登録
-                    String archive = HashDatabase.getArchiveID(path);
                     if (!archive.equals("*")) {
-                        if (currentIndex.findFile(path) == 2) {
-                            HashDatabase.addPathToDB(path, archive);
+                        cAddPathToDB(path, archive,2);
+
+                        if (!path.contains("_hr1")){
+                            String folder = path.substring(0, path.lastIndexOf('/'));
+                            String filename = path.substring(path.lastIndexOf('/') + 1);
+                            String texName = filename.substring(0, filename.lastIndexOf('.'));
+                            String fullPath = String.format("%s/%s_hr1.tex", folder, texName);
+                            cAddPathToDB(fullPath, archive);
                         }
                     }
                 }
@@ -360,9 +377,9 @@ public class ULD_File extends Game_File {
         public final SparseArray<ImageSet> imageSets = new SparseArray<>();
 
         /**
-         * Initializes this TPHD Chunk from the given data pool
+         * 指定されたデータ プールから TPHD チャンクを初期化します
          *
-         * @param data The data pool to use
+         * @param data 使用するデータプール
          */
         TPHD(ByteBuffer data) {
             String signature = getString(data, 8);
@@ -389,9 +406,9 @@ public class ULD_File extends Game_File {
         final SparseArray<TLHDSet> entries = new SparseArray<>();
 
         /**
-         * Initializes this TLHD Chunk from the given data pool
+         * 指定されたデータ プールから TLHD チャンクを初期化します
          *
-         * @param data The data pool to use
+         * @param data 使用するデータプール
          */
         TLHD(ByteBuffer data) {
             String signature = getString(data, 8);
@@ -481,5 +498,54 @@ public class ULD_File extends Game_File {
     public String toString() {
         return String.format("ULD_File{uldHeader=%s}\n",
                 uldHeader != null ? uldHeader : "null");
+    }
+
+    /**
+     * ファイルの存在チェック後、ハッシュデータベース登録
+     * (フォルダ名の一致のみでも登録する。)
+     * @param fullPath フルパス
+     * @param archive Indexファイル名
+     * @return 登録結果 0:登録失敗 1:登録成功 2:ファイル名変更 3:ファイルパス変更 4:登録済みのため何もしない
+     */
+    @SuppressWarnings("UnusedReturnValue")
+    private static int cAddPathToDB(String fullPath, String archive){
+        return cAddPathToDB(fullPath, archive,1);
+    }
+
+    /**
+     * ファイルの存在チェック後、ハッシュデータベース登録
+     * @param fullPath フルパス
+     * @param archive Indexファイル名
+     * @param regMode 1:フォルダ名の一致のみでも登録する。2:ファイル名・パスが完全一致した時のみ登録
+     * @return 登録結果 0:登録失敗 1:登録成功 2:ファイル名変更 3:ファイルパス変更 4:登録済みのため何もしない
+     */
+    @SuppressWarnings("SameParameterValue")
+    private static int cAddPathToDB(String fullPath, String archive, int regMode){
+        int result = 0;
+        SqPack_IndexFile temp_IndexFile = SqPack_IndexFile.GetIndexFileForArchiveID(archive, false);
+
+        if (temp_IndexFile == null){
+            return 0;
+        }
+
+        int pathCheck = temp_IndexFile.findFile(fullPath);
+        if (pathCheck == 2){
+            result = HashDatabase.addPathToDB(fullPath, archive);
+        }else if (pathCheck == 1 && regMode == 1){
+            //ファイルパスのみ追加
+            String folder;
+            if (fullPath.contains(".")) {
+                folder = fullPath.substring(0, fullPath.lastIndexOf("/"));
+            }else{
+                folder = fullPath;
+            }
+
+            if (fullPath.endsWith(".mtrl") || fullPath.endsWith(".mdl")) {
+                result = HashDatabase.addFolderToDB(folder, archive, false);
+            }else {
+                result = HashDatabase.addFolderToDB(folder, archive);
+            }
+        }
+        return result;
     }
 }

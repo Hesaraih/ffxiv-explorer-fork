@@ -65,6 +65,8 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
         uiComponentTypes.put(21, NullUIComponent.class);
         uiComponentTypes.put(22, NullUIComponent.class);
         uiComponentTypes.put(23, NullUIComponent.class);
+        uiComponentTypes.put(24, NullUIComponent.class);
+        uiComponentTypes.put(25, NullUIComponent.class);
     }
 
     final private Map<Integer, BufferedImage> images = new HashMap<>();
@@ -289,10 +291,12 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                 int key = paths.keyAt(i);
                 String path = paths.valueAt(i);
                 try {
-                    byte[] data = currentIndex.extractFile(path);
-                    Texture_File tex = new Texture_File(data, currentIndex.getEndian());
-                    BufferedImage texture = tex.decode(0, null);
-                    images.put(key, texture);
+                    if(currentIndex.findFile(path) == 2) {
+                        byte[] data = currentIndex.extractFile(path);
+                        Texture_File tex = new Texture_File(data, currentIndex.getEndian());
+                        BufferedImage texture = tex.decode(0, null);
+                        images.put(key, texture);
+                    }
                 } catch (ImageDecoding.ImageDecodingException e) {
                     Utils.getGlobalLogger().info("テクスチャ読み込み時にエラーが発生");
                     e.printStackTrace();
@@ -1297,32 +1301,55 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                 btnHelp.left = parent.width - (originalWidth - (titlebarX + btnHelp.left));
             }
             if (txtTitle != null) {
-                txtTitle.width = parent.width - (originalWidth - (titlebarX + txtTitle.width));
-                if(txtTitle.width < 0){
-                    Utils.getGlobalLogger().trace("幅が負の値を取っています");
+                if(parent.width < (originalWidth - (titlebarX + txtTitle.width))){
+                    Utils.getGlobalLogger().trace("幅が負の値を取りそうです");
+                    //Todo:処理方法を検討
+                }else{
+                    txtTitle.width = parent.width - (originalWidth - (titlebarX + txtTitle.width));
                 }
             }
 
-            graphics.width = parent.width - (originalWidth - graphics.width);
-            graphics.height = parent.height - (originalHeight - graphics.height);
-            if(graphics.width < 0 || graphics.height < 0){
-                Utils.getGlobalLogger().trace("幅か高さが負の値を取っています");
+            if(parent.width < (originalWidth - graphics.width)){
+                Utils.getGlobalLogger().trace("幅が負の値を取りそうです");
+                //Todo:処理方法を検討
+            }else{
+                graphics.width = parent.width - (originalWidth - graphics.width);
+            }
+            if(parent.height < (originalHeight - graphics.height)){
+                Utils.getGlobalLogger().trace("高さが負の値を取りそうです");
+                //Todo:処理方法を検討
+            }else{
+                graphics.height = parent.height - (originalHeight - graphics.height);
             }
 
             if (node9 != null) {
-                node9.width = parent.width - (originalWidth - node9.width);
-                if (parent.height > originalHeight - node9.height) {
-                    node9.height = parent.height - (originalHeight - node9.height);
+
+                if(parent.width < (originalWidth - node9.width)){
+                    Utils.getGlobalLogger().trace("幅が負の値を取りそうです");
+                    //Todo:処理方法を検討
+                }else{
+                    node9.width = parent.width - (originalWidth - node9.width);
                 }
-                if(node9.width < 0 || node9.height < 0){
-                    Utils.getGlobalLogger().trace("幅か高さが負の値を取っています");
+                if(parent.height < (originalHeight - node9.height)){
+                    Utils.getGlobalLogger().trace("高さが負の値を取りそうです");
+                    //Todo:処理方法を検討
+                }else{
+                    node9.height = parent.height - (originalHeight - node9.height);
                 }
             }
             if (node10 != null) {
-                node10.width = parent.width - (originalWidth - node10.width);
-                node10.height = parent.height - (originalHeight - node10.height);
-                if(node10.width < 0 || node10.height < 0){
-                    Utils.getGlobalLogger().trace("幅か高さが負の値を取っています");
+                if(parent.width < (originalWidth - node10.width)){
+                    Utils.getGlobalLogger().trace("幅が負の値を取りそうです");
+                    //Todo:処理方法を検討
+                }else{
+                    node10.width = parent.width - (originalWidth - node10.width);
+                }
+
+                if(parent.height < (originalHeight - node10.height)){
+                    Utils.getGlobalLogger().trace("高さが負の値を取りそうです");
+                    //Todo:処理方法を検討
+                }else{
+                    node10.height = parent.height - (originalHeight - node10.height);
                 }
             }
 
