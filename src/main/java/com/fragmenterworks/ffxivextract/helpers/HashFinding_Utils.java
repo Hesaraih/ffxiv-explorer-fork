@@ -1,6 +1,5 @@
 package com.fragmenterworks.ffxivextract.helpers;
 
-import com.fragmenterworks.ffxivextract.Constants;
 import com.fragmenterworks.ffxivextract.gui.components.EXDF_View;
 import com.fragmenterworks.ffxivextract.models.*;
 import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile.SqPack_File;
@@ -73,19 +72,19 @@ public class HashFinding_Utils extends Component {
                     }
                 }
 
-                //noinspection ConstantConditions
-                if (false){
-                    //exhFileの登録
-                    EXHF_File exhFile = null;
+                //exhFileの登録
+                EXHF_File exhFile = null;
 
-                    String exhName = String.format("exd/%s.exh", path);
-                    if (index.extractFile(exhName) != null) {
-                        HashDatabase.addPathToDB(exhName, "0a0000",true);
-                        exhFile = new EXHF_File(index.extractFile(exhName));
-                    }
+                String exhName = String.format("exd/%s.exh", path);
+                if (index.extractFile(exhName) != null) {
+                    HashDatabase.addPathToDB(exhName, "0a0000",true);
+                    exhFile = new EXHF_File(index.extractFile(exhName));
+                }
 
-                    //exdFileの登録
-                    for (EXHF_File.EXDF_Page exdPage : Objects.requireNonNull(exhFile).getPageTable()){
+                if (exhFile != null)
+                //exdFileの登録
+                {
+                    for (EXHF_File.EXDF_Page exdPage : exhFile.getPageTable()){
                         int pageNum = exdPage.pageNum;
                         for (String code : EXHF_File.languageCodes) {
                             //String exdName = String.format("exd/%s_0%s.exd", sBuilder, code);
@@ -174,45 +173,11 @@ public class HashFinding_Utils extends Component {
         IsDebug = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0;
 
         if (false) {
-            //データ検証用
-            testPapLoadTable();
-        }
-
-        if (false) {
             getModelsFromModelChara();
         }
 
         if (false) {
-            getModelsFromItem();
-        }
-
-        if (false) {
-            findSoundHashes();
-        }
-
-        if (false) {
-            findVFXHashes();
-        }
-
-        if (false) {
-            getHousingModels();
-        }
-
-        if (false) {
-            findAnimationPAP_Hashes();
-        }
-
-        if (false) {
             openEveryCutb();
-        }
-
-        if (IsDebug) {
-            findCutSceneHashes();
-        }
-
-        if (false) {
-            //OK
-            findSoundVoiceHashes();
         }
 
         if (false) {
@@ -220,19 +185,19 @@ public class HashFinding_Utils extends Component {
         }
 
         if (false) {
-            findSkeletonHashes();
-        }
-
-        if (false) {
             //データ検証用
             testAnimationWorkTable();
+        }
+
+        if (IsDebug) {
+            //総当たり検索用
+            test_All_ID_Check();
         }
     }
 
     /**
      * Soundハッシュ検索
      */
-    @SuppressWarnings("unused")
     public static void findSoundHashes() {
 
         HashDatabase.beginConnection();
@@ -346,7 +311,6 @@ public class HashFinding_Utils extends Component {
     /**
      * SoundVoiceハッシュ検索
      */
-    @SuppressWarnings("unused")
     public static void findSoundVoiceHashes() {
         byte[] exhData;
         SqPack_IndexFile index;
@@ -354,6 +318,7 @@ public class HashFinding_Utils extends Component {
         SqPack_IndexFile index3_1 = null;
         SqPack_IndexFile index3_2 = null;
         SqPack_IndexFile index3_3 = null;
+        SqPack_IndexFile index3_4 = null;
         EXDF_View viewer;
 
         String[] multi = {"ja","en","fr","de"};
@@ -413,33 +378,34 @@ public class HashFinding_Utils extends Component {
                             }else if (folderName.charAt(15) == '6'){
                                 //END WALKER 暁の終焉 用
                                 ExPath = "ex4";
-
-                                continue;
+                                archive = HashDatabase.getArchiveID(String.format("cut/%s/", ExPath));
+                                if(index3_4 == null) {
+                                    index3_4 = SqPack_IndexFile.GetIndexFileForArchiveID(archive, true);
+                                }
+                                bgcommonIndex = index3_4;
                             }
 
-                            if (IsDebug){
-                                for (int i = 0; i < viewer.getTable().getRowCount(); i++) {
-                                    String VoiceSign = String.format("%s", viewer.getTable().getValueAt(i, 1));
-                                    //TEXT_VOICEMAN_05500_000010_MERLWYB
+                            for (int i = 0; i < viewer.getTable().getRowCount(); i++) {
+                                String VoiceSign = String.format("%s", viewer.getTable().getValueAt(i, 1));
+                                //TEXT_VOICEMAN_05500_000010_MERLWYB
 
-                                    if (VoiceSign == null || VoiceSign.isEmpty()) {
-                                        continue;
-                                    }
+                                if (VoiceSign == null || VoiceSign.isEmpty()) {
+                                    continue;
+                                }
 
-                                    //TEXT_VOICEMAN_05500_Q1_000_001_NONE_VOICE等の排除
-                                    if (VoiceSign.startsWith("TEXT_VOICEMAN_") && !VoiceSign.endsWith("_NONE_VOICE")){
-                                        String[] VoiceID = VoiceSign.split("_");
-                                        for (String lang : multi) {
-                                            for (String voiceType2 : voiceType) {
-                                                //cut/ex3/sound/voicem/VoiceMan_05401/Vo_VoiceMan_05401_000010_m_ja.scd
-                                                String fullPass = String.format("cut/%s/sound/voicem/VoiceMan_%s/Vo_VoiceMan_%s_%s_%s_%s.scd", ExPath, VoiceID[2], VoiceID[2], VoiceID[3], voiceType2, lang);
+                                //TEXT_VOICEMAN_05500_Q1_000_001_NONE_VOICE等の排除
+                                if (VoiceSign.startsWith("TEXT_VOICEMAN_") && !VoiceSign.endsWith("_NONE_VOICE")){
+                                    String[] VoiceID = VoiceSign.split("_");
+                                    for (String lang : multi) {
+                                        for (String voiceType2 : voiceType) {
+                                            //cut/ex3/sound/voicem/VoiceMan_05401/Vo_VoiceMan_05401_000010_m_ja.scd
+                                            String fullPass = String.format("cut/%s/sound/voicem/VoiceMan_%s/Vo_VoiceMan_%s_%s_%s_%s.scd", ExPath, VoiceID[2], VoiceID[2], VoiceID[3], voiceType2, lang);
 
-                                                cAddPathToDB(fullPass, archive, 2);
-                                            }
+                                            cAddPathToDB(fullPass, archive, 2);
                                         }
                                     }
-
                                 }
+
                             }
                         }
                     }
@@ -455,12 +421,12 @@ public class HashFinding_Utils extends Component {
     /**
      * VFXハッシュ検索
      */
-    @SuppressWarnings({"unused", "ConstantConditions"})
+    @SuppressWarnings({"ConstantConditions"})
     public static void findVFXHashes() {
         byte[] exhData;
         SqPack_IndexFile index;
         SqPack_IndexFile index2;
-        EXDF_View viewer = null;
+        EXDF_View viewer;
 
         HashDatabase.beginConnection();
         HashDatabase.setAutoCommit(false);
@@ -469,19 +435,56 @@ public class HashFinding_Utils extends Component {
         index2 = SqPack_IndexFile.GetIndexFileForArchiveID("080000", true);
         //TODO: "vfx/cut/general/eff/%s.avfx"も自動登録したい
 
-        if(false) {
-            Utils.getGlobalLogger().info("VFX.exhを開いています...");
+        Utils.getGlobalLogger().info("VFX.exhを開いています...");
 
-            exhData = index.extractFile("exd/VFX.exh");
-            viewer = new EXDF_View(index, "exd/VFX.exh", new EXHF_File(exhData));
+        exhData = index.extractFile("exd/VFX.exh");
+        viewer = new EXDF_View(index, "exd/VFX.exh", new EXHF_File(exhData));
 
-            Utils.getGlobalLogger().info("VFX.exhを読み込みました");
+        Utils.getGlobalLogger().info("VFX.exhを読み込みました");
 
+        for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+            //m0689_stlp2b_c0t1
+            //      ↓
+            //vfx/common/eff/m0689_stlp2b_c0t1.avfx
+            String path = String.format("vfx/common/eff/%s.avfx", viewer.getTable().getValueAt(i, 1));
+
+            if (path == null || path.isEmpty()) {
+                continue;
+            }
+
+            String archive = HashDatabase.getArchiveID(path);
+            if (index2.findFile(path) == 2) {
+                int result = HashDatabase.addPathToDB(path, archive);
+
+                if (result == 1) {
+                    //新規追加の場合
+                    try {
+                        //avfxファイル内のパスも解析
+                        byte[] data2 = index2.extractFile(path);
+                        AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
+                        avfxFile.regHash(true);
+                    } catch (Exception avfxException) {
+                        avfxException.printStackTrace();
+                    }
+                }
+
+            }
+        }
+
+
+        Utils.getGlobalLogger().info("Omen.exhを開いています...");
+
+        exhData = index.extractFile("exd/Omen.exh");
+        viewer = new EXDF_View(index, "exd/Omen.exh", new EXHF_File(exhData));
+
+        Utils.getGlobalLogger().info("Omen.exhを読み込みました");
+
+        for (int col = 1; col <= 2; col++) {
             for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                //m0689_stlp2b_c0t1
+                //bahamut2_bomu_omen0s
                 //      ↓
-                //vfx/common/eff/m0689_stlp2b_c0t1.avfx
-                String path = String.format("vfx/common/eff/%s.avfx", viewer.getTable().getValueAt(i, 1));
+                //vfx/omen/eff/bahamut2_bomu_omen0s.avfx
+                String path = String.format("vfx/omen/eff/%s.avfx", viewer.getTable().getValueAt(i, col));
 
                 if (path == null || path.isEmpty()) {
                     continue;
@@ -507,192 +510,148 @@ public class HashFinding_Utils extends Component {
             }
         }
 
-        if(false) {
-            Utils.getGlobalLogger().info("Omen.exhを開いています...");
 
-            exhData = index.extractFile("exd/Omen.exh");
-            viewer = new EXDF_View(index, "exd/Omen.exh", new EXHF_File(exhData));
+        Utils.getGlobalLogger().info("EventVfx.exhを開いています...");
 
-            Utils.getGlobalLogger().info("Omen.exhを読み込みました");
+        exhData = index.extractFile("exd/EventVfx.exh");
+        viewer = new EXDF_View(index, "exd/EventVfx.exh", new EXHF_File(exhData));
 
-            for (int col = 1; col <= 2; col++) {
-                for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                    //bahamut2_bomu_omen0s
-                    //      ↓
-                    //vfx/omen/eff/bahamut2_bomu_omen0s.avfx
-                    String path = String.format("vfx/omen/eff/%s.avfx", viewer.getTable().getValueAt(i, col));
+        Utils.getGlobalLogger().info("EventVfx.exhを読み込みました");
 
-                    if (path == null || path.isEmpty()) {
-                        continue;
-                    }
+        for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+            //gpose_akatsuki
+            //      ↓
+            //vfx/grouppose/eff/gpose_akatsuki.avfx
+            int type = (int) viewer.getTable().getValueAt(i, 2);
+            String path = null;
+            if (type == 1) {
+                path = String.format("vfx/general/eff/%s.avfx", viewer.getTable().getValueAt(i, 3));
+            } else if (type == 2) {
+                path = String.format("vfx/grouppose/eff/%s.avfx", viewer.getTable().getValueAt(i, 3));
+            }
 
-                    String archive = HashDatabase.getArchiveID(path);
-                    if (index2.findFile(path) == 2) {
-                        int result = HashDatabase.addPathToDB(path, archive);
+            if (path == null || path.isEmpty()) {
+                continue;
+            }
 
-                        if (result == 1) {
-                            //新規追加の場合
-                            try {
-                                //avfxファイル内のパスも解析
-                                byte[] data2 = index2.extractFile(path);
-                                AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
-                                avfxFile.regHash(true);
-                            } catch (Exception avfxException) {
-                                avfxException.printStackTrace();
-                            }
-                        }
+            String archive = HashDatabase.getArchiveID(path);
+            if (index2.findFile(path) == 2) {
+                int result = HashDatabase.addPathToDB(path, archive);
 
+                if (result == 1) {
+                    //新規追加の場合
+                    try {
+                        //avfxファイル内のパスも解析
+                        byte[] data2 = index2.extractFile(path);
+                        AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
+                        avfxFile.regHash(true);
+                    } catch (Exception avfxException) {
+                        avfxException.printStackTrace();
                     }
                 }
+
             }
         }
 
-        if(false) {
-            Utils.getGlobalLogger().info("EventVfx.exhを開いています...");
 
-            exhData = index.extractFile("exd/EventVfx.exh");
-            viewer = new EXDF_View(index, "exd/EventVfx.exh", new EXHF_File(exhData));
+        Utils.getGlobalLogger().info("Channeling.exhを開いています...");
 
-            Utils.getGlobalLogger().info("EventVfx.exhを読み込みました");
+        exhData = index.extractFile("exd/Channeling.exh");
+        viewer = new EXDF_View(index, "exd/Channeling.exh", new EXHF_File(exhData));
 
-            for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                //gpose_akatsuki
-                //      ↓
-                //vfx/grouppose/eff/gpose_akatsuki.avfx
-                int type = (int) viewer.getTable().getValueAt(i, 2);
-                String path = null;
-                if (type == 1) {
-                    path = String.format("vfx/general/eff/%s.avfx", viewer.getTable().getValueAt(i, 3));
-                } else if (type == 2) {
-                    path = String.format("vfx/grouppose/eff/%s.avfx", viewer.getTable().getValueAt(i, 3));
-                }
+        Utils.getGlobalLogger().info("Channeling.exhを読み込みました");
 
-                if (path == null || path.isEmpty()) {
-                    continue;
-                }
+        for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+            //chn_dark001f
+            //      ↓
+            //vfx/channeling/eff/chn_dark001f.avfx
+            String path = String.format("vfx/channeling/eff/%s.avfx", viewer.getTable().getValueAt(i, 1));
 
-                String archive = HashDatabase.getArchiveID(path);
-                if (index2.findFile(path) == 2) {
-                    int result = HashDatabase.addPathToDB(path, archive);
+            if (path == null || path.isEmpty()) {
+                continue;
+            }
 
-                    if (result == 1) {
-                        //新規追加の場合
-                        try {
-                            //avfxファイル内のパスも解析
-                            byte[] data2 = index2.extractFile(path);
-                            AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
-                            avfxFile.regHash(true);
-                        } catch (Exception avfxException) {
-                            avfxException.printStackTrace();
-                        }
+            String archive = HashDatabase.getArchiveID(path);
+            if (index2.findFile(path) == 2) {
+                int result = HashDatabase.addPathToDB(path, archive);
+
+                if (result == 1) {
+                    //新規追加の場合
+                    try {
+                        //avfxファイル内のパスも解析
+                        byte[] data2 = index2.extractFile(path);
+                        AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
+                        avfxFile.regHash(true);
+                    } catch (Exception avfxException) {
+                        avfxException.printStackTrace();
                     }
-
                 }
+
             }
         }
 
-        if(false) {
-            Utils.getGlobalLogger().info("Channeling.exhを開いています...");
 
-            exhData = index.extractFile("exd/Channeling.exh");
-            viewer = new EXDF_View(index, "exd/Channeling.exh", new EXHF_File(exhData));
+        Utils.getGlobalLogger().info("Lockon.exhを開いています...");
 
-            Utils.getGlobalLogger().info("Channeling.exhを読み込みました");
+        exhData = index.extractFile("exd/Lockon.exh");
+        viewer = new EXDF_View(index, "exd/Lockon.exh", new EXHF_File(exhData));
 
-            for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                //chn_dark001f
-                //      ↓
-                //vfx/channeling/eff/chn_dark001f.avfx
-                String path = String.format("vfx/channeling/eff/%s.avfx", viewer.getTable().getValueAt(i, 1));
+        Utils.getGlobalLogger().info("Lockon.exhを読み込みました");
 
-                if (path == null || path.isEmpty()) {
-                    continue;
-                }
+        for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
+            //tar_ring0af
+            //      ↓
+            //vfx/lockon/eff/tar_ring0af.avfx
+            String path = String.format("vfx/lockon/eff/%s.avfx", viewer.getTable().getValueAt(i, 1));
 
-                String archive = HashDatabase.getArchiveID(path);
-                if (index2.findFile(path) == 2) {
-                    int result = HashDatabase.addPathToDB(path, archive);
+            if (path == null || path.isEmpty()) {
+                continue;
+            }
 
-                    if (result == 1) {
-                        //新規追加の場合
-                        try {
-                            //avfxファイル内のパスも解析
-                            byte[] data2 = index2.extractFile(path);
-                            AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
-                            avfxFile.regHash(true);
-                        } catch (Exception avfxException) {
-                            avfxException.printStackTrace();
-                        }
+            String archive = HashDatabase.getArchiveID(path);
+            if (index2.findFile(path) == 2) {
+                int result = HashDatabase.addPathToDB(path, archive);
+
+                if (result == 1) {
+                    //新規追加の場合
+                    try {
+                        //avfxファイル内のパスも解析
+                        byte[] data2 = index2.extractFile(path);
+                        AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
+                        avfxFile.regHash(true);
+                    } catch (Exception avfxException) {
+                        avfxException.printStackTrace();
                     }
-
                 }
+
             }
         }
 
-        if(true) {
-            Utils.getGlobalLogger().info("Lockon.exhを開いています...");
 
-            exhData = index.extractFile("exd/Lockon.exh");
-            viewer = new EXDF_View(index, "exd/Lockon.exh", new EXHF_File(exhData));
+        for (int i = 1; i < 1000; i++) {
+            String path;
+            path = String.format("vfx/lovm/eff/%03d.avfx", i);
 
-            Utils.getGlobalLogger().info("Lockon.exhを読み込みました");
-
-            for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
-                //tar_ring0af
-                //      ↓
-                //vfx/lockon/eff/tar_ring0af.avfx
-                String path = String.format("vfx/lockon/eff/%s.avfx", viewer.getTable().getValueAt(i, 1));
-
-                if (path == null || path.isEmpty()) {
-                    continue;
-                }
-
-                String archive = HashDatabase.getArchiveID(path);
-                if (index2.findFile(path) == 2) {
-                    int result = HashDatabase.addPathToDB(path, archive);
-
-                    if (result == 1) {
-                        //新規追加の場合
-                        try {
-                            //avfxファイル内のパスも解析
-                            byte[] data2 = index2.extractFile(path);
-                            AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
-                            avfxFile.regHash(true);
-                        } catch (Exception avfxException) {
-                            avfxException.printStackTrace();
-                        }
-                    }
-
-                }
+            if (path == null || path.isEmpty()) {
+                continue;
             }
-        }
 
-        if(false) {
-            for (int i = 1; i < 1000; i++) {
-                String path;
-                path = String.format("vfx/lovm/eff/%03d.avfx", i);
+            String archive = HashDatabase.getArchiveID(path);
+            if (index2.findFile(path) == 2) {
+                int result = HashDatabase.addPathToDB(path, archive);
 
-                if (path == null || path.isEmpty()) {
-                    continue;
-                }
-
-                String archive = HashDatabase.getArchiveID(path);
-                if (index2.findFile(path) == 2) {
-                    int result = HashDatabase.addPathToDB(path, archive);
-
-                    if (result == 1) {
-                        //新規追加の場合
-                        try {
-                            //avfxファイル内のパスも解析
-                            byte[] data2 = index2.extractFile(path);
-                            AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
-                            avfxFile.regHash(true);
-                        } catch (Exception avfxException) {
-                            avfxException.printStackTrace();
-                        }
+                if (result == 1) {
+                    //新規追加の場合
+                    try {
+                        //avfxファイル内のパスも解析
+                        byte[] data2 = index2.extractFile(path);
+                        AVFX_File avfxFile = new AVFX_File(index2, data2, index2.getEndian());
+                        avfxFile.regHash(true);
+                    } catch (Exception avfxException) {
+                        avfxException.printStackTrace();
                     }
-
                 }
+
             }
         }
 
@@ -708,14 +667,9 @@ public class HashFinding_Utils extends Component {
     /**
      * CutSceneハッシュ検索
      */
-    @SuppressWarnings("unused")
     public static void findCutSceneHashes() {
         byte[] exhData;
         SqPack_IndexFile index;
-        SqPack_IndexFile index3 = null;
-        SqPack_IndexFile index3_1 = null;
-        SqPack_IndexFile index3_2 = null;
-        SqPack_IndexFile index3_3 = null;
         EXDF_View viewer;
 
         String[] multi = {"ja","en","fr","de"};
@@ -749,12 +703,10 @@ public class HashFinding_Utils extends Component {
             String[] CutPath = CutSign.split("/");
 
             ExPath = CutPath[0];
-            CutPath[1] = CutPath[1].substring(0, 1).toUpperCase() + CutPath[1].substring(1, 3) + CutPath[1].substring(3, 4).toUpperCase() + CutPath[1].substring(4);
-            CutPath[2] = CutPath[1] + CutPath[2].substring(6);
 
             archive = HashDatabase.getArchiveID(String.format("cut/%s/", ExPath));
 
-            String fullPass = String.format("cut/%s/%s/%s/%s.cutb",ExPath,CutPath[1],CutPath[2],CutPath[2]);
+            String fullPass = String.format("cut/%s.cutb",CutSign);
             cAddPathToDB(fullPass, archive, 2);
 
             //cut/ffxiv/sound/airfst/airfst00010/se_nc_airfst00010.scd
@@ -811,55 +763,54 @@ public class HashFinding_Utils extends Component {
             }
             Utils.getGlobalLogger().info("Map検索完了");
         }
+        //ui/loadingimage/-nowloading_base01.tex
 
-        //noinspection ConstantConditions
-        if (true){ //デバッグ用フラグ
-            int searchIconNum = 182000;
 
-            //ui/icon検索
-            boolean multiFlag = false;
-            for (int i = 0; i < searchIconNum; i++) {
-                String iconPath;
-                String iconPath2;
-                //例：ui/icon/181000/ja/181001.tex
-                String[] multi = {"ja/","en/","fr/","de/"};
-                int pathNum = (i / 1000) * 1000;
-                if (i < 20000 || (i >= 60000 && i < 120000) || (i >= 130000 && i < 150000)){
-                    iconPath = String.format("ui/icon/%06d/%06d.tex",pathNum, i);
-                    iconPath2 = String.format("ui/icon/%06d/%06d_hr1.tex",pathNum, i); //高画質用
-                }else if (i < 60000){
-                    iconPath = String.format("ui/icon/%06d/%s%06d.tex",pathNum, "hq/", i);
-                    iconPath2 = String.format("ui/icon/%06d/%s%06d_hr1.tex",pathNum, "hq/", i); //高画質用
-                }else{
-                    if ((i % 1000) == 0){multiFlag = true;}
-                    if (multiFlag){
-                        for (String lang :multi) {
-                            iconPath = String.format("ui/icon/%06d/%s%06d.tex",pathNum, lang, i);
-                            iconPath2 = String.format("ui/icon/%06d/%s%06d_hr1.tex",pathNum, lang, i); //高画質用
+        int searchIconNum = 200000;
 
-                            if (index2.findFile(iconPath) == 2) { //存在チェック
-                                //ui/icon登録
-                                HashDatabase.addPathToDB(iconPath, "060000");
-                                HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
-                            }
-                            multiFlag = false;
+        //ui/icon検索
+        boolean multiFlag = false;
+        for (int i = 0; i < searchIconNum; i++) {
+            String iconPath;
+            String iconPath2;
+            //例：ui/icon/181000/ja/181001.tex
+            String[] multi = {"ja/","en/","fr/","de/"};
+            int pathNum = (i / 1000) * 1000;
+            if (i < 20000 || (i >= 60000 && i < 120000) || (i >= 130000 && i < 150000) || (i >= 190000)){
+                iconPath = String.format("ui/icon/%06d/%06d.tex",pathNum, i);
+                iconPath2 = String.format("ui/icon/%06d/%06d_hr1.tex",pathNum, i); //高画質用
+            }else if (i < 60000){
+                iconPath = String.format("ui/icon/%06d/%s%06d.tex",pathNum, "hq/", i);
+                iconPath2 = String.format("ui/icon/%06d/%s%06d_hr1.tex",pathNum, "hq/", i); //高画質用
+            }else{
+                if ((i % 1000) == 0){multiFlag = true;}
+                if (multiFlag){
+                    for (String lang :multi) {
+                        iconPath = String.format("ui/icon/%06d/%s%06d.tex",pathNum, lang, i);
+                        iconPath2 = String.format("ui/icon/%06d/%s%06d_hr1.tex",pathNum, lang, i); //高画質用
+
+                        if (index2.findFile(iconPath) == 2) { //存在チェック
+                            //ui/icon登録
+                            HashDatabase.addPathToDB(iconPath, "060000");
+                            HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
                         }
-                        continue;
-                    }else{
-                        iconPath = String.format("ui/icon/%06d/ja/%06d.tex",pathNum, i);
-                        iconPath2 = String.format("ui/icon/%06d/ja/%06d_hr1.tex",pathNum, i); //高画質用
+                        multiFlag = false;
                     }
-
+                    continue;
+                }else{
+                    iconPath = String.format("ui/icon/%06d/ja/%06d.tex",pathNum, i);
+                    iconPath2 = String.format("ui/icon/%06d/ja/%06d_hr1.tex",pathNum, i); //高画質用
                 }
 
-                if (index2.findFile(iconPath) == 2) { //存在チェック
-                    //ui/icon登録
-                    HashDatabase.addPathToDB(iconPath, "060000");
-                    HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
-                }
             }
-            Utils.getGlobalLogger().info("Icon検索完了");
+
+            if (index2.findFile(iconPath) == 2) { //存在チェック
+                //ui/icon登録
+                HashDatabase.addPathToDB(iconPath, "060000");
+                HashDatabase.addPathToDB(iconPath2, "060000"); //高画質用
+            }
         }
+        Utils.getGlobalLogger().info("Icon検索完了");
 
         HashDatabase.commit();
     }
@@ -867,7 +818,6 @@ public class HashFinding_Utils extends Component {
     /**
      * ModelChara.exhファイルからハッシュDB登録
      */
-    @SuppressWarnings("unused")
     public static void getModelsFromModelChara() {
         SqPack_IndexFile index = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", true);
         SqPack_IndexFile index2 = SqPack_IndexFile.GetIndexFileForArchiveID("040000", true);
@@ -880,7 +830,7 @@ public class HashFinding_Utils extends Component {
         HashDatabase.setAutoCommit(false);
 
         //for (int i = 3034; i < viewer.getTable().getRowCount(); i++) {
-        for (int i = 3089; i < viewer.getTable().getRowCount(); i++) {
+        for (int i = 0; i < viewer.getTable().getRowCount(); i++) {
 
             int id = (int) viewer.getTable().getValueAt(i, 0);
             int type = (int) viewer.getTable().getValueAt(i, 1);
@@ -910,7 +860,8 @@ public class HashFinding_Utils extends Component {
                     modelPath = String.format("%s%04d/obj/equipment/e%04d/model/d%04de%04d_sho.mdl", typePath, model, base, model, base);
                     cAddPathToDB(modelPath, "040000");
 
-                    //chara/demihuman/d1024/obj/equipment/e0001/vfx/eff/ve0001.avfx
+                    //chara/demihuman/d1024/obj/equipment/e0001/vfx/eff/ve0001.avfx //VXF ID1=1の時
+                    //chara/demihuman/d1024/obj/equipment/e0001/vfx/eff/vd0001.avfx //VXF ID2=1の時
                     String avfxPath = String.format("%s%04d/obj/equipment/e%04d/vfx/eff/ve0001.avfx", typePath, model, base);
                     String atexPath = String.format("%s%04d/obj/equipment/e%04d/vfx/texture/", typePath, model, base);
                     int pathCheck = index2.findFile(avfxPath);
@@ -1104,7 +1055,6 @@ public class HashFinding_Utils extends Component {
      * Item.exhからcharaモデルのハッシュDB登録
      * ※アイテム名称が登録されているものだけのため、カットシーンのみに登場するモデルなどは対象から外れます。
      */
-    @SuppressWarnings({"unused"})
     public static void getModelsFromItem() {
         SqPack_IndexFile index = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", true);
         SqPack_IndexFile index2 = SqPack_IndexFile.GetIndexFileForArchiveID("040000", true);
@@ -1121,9 +1071,9 @@ public class HashFinding_Utils extends Component {
         HashDatabase.beginConnection();
         HashDatabase.setAutoCommit(false);
 
-        int[] charaID = new int[]{101,201,301,401,501,601,701,801,901,1001,1101,1201,1301,1401,1501,1801};
+        int[] charaID = new int[]{101,201,301,401,501,601,701,801,901,1001,1101,1201,1301,1401,1501,1701,1801};
         //i = 0 から 登録した方が確実だが時間がかかりそうなので途中から
-        for (int i = 33146; i < viewer.getTable().getRowCount(); i++) {
+        for (int i = 100; i < viewer.getTable().getRowCount(); i++) {
 
             int keyID = (int) viewer.getTable().getValueAt(i, 0);
             String itemName = (String) viewer.getTable().getValueAt(i, 1);
@@ -1334,7 +1284,6 @@ public class HashFinding_Utils extends Component {
      * HousingYardObject.exhとHousingFurniture.exhからハウジングモデルのハッシュDB登録
      * ※アイテム名称が登録されているものだけのため、カットシーンのみに登場するモデルなどは対象から外れます。
      */
-    @SuppressWarnings({"unused"})
     public static void getHousingModels() {
         byte[] exhData;
         SqPack_IndexFile index;
@@ -1344,7 +1293,7 @@ public class HashFinding_Utils extends Component {
         HashDatabase.setAutoCommit(false);
 
         index = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", true);
-        bgcommonIndex = SqPack_IndexFile.GetIndexFileForArchiveID("0a0000", false);
+        bgcommonIndex = SqPack_IndexFile.GetIndexFileForArchiveID("010000", false);
 
         //庭具
         exhData = index.extractFile("exd/HousingYardObject.exh");
@@ -1360,6 +1309,7 @@ public class HashFinding_Utils extends Component {
         for (int i = 1; i < viewer.getTable().getRowCount(); i++) {
 
             int ModelKey = (int) viewer.getTable().getValueAt(i, 1);
+            //int ModelID = (int) viewer.getTable().getValueAt(i, 7);
 
             Utils.getGlobalLogger().info("庭具:{}を調査しています", ModelKey);
 
@@ -1413,16 +1363,18 @@ public class HashFinding_Utils extends Component {
         exhData = index.extractFile("exd/HousingFurniture.exh");
         viewer = new EXDF_View(index, "exd/HousingFurniture.exh", new EXHF_File(exhData));
 
-        Utils.getGlobalLogger().info("HousingYardObject.exhを読み込みました");
+        Utils.getGlobalLogger().info("HousingFurniture.exhを読み込みました");
 
         //i = 0 はデータなし
         for (int i = 538; i < viewer.getTable().getRowCount(); i++) {
 
             int ModelKey = (int) viewer.getTable().getValueAt(i, 1);
+            //int ModelID = (int) viewer.getTable().getValueAt(i, 8);
 
             Utils.getGlobalLogger().info("家具:{}を調査しています", ModelKey);
 
             //bgcommon/hou/indoor/general/0982/asset/fun_b0_m0982.sgb
+            //bgcommon/hou/indoor/general/1093/asset/fun_b0_m1093.sgb
             modelPath = String.format("bgcommon/hou/indoor/general/%04d/asset/fun_b0_m%04d.sgb", ModelKey, ModelKey);
             if (bgcommonIndex.findFile(modelPath) == 2){
                 HashDatabase.addPathToDB(modelPath, "010000");
@@ -1462,10 +1414,169 @@ public class HashFinding_Utils extends Component {
         }
         Utils.getGlobalLogger().info("家具検索完了");
 
+        String[] fish_size = new String[]{"la","ll","mi","sm"};
+        String[] asset_ext = new String[]{"","a","b","_l","_r"};
+
+        for (String fish_S : fish_size){
+            int minID = 0;
+            int maxID = 100;
+
+            switch(fish_S){
+                case "la":
+                    minID = 1;
+                    maxID = 400;
+                    break;
+                case "ll":
+                    minID = 1;
+                    maxID = 200;
+                    break;
+                case "mi":
+                    minID = 1;
+                    maxID = 500;
+                    break;
+                case "sm":
+                    minID = 1;
+                    maxID = 600;
+                    break;
+            }
+
+
+            for (int fishID = minID; fishID <= maxID; fishID++){
+                //アクアリウム用モデル関係(ない場合も多い)
+                //bgcommon/hou/indoor/gyo/la/0002/asset/fsh_la_m0002.sgb
+                for (String ext : asset_ext) {
+                    modelPath = String.format("bgcommon/hou/indoor/gyo/%s/%04d/asset/fsh_%s_m%04d%s.sgb", fish_S, fishID, fish_S, fishID, ext);
+                    cAddPathToDB(modelPath, "010000", 2);
+                }
+
+                //魚拓関係
+                //bgcommon/hou/indoor/gyo/ll/0011/material/gyo_ll_20011a.mtrl
+                modelPath = String.format("bgcommon/hou/indoor/gyo/%s/%04d/material/gyo_%s_2%04da.mtrl", fish_S, fishID, fish_S, fishID);
+                cAddPathToDB(modelPath, "010000", 2);
+
+
+            }
+
+            for (int picID = 1; picID <= 1200; picID++){
+                //絵画関係(1～500と1001～1200まで検索)
+                //bgcommon/hou/indoor/pic/ta/0248/material/pic_ta_20248a.mtrl
+                modelPath = String.format("bgcommon/hou/indoor/pic/ta/%04d/material/pic_ta_2%04da.mtrl", picID, picID);
+                cAddPathToDB(modelPath, "010000", 2);
+
+                if (picID == 500){
+                    picID = 1001;
+                }
+            }
+        }
 
         HashDatabase.commit();
 
         Utils.getGlobalLogger().info("ハウジングモデルの検索完了");
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    public static void test_All_ID_Check(){
+
+        String papPath;
+        int nestNum = 1;
+
+        //int[] charaID = new int[]{101,201,301,401,501,601,701,801,901,1001,1101,1201,1301,1401,1501,1701,1801};
+        //int[] npc_charaID = new int[]{104,204,504,604,704,804,1304,1404,9104,9204};
+        int Animation_ID_Max = 9999; //検索に使用するAnimation IDの制限
+
+        HashDatabase.beginConnection();
+        HashDatabase.setAutoCommit(false);
+
+        int charaID;
+        charaID = 501;
+
+        if(nestNum == 1){
+            for (int Animation_ID = 1; Animation_ID < Animation_ID_Max; Animation_ID++) {
+                if(nestNum == 0) {
+                    //chara/monster/m0175/animation/a0001/bt_common/mon_sp/m0175/mon_sp001.pap
+                    papPath = String.format("chara/monster/m0175/animation/a%04d/bt_common/mon_sp/m0175/mon_sp001.pap", Animation_ID);
+                    cAddPathToDB(papPath, "040000", 2);
+                    //chara/monster/m0080/animation/a????/bt_common/mon_sp/m0080/mon_sp001.pap
+                    papPath = String.format("chara/monster/m0080/animation/a%04d/bt_common/mon_sp/m0080/mon_sp001.pap", Animation_ID);
+                    cAddPathToDB(papPath, "040000", 2);
+
+                    //chara/monster/m9998/animation/a????/bt_common/resident/action.pap
+                    papPath = String.format("chara/monster/m9998/animation/a%04d/bt_common/resident/action.pap", Animation_ID);
+                    cAddPathToDB(papPath, "040000", 2);
+
+                    //chara/human/c0501/animation/a????/bt_common/idle_sp/idle_sp_1.pap
+                    papPath = String.format("chara/human/c0501/animation/a%04d/bt_common/idle_sp/idle_sp_1.pap", Animation_ID);
+                    cAddPathToDB(papPath, "040000", 2);
+                    //chara/human/c0901/animation/a????/bt_common/idle_sp/idle_sp_1.pap
+                    papPath = String.format("chara/human/c0901/animation/a%04d/bt_common/idle_sp/idle_sp_1.pap", Animation_ID);
+                    cAddPathToDB(papPath, "040000", 2);
+
+                    //chara/equipment/e0745/material/v0002/mt_c0101e0745_top_a.mtrl
+                    papPath = String.format("chara/equipment/e0745/material/v%04d/mt_c0101e0745_top_a.mtrl", Animation_ID);
+                    cAddPathToDB(papPath, "040000", 2);
+                    //papPath = String.format("chara/human/c%04d/animation/a%04d/%s/limitbreak/lbk_samurai_lv3.pap", charaID, Animation_ID, "bt_common");
+
+                    //                おそらくf0005↓      ↓不明     ↓不明
+                    //chara/human/c0501/animation/f0???/nonresident/clench_st.pap
+                    //chara/human/c0501/animation/f0???/nonresident/emot/dance07_2lp.pap
+                    //chara/human/c0501/animation/f0???/nonresident/emot/psych.pap
+                    //chara/human/c0501/animation/f0???/nonresident/emot/angry_st.pap
+                    papPath = String.format("chara/human/c0501/animation/f%04d/nonresident/clench_st.pap", Animation_ID);
+                    cAddPathToDB(papPath, "040000", 1);
+
+                    //chara/weapon/w0101/obj/body/b0011/vfx/eff/vw0000.avfx
+                    papPath = String.format("chara/weapon/w0101/obj/body/b0011/vfx/eff/vw%04d.avfx", Animation_ID);
+                    cAddPathToDB(papPath, "040000",2);
+                }
+
+                //chara/xls/attachoffset/m9996.atch
+                papPath = String.format("chara/xls/attachoffset/d%04d.atch", Animation_ID);
+                cAddPathToDB(papPath, "040000",2);
+            }
+        }else if(nestNum == 2){
+            String[] SubFolders = new String[] {"bt_2ax_emp", "bt_2bk_emp", "bt_2bw_emp", "bt_2ff_emp", "bt_2gb_emp", "bt_2gl_emp", "bt_2gn_emp", "bt_2js_emp", "bt_2km_emp", "bt_2kt_emp", "bt_2rp_emp", "bt_2sp_emp", "bt_2sp_sld", "bt_2st_emp", "bt_2sw_emp", "bt_alc_emp", "bt_arm_emp", "bt_blk_emp", "bt_chk_chk", "bt_clw_clw", "bt_cok_emp", "bt_common", "bt_dgr_dgr", "bt_emp_emp", "bt_fel_emp", "bt_fsh_emp", "bt_gdt_emp", "bt_gld_emp", "bt_jst_emp", "bt_jst_sld", "bt_lth_emp", "bt_min_emp", "bt_nin_nin", "bt_rod_emp", "bt_sew_emp", "bt_stf_emp", "bt_stf_sld", "bt_swd_emp", "bt_swd_sld", "bt_swd_swd", "bt_wod_emp"};
+            for (String subFolder : SubFolders){
+                for (int Animation_ID = 1; Animation_ID < Animation_ID_Max; Animation_ID++) {
+                    //chara/human/c0101/animation/a0001/bt_????/event/event_bt_deactive.pap
+                    //papPath = String.format("chara/human/c0104/animation/a0001/%s/event/event_bt_deactive.pap", subFolder);
+                    //chara/human/c0101/animation/a0001/bt_2ax_emp/resident/move_a.pap
+                    //papPath = String.format("chara/human/c0101/animation/a%04d/%s/resident/move_a.pap", Animation_ID, subFolder);
+                    papPath = String.format("chara/monster/m9998/animation/a%04d/%s/resident/action.pap", Animation_ID, subFolder);
+                    cAddPathToDB(papPath, "040000", 2);
+                }
+            }
+
+            String[] SubFolders2 = new String[] {"2ax_warrior", "2gl_astro", "2gn_machin", "2sw_dark", "clw_monk", "dgr_ninja", "pvp_common", "swd_knight", "swl_summon"};
+
+            if(false) {
+                for (String subFolder : SubFolders2) {
+                    for (int Animation_ID = 1; Animation_ID < 10; Animation_ID++) {
+                        //chara/monster/m0216/animation/a0001/bt_common/ability/pvp_common/abl027.pap //hit済み
+                        papPath = String.format("chara/monster/m0216/animation/a%04d/bt_common/ability/%s/abl027.pap", Animation_ID, subFolder);
+                        cAddPathToDB(papPath, "040000", 2);
+                    }
+                }
+            }
+        }else if(nestNum == 3){
+            for (int Animation_ID = 1; Animation_ID < Animation_ID_Max; Animation_ID++) {
+                for (int Body_ID = 1; Body_ID < 500; Body_ID++) {
+                    //chara/weapon/w????/obj/body/b????/vfx/eff/vw0002.avfx
+                    papPath = String.format("chara/weapon/w%04d/obj/body/b%04d/vfx/eff/vw0002.avfx", Animation_ID, Body_ID);
+                    cAddPathToDB(papPath, "040000", 2);
+
+                    //chara/weapon/w????/obj/body/b????/texture/v01_w????b????_m.tex //hit済み
+                    papPath = String.format("chara/weapon/w%04d/obj/body/b%04d/texture/v01_w%04db%04d_m.tex", Animation_ID, Body_ID, Animation_ID, Body_ID);
+                    cAddPathToDB(papPath, "040000", 2);
+                    //chara/weapon/w????/obj/body/b????/texture/v01_w????b????_m.tex //hit済み
+                    papPath = String.format("chara/weapon/w%04d/obj/body/b%04d/texture/v01_w%04db%04d_n.tex", Animation_ID, Body_ID, Animation_ID, Body_ID);
+                    cAddPathToDB(papPath, "040000", 2);
+                }
+            }
+        }
+
+        HashDatabase.commit();
+
+        Utils.getGlobalLogger().info("総当たりチェック完了");
     }
 
     /**
@@ -1616,30 +1727,39 @@ public class HashFinding_Utils extends Component {
         if(IsDebug){
             String dirPath = "./";
             String SavePath;
-            SavePath = dirPath  + "PapLoadTable解析.csv";
+            SavePath = dirPath  + "PapLoadTable1解析.csv";
             try {
                 File file = new File(SavePath);
                 FileWriter filewriter = new FileWriter(file, false); //上書きモード
                 String line;
-                line = "papTable1_ID,Unknown_ID1,Unknown_ID2,papPathPattern\r\n";
+                line = "papTable1_ID,Unknown_ID1,Mount_Sheet_Mask,Unknown_ID3,AnimationType_ID,papFilePath_ID,papPathPattern\r\n";
+                //papTable1_IDは仮IDでただの連番です
                 filewriter.write(line);
 
                 //ここから8バイトのpapパターンテーブル(0x0968 = 2408個)
                 for(short papTable1_ID = 0; papTable1_ID < papTable1_Num; papTable1_ID++){
-                    int Unknown_ID1 = bb.getShort();      //不明
-                    int Unknown_ID2 = bb.getShort();      //不明
+                    int Unknown_ID1 = bb.get() & 0xff;      //おそらくbitフラグかマスク
+                    int Mount_Sheet_Mask = bb.getShort() & 0xffff;      //マウント用席位置フラグとオーナメント種類フラグ？
+                    int Unknown_ID3 = bb.get() & 0xff;      //不明
                     int AnimationType_ID = bb.getShort(); //戦闘タイプテーブル先頭からのオフセット 例：0 → bt_common、0x0a → ot_m6000
                     int papFilePath_ID = bb.getShort();   //ファイルパステーブル先頭からのオフセット
 
                     //記録に残す。
-                    line = papTable1_ID + "," + Unknown_ID1 + "," + Unknown_ID2 + ","
-                            + papAnimationType.get(AnimationType_ID) +"/" + papFilePathTable.get(papFilePath_ID) + ".pap\r\n";
+                    line = papTable1_ID + "," + Unknown_ID1 + "," + Mount_Sheet_Mask + "," + Unknown_ID3 + "," + AnimationType_ID + ","
+                            + papFilePath_ID + ","+ papAnimationType.get(AnimationType_ID) +"/" + papFilePathTable.get(papFilePath_ID) + ".pap\r\n";
                     filewriter.write(line);
                 }
-
                 line = "\r\n";
                 filewriter.write(line);
+
+                filewriter.close(); //PapLoadTable1解析.csv完了
+
+                SavePath = dirPath  + "PapLoadTable2解析.csv";
+                file = new File(SavePath);
+                filewriter = new FileWriter(file, false); //上書きモード
+
                 line = "papTable2_ID,charaID,charaType,Animation_ID,papTable3_ID,GeneratePath\r\n";
+                //papTable2_IDは仮IDでただの連番です
                 filewriter.write(line);
 
                 //ここから108バイトのテーブル(0xD3 = 211個)
@@ -1651,7 +1771,7 @@ public class HashFinding_Utils extends Component {
                     int charaID = bb.getShort() & 0xFFFF;              //Character ID
                     short charaType = bb.getShort();            //charaType(0:human,1:monster,2:demihuman)
                     int Animation_ID = bb.getShort();         //Animation_ID
-                    int papPathPattern_ID = bb.getShort();    //不明 papTable3関連？
+                    int papPathPattern_ID = bb.getShort();    //不明 papTable3関連のマスク？
                     //bb.getLong() ×12 ビットフラグっぽい値が並んでいる
 
                     String charaTypeSign;
@@ -1686,10 +1806,18 @@ public class HashFinding_Utils extends Component {
                             + Animation_ID + "," + papPathPattern_ID  + "," + GeneratePath + "\r\n";
                     filewriter.write(line);
                 }
-
                 line = "\r\n";
                 filewriter.write(line);
-                line = "papTable3_ID,charaID,charaType,Animation_ID,papAnimationType,GeneratePath\r\n";
+
+                filewriter.close(); //PapLoadTable2解析.csv完了
+
+
+                SavePath = dirPath  + "PapLoadTable3解析.csv";
+                file = new File(SavePath);
+                filewriter = new FileWriter(file, false); //上書きモード
+
+                line = "papTable3_ID,charaID,charaType,Animation_ID,GeneratePath\r\n";
+                //papTable3_IDは仮IDでただの連番です
                 filewriter.write(line);
 
                 //ここから8バイトのpapヘッダーテーブル(0x51A3×4 = 20899個)
@@ -1727,16 +1855,16 @@ public class HashFinding_Utils extends Component {
                             charaTypeFull = "unknown";
                     }
                     String papAnimationTypeValue = papAnimationType.getOrDefault(AnimationType_ID, "Nothing("+AnimationType_ID+")");
-                    GeneratePath = String.format("chara/%s/%s%04d/animation/a%04d/%s/", charaTypeFull, charaTypeSign, charaID,Animation_ID, papAnimationTypeValue);
+                    GeneratePath = String.format("chara/%s/%s%04d/animation/a%04d/%s/", charaTypeFull, charaTypeSign, charaID, Animation_ID, papAnimationTypeValue);
 
                     //記録に残す。
                     line = papTable3_ID + "," + charaID + "," + charaType + ","
-                            + Animation_ID + "," + papAnimationTypeValue + "," + GeneratePath + "\r\n";
+                            + Animation_ID + "," + GeneratePath + "\r\n";
                     filewriter.write(line);
                 }
 
                 filewriter.close();
-                Utils.getGlobalLogger().info("PapLoadTable解析.csvを保存しました");
+                Utils.getGlobalLogger().info("PapLoadTable解析ファイルを保存しました");
 
             } catch (FileNotFoundException e) {
                 Utils.getGlobalLogger().error(e);
@@ -1750,15 +1878,14 @@ public class HashFinding_Utils extends Component {
     }
 
     /**
-     * アニメーション関係ハッシュ検索
+     * Tmb関係ハッシュ検索
      */
-    @SuppressWarnings({"unused", "ConstantConditions"})
-    public static void findAnimationPAP_Hashes() {
+    @SuppressWarnings({"ConstantConditions"})
+    public static void findTimeLineBlock_Hashes() {
         Utils.getGlobalLogger().info("ActionTimeline.exhを開いています...");
 
         EXDF_View viewer;
         String papPath;
-        byte[] pltData;
         ArrayList<String> ActionTimeline = new ArrayList<>();       //ActionTimelineリスト
         ArrayList<String> WeaponTimeLine = new ArrayList<>();       //WeaponTimeLineリスト
 
@@ -1788,547 +1915,26 @@ public class HashFinding_Utils extends Component {
         }
         Utils.getGlobalLogger().info("WeaponTimeline.exhを読み込みました");
 
-        pltData = index2.extractFile("chara/xls/animation/papLoadTable.plt");
-
-        // chara/xls/animation/paploadtable.pltからpap関係の文字列取得
-        ArrayList<String> BattleType = new ArrayList<>();       //bt_emp_emp..
-        ArrayList<String> Craft_GatherType = new ArrayList<>(); //ギャザラー＆クラフター
-        ArrayList<String> CraftType = new ArrayList<>();        //bt_alc_emp..
-        ArrayList<String> GatherType = new ArrayList<>();       //bt_alc_emp..
-        ArrayList<String> BattleType_Demi = new ArrayList<>();       //bt_emp_emp..
-        ArrayList<String> MountAll = new ArrayList<>();         //mt_d0001..
-        ArrayList<String> OrnamentAll = new ArrayList<>();      //ot_m6000...
-        ArrayList<String> papTableString = new ArrayList<>();   //ability/2ax_warrior/abl024 等
-
-        int bt_Flag = 0;
-        ByteBuffer bb = ByteBuffer.wrap(pltData);
-        bb.order(ByteOrder.LITTLE_ENDIAN);
-        bb.getShort(); //テーブル数 0x0968 = 2408 1テーブル8バイト
-        bb.getShort(); //不明 0xD3  0x68(104)バイトのデータブロックの数
-        bb.getInt(); //不明 0x51A3  0x20(32)バイトのデータブロックの数
-        int papTablePos = bb.getInt(); //papTableの戦闘タイプテーブルの開始位置
-        bb.getInt(); //papTableのファイルパステーブルの開始位置
-
-        bb.position(papTablePos); //ポインタをpapTableの先頭に移動
-        // EOFに達するまで読みこむ
-        do {
-            StringBuilder papString;
-            papString = new StringBuilder();
-            while (true) {
-                byte c = bb.get();
-                if (c == 0) {
-                    break;
-                } else {
-                    papString.append((char) c);
-                }
-            }
-
-            if (!papString.toString().equals("bt_common") && !papString.toString().contains("*")) {
-                if (papString.toString().startsWith("ot_")) {
-                    OrnamentAll.add(papString.toString());
-                } else if (papString.toString().startsWith("mt_")) {
-                    MountAll.add(papString.toString());
-                } else if (papString.toString().startsWith("bt_")) {
-                    switch (papString.toString()) {
-                        case "bt_alc_emp":
-                            bt_Flag = 1;
-                            break;
-                        case "bt_fel_emp":
-                            bt_Flag = 2;
-                            break;
-                        case "bt_2sp_sld":
-                            bt_Flag = 3;
-                            break;
-                    }
-
-                    if (bt_Flag == 0) {
-                        BattleType.add(papString.toString());
-                        BattleType_Demi.add(papString.toString());
-                    } else if (bt_Flag == 1) {
-                        Craft_GatherType.add(papString.toString());
-                        CraftType.add(papString.toString());
-                    } else if (bt_Flag == 2) {
-                        Craft_GatherType.add(papString.toString());
-                        GatherType.add(papString.toString());
-                    } else {
-                        BattleType_Demi.add(papString.toString());
-                    }
-                } else {
-                    papTableString.add(papString.toString());
-                }
-            }
-
-        } while (bb.position() < bb.capacity());
 
         HashDatabase.beginConnection();
         HashDatabase.setAutoCommit(false);
 
-        int[] charaID = new int[]{101,201,301,401,501,601,701,801,901,1001,1101,1201,1301,1401,1501,1801};
+        int[] charaID = new int[]{101,201,301,401,501,601,701,801,901,1001,1101,1201,1301,1401,1501,1701,1801};
         int[] npc_charaID = new int[]{104,204,504,604,704,804,1304,1404,9104,9204};
+        int Animation_ID_Max = 101; //検索に使用するAnimation IDの制限
 
-        //noinspection ConstantConditions
-        if (false){
-            //paploadtable.pltのタイムラインテーブルを登録してみる
-            for (String actionTimeLine : papTableString){
-                //タイムライン登録
-                String tmbPath = "chara/action/" + actionTimeLine + ".tmb";
-                cAddPathToDB(tmbPath, "040000");
-            }
-
-            //ActionTimeline.exhから読み込んだものを登録してみる
-            // TODO: 処理が重いので分けた方が良さそう
-            for (String actionTimeLine : ActionTimeline) {
-                //タイムライン登録
-                String tmbPath = "chara/action/" + actionTimeLine + ".tmb";
-                cAddPathToDB(tmbPath, "040000");
-
-                boolean regFlag_demi = false; //pap登録フラグ(demihuman)
-                boolean regFlag_mon = false; //pap登録フラグ(monster)
-
-                if(actionTimeLine.startsWith("cr_mon/") || actionTimeLine.startsWith("gs_roulette/")
-                        || actionTimeLine.startsWith("trans_sp/")){
-                    //monsterのみ(charaID固定)
-                    //cr_mon/m0016/cr_mon001
-                    //gs_roulette/m0078/mon_sp001
-                    //chara/monster/m0016/animation/a0001/bt_common/cr_mon/m0016/cr_mon001.pap
-                    String[] monsterID = actionTimeLine.split("/");
-                    papPath = String.format("chara/monster/%s/animation/a0001/bt_common/", monsterID[1]) + actionTimeLine + ".pap";
-                    cAddPathToDB(papPath, "040000");
-                }else if(actionTimeLine.startsWith("magic/") || actionTimeLine.startsWith("specialdead/")){
-                    //human(c0101)かつa0001のみ
-                    papPath = "chara/human/c0101/animation/a0001/bt_common/" + actionTimeLine + ".pap";
-                    cAddPathToDB(papPath, "040000");
-                }else if(actionTimeLine.startsWith("buddy/")){
-                    //demihuman(d0001)のみ
-                    //chara/demihuman/d0001/animation/a0001/bt_common/buddy/glad.pap
-                    papPath = String.format("chara/demihuman/d%04d/animation/a0001/bt_common/", 1) + actionTimeLine + ".pap";
-                    cAddPathToDB(papPath, "040000");
-                }else if(actionTimeLine.startsWith("bnpc_passmove/") || actionTimeLine.startsWith("lcut/") ){
-                    //demihumanとmonsterのみ
-                    regFlag_demi = true;
-                    regFlag_mon = true;
-                }else if(actionTimeLine.startsWith("change/") || actionTimeLine.startsWith("eyelid/")
-                        || actionTimeLine.startsWith("facial/ ") || actionTimeLine.startsWith("flying_mount/")
-                        || actionTimeLine.startsWith("mon_sp/gimmick/") || actionTimeLine.startsWith("overlay/")
-                        || actionTimeLine.startsWith("partsbreak/") || actionTimeLine.startsWith("speak/")
-                        || actionTimeLine.startsWith("special/") || actionTimeLine.startsWith("status/")
-                        || actionTimeLine.startsWith("swim_mount/")){
-                    //pap登録無し
-                    continue;
-                }else {
-                    for (int id : charaID) {
-                        if (actionTimeLine.startsWith("ability/") || actionTimeLine.startsWith("battle/")
-                                || actionTimeLine.startsWith("emote/") || actionTimeLine.startsWith("event/")
-                                || actionTimeLine.startsWith("event_base/") || actionTimeLine.startsWith("human_sp/")
-                                || actionTimeLine.startsWith("idle_sp/") || actionTimeLine.startsWith("mount_sp/")
-                                || actionTimeLine.startsWith("normal/") || actionTimeLine.startsWith("specialpop/")
-                                || actionTimeLine.startsWith("resident/") || actionTimeLine.startsWith("warp/")) {
-                            if (actionTimeLine.startsWith("human_sp/c")){
-                                //human_sp/c0101/human_sp001←こんなデータの時
-                                String[] humanID = actionTimeLine.split("/");
-                                if(!humanID[1].equals(String.format("c%04d", id))){
-                                    //「c0101」の部分とcharaIDが一致しなければ以降の処理をしない
-                                    continue;
-                                }
-                            }
-
-                            for (int Animation_ID = 1; Animation_ID < 150; Animation_ID++) {
-                                if (Animation_ID == 50) { //2020/4/27現在46まで
-                                    Animation_ID = 100;
-                                }
-                                //chara/human/c0101/animation/a0001/bt_common/ability/2ax_warrior
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/bt_common/", id, Animation_ID) + actionTimeLine + ".pap";
-                                cAddPathToDB(papPath, "040000");
-
-                                if (actionTimeLine.startsWith("emote/") || actionTimeLine.startsWith("event/")
-                                        || actionTimeLine.startsWith("resident/")){
-                                    //ジョブ固有アニメーション関係
-                                    for(String battleType : BattleType){
-                                        papPath = String.format("chara/human/c%04d/animation/a0001/%s/", id, battleType) + actionTimeLine + ".pap";
-                                        cAddPathToDB(papPath, "040000");
-                                    }
-                                }
-                            }
-                        } else if (actionTimeLine.startsWith("blownaway/") || actionTimeLine.startsWith("bnpc_gesture/")
-                                || actionTimeLine.startsWith("bnpc_gimmickjump/") || actionTimeLine.startsWith("cardgame/")
-                                || actionTimeLine.startsWith("cr/") || actionTimeLine.startsWith("craft/")
-                                || actionTimeLine.startsWith("diving_gather/") || actionTimeLine.startsWith("emote_ajust/")
-                                || actionTimeLine.startsWith("emote_sp/") || actionTimeLine.startsWith("etherialwheel/")
-                                || actionTimeLine.startsWith("eureka/") || actionTimeLine.startsWith("gs/")
-                                || actionTimeLine.startsWith("inn_event/") || actionTimeLine.startsWith("limitbreak/")
-                                || actionTimeLine.startsWith("mannequin_ft/") || actionTimeLine.startsWith("mon_sp/c")
-                                || actionTimeLine.startsWith("mount/") || actionTimeLine.startsWith("music/")
-                                || actionTimeLine.startsWith("ornament/") || actionTimeLine.startsWith("pc_contentsaction/")
-                                || actionTimeLine.startsWith("rol_common/") || actionTimeLine.startsWith("season/")
-                                || actionTimeLine.startsWith("weeklylot/") || actionTimeLine.startsWith("ws/")) {
-                            //a0001しかないもの
-                            if (actionTimeLine.startsWith("mon_sp/c") && !actionTimeLine.startsWith("mon_sp/common")){
-                                //mon_sp/c0101/mon_sp001←こんなデータの時(多分なさそう)
-                                String[] humanID = actionTimeLine.split("/");
-                                if(!humanID[1].equals(String.format("c%04d", id))){
-                                    //「c0101」の部分とcharaIDが一致しなければ以降の処理をしない
-                                    continue;
-                                }
-                            }
-
-                            if (actionTimeLine.startsWith("ws/")){
-                                //ウェポンスキル関係
-                                for(String battleType : BattleType){
-                                    papPath = String.format("chara/human/c%04d/animation/a0001/%s/", id, battleType) + actionTimeLine + ".pap";
-                                    cAddPathToDB(papPath, "040000");
-                                }
-                                continue;
-                            }
-
-                            papPath = String.format("chara/human/c%04d/animation/a0001/bt_common/", id) + actionTimeLine + ".pap";
-                            cAddPathToDB(papPath, "040000");
-
-                            if (actionTimeLine.startsWith("craft/")){
-                                //クラフター追加
-                                for(String battleType : CraftType){
-                                    papPath = String.format("chara/human/c%04d/animation/a0001/%s/", id, battleType) + actionTimeLine + ".pap";
-                                    cAddPathToDB(papPath, "040000");
-                                }
-                            }else if (actionTimeLine.startsWith("diving_gather/")){
-                                //ギャザラー追加
-                                for(String battleType : GatherType){
-                                    papPath = String.format("chara/human/c%04d/animation/a0001/%s/", id, battleType) + actionTimeLine + ".pap";
-                                    cAddPathToDB(papPath, "040000");
-                                }
-                            }else if (actionTimeLine.startsWith("ornament/")){
-                                //ファッションアクセサリ
-                                for(String battleType : OrnamentAll){
-                                    papPath = String.format("chara/human/c%04d/animation/a0001/%s/", id, battleType) + actionTimeLine + ".pap";
-                                    cAddPathToDB(papPath, "040000");
-                                }
-                            }
-                        } else if (actionTimeLine.startsWith("fishing/") || actionTimeLine.startsWith("fishing_chair/")
-                                || actionTimeLine.startsWith("harpoon/")) {
-                            //漁道具装備時のみ
-                            papPath = String.format("chara/human/c%04d/animation/a0001/bt_fsh_emp/", id) + actionTimeLine + ".pap";
-                            cAddPathToDB(papPath, "040000");
-                        }else if (actionTimeLine.startsWith("gather/")){
-                            for(String battleType : GatherType){
-                                papPath = String.format("chara/human/c%04d/animation/a0001/%s/", id, battleType) + actionTimeLine + ".pap";
-                                cAddPathToDB(papPath, "040000");
-                            }
-                        }
-                    }
+        if (true){
+            if (true) {
+                for (String actionTimeLine : ActionTimeline) {
+                    //タイムライン登録
+                    String tmbPath = "chara/action/" + actionTimeLine + ".tmb";
+                    cAddPathToDB(tmbPath, "040000");
                 }
-
-                if (regFlag_mon || actionTimeLine.startsWith("ability/") || actionTimeLine.startsWith("emote/")
-                        || actionTimeLine.startsWith("event/") || actionTimeLine.startsWith("event_base/")
-                        || actionTimeLine.startsWith("idle_sp/") || actionTimeLine.startsWith("lcut/")
-                        || actionTimeLine.startsWith("loop_sp/") || actionTimeLine.startsWith("minion/")
-                        || actionTimeLine.startsWith("mon_sp/common/") || actionTimeLine.startsWith("mon_sp/m")
-                        || actionTimeLine.startsWith("mount_sp/m") || actionTimeLine.startsWith("normal/")
-                        || actionTimeLine.startsWith("parts_idle_sp/") || actionTimeLine.startsWith("pc_contentsaction/")
-                        || actionTimeLine.startsWith("resident/") || actionTimeLine.startsWith("season/")
-                        || actionTimeLine.startsWith("specialpop/") || actionTimeLine.startsWith("warp/")){
-                    //Monster関係
-                    int searchMonsterNum = 9999;
-
-                    for (int id = 1; id < searchMonsterNum; id++) {
-                        //欠番部分を読み飛ばす
-                        if (id == 1000){ //2020/4/27現在729までしかないが将来的に1000より増えるかも
-                            id = 5010;
-                        } else if (id == 5030){ //2020/4/27現在5019しかない
-                            id = 6001;
-                        } else if (id == 6005){ //2020/4/27現在6001,6002しかない
-                            id = 7001;
-                        } else if (id == 7010){ //召喚獣関係：2020/4/27現在7008まで
-                            id = 7100;
-                        } else if (id == 7110){ //機工士オートタレット・オートマトン関係：2020/4/27現在7106まで
-                            id = 8001;
-                        } else if (id == 8500){ //ミニオン関係：2020/4/27現在8378まで
-                            //m9002～9009もあるがresident以外はなさそう
-                            id = 9991; //設置物？：2020/4/27現在9998まで
-                        }
-
-                        if (actionTimeLine.startsWith("mon_sp/m") || actionTimeLine.startsWith("mount_sp/m")){
-                            //mon_sp/m0001/mon_sp001←こんなデータの時
-                            String[] monID = actionTimeLine.split("/");
-                            if(!monID[1].equals(String.format("m%04d", id))){
-                                //「m0001」の部分とcharaIDが一致しなければ以降の処理をしない
-                                continue;
-                            }
-                        }
-
-                        for (int Animation_ID = 1; Animation_ID < 150; Animation_ID++) {
-                            if (Animation_ID == 10) { //2020/4/27現在9,99～132まで
-                                Animation_ID = 99;
-                            }
-
-                            papPath = String.format("chara/monster/m%04d/animation/a%04d/bt_common/", id, Animation_ID) + actionTimeLine + ".pap";
-                            cAddPathToDB(papPath, "040000");
-                        }
-                    }
-                }
-
-                if (regFlag_demi || actionTimeLine.startsWith("ability/") || actionTimeLine.startsWith("emote/")
-                        || actionTimeLine.startsWith("event/") || actionTimeLine.startsWith("event_base/")
-                        || actionTimeLine.startsWith("idle_sp/") || actionTimeLine.startsWith("lcut/")
-                        || actionTimeLine.startsWith("mon_sp/common/") || actionTimeLine.startsWith("mon_sp/d")
-                        || actionTimeLine.startsWith("mount_sp/d") || actionTimeLine.startsWith("normal/")
-                        || actionTimeLine.startsWith("resident/") || actionTimeLine.startsWith("season/")
-                        || actionTimeLine.startsWith("specialpop/") || actionTimeLine.startsWith("warp/")
-                        || actionTimeLine.startsWith("ws/")){
-                    //DemiHuman関係
-                    int searchDemiHumanNum = 1100; //2020/4/27現在1059までしかないが将来的に1100より増えるかも
-
-                    for (int id = 1; id < searchDemiHumanNum; id++) {
-                        //欠番部分を読み飛ばす
-                        if (id == 3){ //2020/4/27現在1,2 1001～1059まで
-                            id = 1000;
-                        }
-
-                        if (actionTimeLine.startsWith("mon_sp/d") || actionTimeLine.startsWith("mount_sp/d")){
-                            //mon_sp/d0001/mon_sp001←こんなデータの時
-                            String[] demiID = actionTimeLine.split("/");
-                            if(!demiID[1].equals(String.format("d%04d", id))){
-                                //「d0001」の部分とcharaIDが一致しなければ以降の処理をしない
-                                continue;
-                            }
-                        }
-
-                        if (actionTimeLine.startsWith("emote/") || actionTimeLine.startsWith("event/")
-                                || actionTimeLine.startsWith("resident/") || actionTimeLine.startsWith("ws/")){
-                            //ウェポンスキル関係
-                            for(String battleType : BattleType_Demi){
-                                papPath = String.format("chara/demihuman/d%04d/animation/a0001/%s/", id, battleType) + actionTimeLine + ".pap";
-                                cAddPathToDB(papPath, "040000");
-                            }
-                            if (actionTimeLine.startsWith("ws/")){
-                                continue;
-                            }
-                        }
-
-                        for (int Animation_ID = 1; Animation_ID < 150; Animation_ID++) {
-                            if (Animation_ID == 10) { //2020/4/27現在1,2,102,117のみ
-                                Animation_ID = 100;
-                            }
-
-                            papPath = String.format("chara/demihuman/d%04d/animation/a%04d/bt_common/", id, Animation_ID) + actionTimeLine + ".pap";
-                            cAddPathToDB(papPath, "040000");
-                        }
-                    }
-                }
-
-                if (actionTimeLine.startsWith("event/") || actionTimeLine.startsWith("resident/")){
-                    //weapon関係
-                    //chara/weapon/w9022/animation/a0001/bt_common/event/event_sensor_open.pap
-                    int searchWeaponNum = 9999; //2020/4/27現在1059までしかないが将来的に1100より増えるかも
-
-                    for (int id = 101; id < searchWeaponNum; id++) {
-                        //欠番部分を読み飛ばす
-                        if(id <= 5000){
-                            if (id == 120) { //盾：2020/4/27現在111まで
-                                id = 201;
-                            } else if (id == 230) { //片手剣：2020/4/27現在215まで
-                                id = 301;
-                            } else if (id == 340) { //格闘武器・クロー系(右)：2020/4/27現在333まで
-                                id = 351;
-                            } else if (id == 390) { //格闘武器・クロー系(左)：2020/4/27現在383まで
-                                id = 401;
-                            } else if (id == 430) { //両手斧：2020/4/27現在414まで
-                                id = 501;
-                            } else if (id == 540) { //両手槍：2020/4/27現在523まで
-                                id = 551;
-                            } else if (id == 510) { //旗：2020/4/27現在551のみ
-                                id = 601;
-                            } else if (id == 650) { //弓：2020/4/27現在628まで
-                                id = 691;
-                            } else if (id == 699) { //楽器：691～697、矢筒：698のみ 2020/4/27現在698まで
-                                id = 701;
-                            } else if (id == 710) { //片手幻具：2020/4/27現在701まで
-                                id = 801;
-                            } else if (id == 830) { //両手幻具：2020/4/27現在824まで
-                                id = 901;
-                            } else if (id == 910) { //片手呪具：2020/4/27現在902まで
-                                id = 1001;
-                            } else if (id == 1030) { //両手呪具：2020/4/27現在1024まで
-                                id = 1101;
-                            } else if (id == 1102) { //片手杖？：2020/4/27現在1101のみ
-                                id = 1201;
-                            } else if (id == 1202) { //両手杖？蛮族用かな？：2020/4/27現在1201のみ
-                                id = 1301;
-                            } else if (id == 1310) { //銃：2020/4/27現在1303まで
-                                id = 1353;
-                            } else if (id == 1354) { //銃：2020/4/27現在1353まで
-                                id = 1401;
-                            } else if (id == 1402) { //投擲物？：2020/4/27現在1401のみ
-                                id = 1501;
-                            } else if (id == 1520) { //両手剣：2020/4/27現在1515まで
-                                id = 1551;
-                            } else if (id == 1552) { //鞘(両手剣)：2020/4/27現在1551のみ
-                                id = 1599;
-                            } else if (id == 1600) { //黒い剣状の何か：2020/4/27現在1599のみ
-                                id = 1601;
-                            } else if (id == 1610) { //格闘武器・ナックル系(右)：2020/4/27現在1608まで
-                                id = 1651;
-                            } else if (id == 1660) { //格闘武器・ナックル系(左)：2020/4/27現在1658まで
-                                id = 1701;
-                            } else if (id == 1750) { //魔道書：2020/4/27現在1744まで
-                                id = 1799;
-                            } else if (id == 1800) { //はねペン：2020/4/27現在1799のみ
-                                id = 1801;
-                            } else if (id == 1820) { //双剣(右)：2020/4/27現在1814まで
-                                id = 1848;
-                            } else if (id == 1850) { //双剣(左) ：2020/4/27現在1849まで
-                                id = 1851;
-                            } else if (id == 1870) { //ナイフ？ ：2020/4/27現在1864まで
-                                id = 1898;
-                            } else if (id == 1900) { //武器？：2020/4/27現在1899まで
-                                id = 1901;
-                            } else if (id == 1915) { //ディアディム関係？：2020/4/27現在1910まで
-                                id = 2001;
-                            } else if (id == 2030) { //機工士の銃：2020/4/27現在2024まで
-                                id = 2099;
-                            } else if (id == 2100) { //機工士の銃の弾倉：2020/4/27現在2099まで
-                                id = 2101;
-                            } else if (id == 2130) { //天球儀：2020/4/27現在2123まで
-                                id = 2199;
-                            } else if (id == 2200) { //天球儀・サブアーム：2020/4/27現在2199まで
-                                id = 2201;
-                            } else if (id == 2220) { //刀：2020/4/27現在2213まで
-                                id = 2251;
-                            } else if (id == 2260) { //刀の鞘：2020/4/27現在2255まで
-                                id = 2301;
-                            } else if (id == 2310) { //細剣：2020/4/27現在2307まで
-                                id = 2351;
-                            } else if (id == 2380) { //赤魔道士のサブアーム(魔法のクリスタル？)：2020/4/27現在2372まで
-                                id = 2401;
-                            } else if (id == 2402) { //青魔器(青魔道士)：2020/4/27現在2401まで
-                                id = 2501;
-                            } else if (id == 2510) { //ガンブレード：2020/4/27現在2506まで
-                                id = 2601;
-                            } else if (id == 2610) { //投擲武器・右(踊り子)：2020/4/27現在2606まで
-                                id = 2651;
-                            } else if (id == 2660) { //投擲武器・左(踊り子)：2020/4/27現在2656まで
-                                id = 5001;
-                            }
-                            //新規ジョブは2700番台、2800番台になると思われる
-                        }
-                        else if(id <= 6000){
-                            //ここから先クラフター道具
-                            if (id == 5010) { //木工道具(主道具 のこぎり)：2020/4/27現在5006まで
-                                id = 5041;
-                            } else if (id == 5042) { //木工道具(副道具 金槌)：2020/4/27現在5041のみ
-                                id = 5061;
-                            } else if (id == 5062) { //木工道具(副道具? のみ)：2020/4/27現在5061のみ
-                                id = 5081;
-                            } else if (id == 5082) { //木工道具(作業台)：2020/4/27現在5081のみ
-                                id = 5101;
-                            } else if (id == 5110) { //鍛冶道具(主道具)：2020/4/27現在5102まで
-                                id = 5121;
-                            } else if (id == 5122) { //鍛冶道具(未使用？)：2020/4/27現在5121のみ
-                                id = 5141;
-                            } else if (id == 5142) { //鍛冶道具(副道具)：2020/4/27現在5141のみ
-                                id = 5181;
-                            } else if (id == 5182) { //鍛冶道具(作業台)：2020/4/27現在5181のみ
-                                id = 5201;
-                            } else if (id == 5210) { //甲冑道具(主道具)：2020/4/27現在5202まで
-                                id = 5241;
-                            } else if (id == 5242) { //甲冑道具(副道具)：2020/4/27現在5241のみ
-                                id = 5281;
-                            } else if (id == 5283) { //甲冑道具(作業台)：2020/4/27現在5282まで
-                                id = 5301;
-                            } else if (id == 5302) { //彫金道具(主道具)：2020/4/27現在5301のみ
-                                id = 5321;
-                            } else if (id == 5323) { //彫金道具(副道具？)：2020/4/27現在5322まで
-                                id = 5341;
-                            } else if (id == 5342) { //彫金道具(副道具)：2020/4/27現在5341のみ
-                                id = 5361;
-                            } else if (id == 5362) { //彫金道具(作業台・副)：2020/4/27現在5361のみ
-                                id = 5381;
-                            } else if (id == 5382) { //彫金道具(作業台・主)：2020/4/27現在5381のみ
-                                id = 5401;
-                            } else if (id == 5405) { //革細工道具(主道具)：2020/4/27現在5404まで
-                                id = 5441;
-                            } else if (id == 5442) { //革細工道具(副道具)：2020/4/27現在5441のみ
-                                id = 5461;
-                            } else if (id == 5462) { //革細工道具(副道具？すきべら)：2020/4/27現在5461のみ
-                                id = 5481;
-                            } else if (id == 5482) { //革細工道具(作業台・主)：2020/4/27現在5481のみ
-                                id = 5501;
-                            } else if (id == 5503) { //裁縫道具(主道具 刺繍台)：2020/4/27現在5502まで
-                                id = 5521;
-                            } else if (id == 5522) { //裁縫道具(主道具 針)：2020/4/27現在5521のみ
-                                id = 5561;
-                            } else if (id == 5562) { //裁縫道具(副道具 スピニングホイール)：2020/4/27現在5561のみ
-                                id = 5571;
-                            } else if (id == 5572) { //裁縫道具(副道具)：2020/4/27現在5571のみ
-                                id = 5601;
-                            } else if (id == 5605) { //錬金道具(主道具 フラスコ？)：2020/4/27現在5604まで
-                                id = 5641;
-                            } else if (id == 5642) { //錬金道具(副道具 薬研車)：2020/4/27現在5641のみ
-                                id = 5661;
-                            } else if (id == 5662) { //錬金道具(副道具 薬研)：2020/4/27現在5661のみ
-                                id = 5681;
-                            } else if (id == 5682) { //錬金道具(主道具 蒸留装置)：2020/4/27現在5681のみ
-                                id = 5701;
-                            } else if (id == 5703) { //調理道具(主道具 フライパン)：2020/4/27現在5702まで
-                                id = 5721;
-                            } else if (id == 5723) { //調理道具(主道具 コンロ)：2020/4/27現在5722まで
-                                id = 5741;
-                            } else if (id == 5742) { //調理道具(副道具 ナイフ)：2020/4/27現在5741のみ
-                                id = 5781;
-                            } else if (id == 5782) { //調理道具(副道具 調理台)：2020/4/27現在5781のみ
-                                id = 7001;
-                            }
-                        }
-                        else if(id <= 8000){
-                            //ここからギャザラー道具
-                            if (id == 7004) { //採掘道具(主道具)：2020/4/27現在7003まで
-                                id = 7051;
-                            } else if (id == 7052) { //採掘道具(副道具)：2020/4/27現在7051のみ
-                                id = 7101;
-                            } else if (id == 7103) { //園芸道具(主道具)：2020/4/27現在7102まで
-                                id = 7151;
-                            } else if (id == 7152) { //園芸道具(副道具)：2020/4/27現在7151のみ
-                                id = 7201;
-                            } else if (id == 7202) { //漁道具(主道具)：2020/4/27現在7201のみ
-                                id = 7151;
-                            } else if (id == 7256) { //漁道具(副道具)：2020/4/27現在7251,7255のみ
-                                id = 7281;
-                            } else if (id == 7282) { //漁道具(主道具 椅子)：2020/4/27現在7281のみ
-                                id = 8001;
-                            }
-                        }
-                        else if(id <= 9000){
-                            if (id == 8050) { //NPC専用武器？：2020/4/27現在8037まで
-                                id = 9001;
-                            }
-                        }
-                        else{
-                            if (id == 9090) { //カットシーン用 小道具・キャラクター：2020/4/27現在9074まで
-                                id = 9101;
-                            } else if (id == 9110) { //補助キャラクター：2020/4/27現在9102まで
-                                //9101:妖精、9102:オートタレット？
-                                id = 9801;
-                            } else if (id == 9810) { //ボーンのみ？：2020/4/27現在9801のみ
-                                id = 9901;
-                            } else if (id == 9902) { //食べ物：2020/4/27現在9901のみ
-                                break;
-                            }
-                        }
-
-                        for (int Animation_ID = 1; Animation_ID < 150; Animation_ID++) {
-                            if (Animation_ID == 10) { //2020/4/27現在1,2,102,117のみ
-                                Animation_ID = 100;
-                            }
-
-                            papPath = String.format("chara/weapon/w%04d/animation/a%04d/bt_common/", id, Animation_ID) + actionTimeLine + ".pap";
-                            cAddPathToDB(papPath, "040000");
-                        }
-                    }
-                }
-                //ここまでActionTimeline.exh読み込みループ
             }
         }
 
         //Monster関係
-        if (IsDebug){
+        if (false){
             int searchMonsterNum = 9999;
 
             //action/mon_sp/m????登録
@@ -2349,26 +1955,22 @@ public class HashFinding_Utils extends Component {
                     id = 9991; //設置物？：2020/4/27現在9998まで
                 }
 
-                if (false) {
+                if (true) {
                     String tmbPath;
                     tmbPath = String.format("chara/action/mon_sp/m%04d/mon_sp001.tmb", id);
-                    cAddPathToDB(tmbPath, "040000");
+                    cAddPathToDB(tmbPath, "040000",2);
                     tmbPath = String.format("chara/action/mon_sp/m%04d/hide/mon_sp001.tmb", id);
-                    cAddPathToDB(tmbPath, "040000");
+                    cAddPathToDB(tmbPath, "040000",2);
                     tmbPath = String.format("chara/action/mon_sp/m%04d/show/mon_sp001.tmb", id);
-                    cAddPathToDB(tmbPath, "040000");
-
-                    //Animationとは関係ないが軽い処理なのでついでに
-                    tmbPath = String.format("hara/xls/attachoffset/m%04d.atch", id);
-                    cAddPathToDB(tmbPath, "040000");
+                    cAddPathToDB(tmbPath, "040000",2);
 
                     if (id <= 1000) { //2020/4/27現在1059までしかないが将来的に1000より増えるかも
                         tmbPath = String.format("chara/action/mount_sp/m%04d/mon_sp001.tmb", id);
-                        cAddPathToDB(tmbPath, "040000");
+                        cAddPathToDB(tmbPath, "040000",2);
                         tmbPath = String.format("chara/action/mount_sp/m%04d/hide/mon_sp001.tmb", id);
-                        cAddPathToDB(tmbPath, "040000");
+                        cAddPathToDB(tmbPath, "040000",2);
                         tmbPath = String.format("chara/action/mount_sp/m%04d/show/mon_sp001.tmb", id);
-                        cAddPathToDB(tmbPath, "040000");
+                        cAddPathToDB(tmbPath, "040000",2);
                     }
                 }
 
@@ -2377,281 +1979,14 @@ public class HashFinding_Utils extends Component {
                 //chara/monster/m0215/animation/a0003/bt_common/resident/monster.pap
                 //chara/monster/m0715/animation/a0001/bt_common/specialpop/specialpop.pap
                 papPath = String.format("chara/monster/m%04d/animation/a0001/bt_common/idle_sp/normal_idle_sp_1.pap", id);
-                cAddPathToDB(papPath, "040000");
+                cAddPathToDB(papPath, "040000",2);
 
-                //テクスチャ総当たり検索(処理が重いので非推奨)
-                if (false){
-                    Utils.getGlobalLogger().info(String.format("テクスチャ検索(monster m%04d)", id));
-                    for (int Body_ID = 1; Body_ID < 12; Body_ID++) {
-                        //chara/monster/m0563/obj/body/b0001/texture/v01_m0563b0001_d.tex
-                        papPath = String.format("chara/monster/m%04d/obj/body/b%04d/texture/v01_m%04db%04d_d.tex", id, Body_ID, id, Body_ID);
-                        if (index2.findFile(papPath) >= 1) {
-                            cAddPathToDB(papPath, "040000", 2);
-                            papPath = String.format("chara/monster/m%04d/obj/body/b%04d/texture/v01_m%04db%04d_n.tex", id, Body_ID, id, Body_ID);
-                            cAddPathToDB(papPath, "040000", 2);
-                            papPath = String.format("chara/monster/m%04d/obj/body/b%04d/texture/v01_m%04db%04d_s.tex", id, Body_ID, id, Body_ID);
-                            cAddPathToDB(papPath, "040000", 2);
-                            papPath = String.format("chara/monster/m%04d/obj/body/b%04d/texture/v01_m%04db%04d_m.tex", id, Body_ID, id, Body_ID);
-                            cAddPathToDB(papPath, "040000", 2);
-                        }
-                    }
-
-                }
-            }
-        }
-
-        //DemiHuman関係
-        //noinspection ConstantConditions
-        if (false){
-            int searchMonsterNum = 1100; //2020/4/27現在1059までしかないが将来的に1100より増えるかも
-
-            //action/mon_sp/d????登録
-            for (int i = 1; i < searchMonsterNum; i++) {
-                //欠番部分を読み飛ばす
-                if (i == 3){ //2020/4/27現在2まで
-                    i = 1000;
-                }
-
-                String tmbPath;
-                tmbPath = String.format("chara/action/mon_sp/d%04d/mon_sp001.tmb",i);
-                cAddPathToDB(tmbPath, "040000");
-                tmbPath = String.format("chara/action/mon_sp/d%04d/hide/mon_sp001.tmb",i);
-                cAddPathToDB(tmbPath, "040000");
-                tmbPath = String.format("chara/action/mon_sp/d%04d/show/mon_sp001.tmb",i);
-                cAddPathToDB(tmbPath, "040000");
-
-                tmbPath = String.format("chara/action/mount_sp/d%04d/mon_sp001.tmb",i);
-                cAddPathToDB(tmbPath, "040000");
-                tmbPath = String.format("chara/action/mount_sp/d%04d/hide/mon_sp001.tmb",i);
-                cAddPathToDB(tmbPath, "040000");
-                tmbPath = String.format("chara/action/mount_sp/d%04d/show/mon_sp001.tmb",i);
-                cAddPathToDB(tmbPath, "040000");
-
-                //Animationとは関係ないが軽い処理なのでついでに
-                tmbPath = String.format("hara/xls/attachoffset/m%04d.atch",i);
-                cAddPathToDB(tmbPath, "040000");
-
-
-                //chara/demihuman/d1045/animation/a0001/bt_common/idle_sp/idle_sp_1.pap
-            }
-
-            if(false) {
-                //Demihumanスケルトン関係
-                byte[] awtData = index2.extractFile("chara/xls/animation/animation_work_table-demihuman.awt");
-
-                bb = ByteBuffer.wrap(awtData);
-                bb.order(ByteOrder.LITTLE_ENDIAN);
-                bb.getInt(); //twa
-                bb.getShort(); //不明 0x300
-                bb.getShort(); //不明 0x100
-                short awTable_Num = bb.getShort(); //テーブル数 0x02a6 = 678 1テーブル8バイト
-
-                bb.position(0x18); //ポインタをawTableの先頭に移動
-
-                //ここから8バイトのpapヘッダーテーブル(0x51A3×4 = 20899個)
-                for(int awTable_ID = 0; awTable_ID < awTable_Num; awTable_ID++){
-                    if ((bb.limit() - 7) < bb.position()){
-                        Utils.getGlobalLogger().info("バッファーオーバーフロー防止のため読み込み停止");
-                        break;
-                    }
-                    int charaID2 = bb.getShort() & 0xFFFF;          //Character ID
-                    short charaType = bb.getShort();        //charaType(0:human,1:monster,2:demi)
-                    bb.get();     //AnimationType_ID
-                    bb.get();     //Animation_ID
-                    bb.getShort();    //不明
-
-                    String charaTypeSign;
-                    String charaTypeFull;
-                    String fullPath;
-                    switch(charaType){
-                        case 0:
-                            charaTypeSign = "c";
-                            charaTypeFull = "human";
-                            break;
-                        case 1:
-                            charaTypeSign = "m";
-                            charaTypeFull = "monster";
-                            break;
-                        case 2:
-                            charaTypeSign = "d";
-                            charaTypeFull = "demihuman";
-                            break;
-                        case 3:
-                            charaTypeSign = "w";
-                            charaTypeFull = "weapon";
-                            break;
-                        default:
-                            charaTypeSign = String.valueOf(charaType);
-                            charaTypeFull = "unknown";
-                    }
-
-                    for (String battleType : BattleType) {
-                        papPath = String.format("chara/%s/%s%04d/animation/a0001/%s/resident/demihuman.pap", charaTypeFull, charaTypeSign, charaID2, battleType);
-                        cAddPathToDB(papPath, "040000");
-                    }
-                }
-                //chara/demihuman/d1034/animation/a0001/bt_2ax_emp/resident/demihuman.pap
-            }
-        }
-
-        //Human関係
-        //noinspection ConstantConditions
-        if (false){
-            //特定用
-            if (false) {
-                for (int Animation_ID = 1; Animation_ID < 9999; Animation_ID++) {
-                    //chara/monster/m0080/animation/a0001/bt_common/mon_sp/m0080/mon_sp001.pap
-                    papPath = String.format("chara/monster/m0080/animation/a%04d/bt_common/mon_sp/m0080/show/mon_sp001.pap", Animation_ID);
-                    //papPath = String.format("chara/human/c%04d/animation/a%04d/%s/human_sp/c%04d/human_sp037.pap", 201, Animation_ID, "bt_common", 201);
-                    cAddPathToDB(papPath, "040000",2);
-                }
-            }
-
-            if (true) {
-                for (int id : charaID) {
-                    if (false) {
-                        //chara/action/mon_sp/c0101/hide/mon_sp001.tmb
-                        String tmbPath = String.format("chara/action/mon_sp/c%04d/mon_sp001.tmb", id);
-                        cAddPathToDB(tmbPath, "040000");
-                        tmbPath = String.format("chara/action/mon_sp/c%04d/hide/mon_sp001.tmb", id);
-                        cAddPathToDB(tmbPath, "040000");
-                        tmbPath = String.format("chara/action/mon_sp/c%04d/show/mon_sp001.tmb", id);
-                        cAddPathToDB(tmbPath, "040000");
-                    }
-
-                    //バトルアニメーション関係
-                    //chara/human/c0601/animation/a0001/bt_2ax_emp/battle/auto_attack1.pap
-
-                    for (int Animation_ID = 1; Animation_ID < 150; Animation_ID++) {
-                        if (Animation_ID == 50) { //2020/4/27現在46まで
-                            Animation_ID = 100;
-                        }
-                        // papバイナリでキャラIDを推測する方法
-                        // endianとrootの文字列の間にc0101等のIDが出現することが多いので通常はそこから推測できる
-                        // papバイナリをみてもID等不明な場合
-                        // 0x0A short : charaID
-                        // 0x0C short : charaType
-
-                        //chara/human/c0601/animation/a0001/bt_common/warp/warp_end.pap
-                        papPath = String.format("chara/human/c%04d/animation/a%04d/bt_common/warp/warp_end.pap", id, Animation_ID);
-                        cAddPathToDB(papPath, "040000");
-
-                        papPath = String.format("chara/human/c%04d/animation/a%04d/bt_common/resident/action.pap", id, Animation_ID);
-                        cAddPathToDB(papPath, "040000");
-
-                        papPath = String.format("chara/human/c%04d/animation/a%04d/bt_common/human_sp/c%04d/human_sp037.pap", id, Animation_ID, id);
-                        cAddPathToDB(papPath, "040000");
-                        //chara/human/c0101/animation/a0008/bt_common/specialpop/specialpop.pap
-                        papPath = String.format("chara/human/c%04d/animation/a%04d/bt_common/specialpop/specialpop.pap", id, Animation_ID);
-                        cAddPathToDB(papPath, "040000",2);
-
-
-                        if (false) {
-                            for (String battleType : BattleType) {
-                                //オートアタック
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/%s/battle/auto_attack1.pap", id, Animation_ID, battleType);
-                                cAddPathToDB(papPath, "040000");
-
-                                //戦いに備える？
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/%s/emote/b_pose01_start.pap", id, Animation_ID, battleType);
-                                cAddPathToDB(papPath, "040000");
-
-                                //抜刀
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/%s/resident/idle.pap", id, Animation_ID, battleType);
-                                cAddPathToDB(papPath, "040000");
-
-                                //イベント
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/%s/event/event_bt_active.pap", id, Animation_ID, battleType);
-                                cAddPathToDB(papPath, "040000");
-
-                                //種族特有
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/%s/human_sp/c%04d/human_sp001.pap", id, Animation_ID, battleType, id);
-                                cAddPathToDB(papPath, "040000");
-
-                                //chara/human/c0101/animation/a0001/bt_swd_sld/craft/repair.pap
-                                //修理
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/%s/craft/repair.pap", id, Animation_ID, battleType);
-                                cAddPathToDB(papPath, "040000");
-
-                                //ウェポンスキル関係
-                                if (false) { //保留
-                                    for (String battleType2 : BattleType) {
-                                        //chara/human/c0101/animation/a0001/bt_2ax_emp/ws/bt_2ax_emp/wsh001.pap等
-                                        papPath = String.format("chara/human/c%04d/animation/a%04d/%s/ws/%s/", id, Animation_ID, battleType, battleType2);
-                                        HashDatabase.addFolderToDB(papPath, "040000");
-                                    }
-                                }
-                            }
-
-                            for (String battleType : Craft_GatherType) {
-                                //基本(ギャザラーはresident/gather.pap)
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/%s/resident/craft.pap", id, Animation_ID, battleType);
-                                cAddPathToDB(papPath, "040000");
-
-                                //制作開始
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/%s/craft/start.pap", id, Animation_ID, battleType);
-                                cAddPathToDB(papPath, "040000");
-
-                                //採取開始
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/%s/gather/start.pap", id, Animation_ID, battleType);
-                                cAddPathToDB(papPath, "040000");
-                                //潜水採取開始
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/%s/diving_gather/start.pap", id, Animation_ID, battleType);
-                                cAddPathToDB(papPath, "040000");
-
-                                //釣り開始
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/%s/fishing/cast_normal.pap", id, Animation_ID, battleType);
-                                cAddPathToDB(papPath, "040000");
-                                //釣り開始(椅子モード)
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/%s/fishing_chair/cast_normal.pap", id, Animation_ID, battleType);
-                                cAddPathToDB(papPath, "040000");
-                                //刺突漁開始
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/%s/harpoon/swim_under_hr_start.pap", id, Animation_ID, battleType);
-                                cAddPathToDB(papPath, "040000");
-                            }
-                        }
-                        if (true) {
-                            if (Animation_ID == 1 || (Animation_ID == 9 && id == 101)) {
-                                //chara/human/c0101/animation/a0001/bt_common/mount/mount_start.pap
-                                papPath = String.format("chara/human/c%04d/animation/a%04d/bt_common/mount/mount_start.pap", id, Animation_ID);
-                                cAddPathToDB(papPath, "040000");
-
-                                for (String mountID : MountAll) {
-                                    //マウント関係
-                                    //chara/human/c0101/animation/a0001/mt_d0001/resident/mount.pap
-                                    papPath = String.format("chara/human/c%04d/animation/a%04d/%s/resident/mount.pap", id, Animation_ID, mountID);
-                                    cAddPathToDB(papPath, "040000");
-                                    //chara/human/c0101/animation/a0001/mt_m0482/human_sp/c0101/human_sp001.pap
-                                    papPath = String.format("chara/human/c%04d/animation/a%04d/%s/human_sp/cc%04d/human_sp001.pap", id, Animation_ID, mountID, id);
-                                    cAddPathToDB(papPath, "040000");
-                                    //chara/human/c0101/animation/a0001/bt_common/mount_sp/d0002/mon_sp001.pap
-                                    String mountID2 = mountID.replace("mt_", "");
-                                    papPath = String.format("chara/human/c%04d/animation/a%04d/bt_common/mount_sp/%s/mon_sp001.pap", id, Animation_ID, mountID2);
-                                    cAddPathToDB(papPath, "040000");
-                                    papPath = String.format("chara/human/c%04d/animation/a%04d/bt_common/mount_sp/%s/hide/mon_sp001.pap", id, Animation_ID, mountID2);
-                                    cAddPathToDB(papPath, "040000");
-                                    papPath = String.format("chara/human/c%04d/animation/a%04d/bt_common/mount_sp/%s/show/mon_sp001.pap", id, Animation_ID, mountID2);
-                                    cAddPathToDB(papPath, "040000");
-
-                                }
-
-                                for (String ornamentID : OrnamentAll) {
-                                    //ファッションアクセサリ関係
-                                    //chara/human/c0101/animation/a0001/ot_m6000/resident/ornament.pap
-                                    papPath = String.format("chara/human/c%04d/animation/a%04d/%s/resident/ornament.pap", id, Animation_ID, ornamentID);
-                                    cAddPathToDB(papPath, "040000");
-                                }
-                            }
-                        }
-                        //ここまでAnimation_IDループ
-                    }
-                }
             }
         }
 
         //weapon関係
         if (false){
-            if (false) {
+            if (true) {
                 for (String actionTimeLine : WeaponTimeLine) {
                     //タイムライン登録
                     String tmbPath = "chara/action/" + actionTimeLine + ".tmb";
@@ -2665,31 +2000,31 @@ public class HashFinding_Utils extends Component {
             for (int id = 101; id < searchWeaponNum; id++) {
                 //欠番部分を読み飛ばす
                 if(id <= 5000){
-                    if (id == 120) { //盾：2020/4/27現在111まで
+                    if (id == 120) { //盾：2022/7/5現在112まで
                         id = 201;
-                    } else if (id == 230) { //片手剣：2020/4/27現在215まで
+                    } else if (id == 220) { //片手剣：2022/7/5現在217まで
                         id = 301;
-                    } else if (id == 340) { //格闘武器・クロー系(右)：2020/4/27現在333まで
+                    } else if (id == 340) { //格闘武器・クロー系(右)：2022/7/5現在335まで
                         id = 351;
-                    } else if (id == 390) { //格闘武器・クロー系(左)：2020/4/27現在383まで
+                    } else if (id == 390) { //格闘武器・クロー系(左)：2022/7/5現在385まで
                         id = 401;
-                    } else if (id == 430) { //両手斧：2020/4/27現在414まで
+                    } else if (id == 420) { //両手斧：2020/4/27現在415まで
                         id = 501;
-                    } else if (id == 540) { //両手槍：2020/4/27現在523まで
+                    } else if (id == 530) { //両手槍：2022/7/5現在524まで
                         id = 551;
-                    } else if (id == 510) { //旗：2020/4/27現在551のみ
+                    } else if (id == 552) { //旗：2020/4/27現在551のみ
                         id = 601;
-                    } else if (id == 650) { //弓：2020/4/27現在628まで
-                        id = 691;
-                    } else if (id == 699) { //楽器：691～697、矢筒：698のみ 2020/4/27現在698まで
+                    } else if (id == 650) { //弓：2022/7/5現在630まで
+                        id = 690;
+                    } else if (id == 699) { //楽器：690～697、矢筒：698のみ 2022/7/5現在698まで
                         id = 701;
-                    } else if (id == 710) { //片手幻具：2020/4/27現在701まで
+                    } else if (id == 710) { //片手幻具：2020/4/27現在701のみ
                         id = 801;
-                    } else if (id == 830) { //両手幻具：2020/4/27現在824まで
+                    } else if (id == 830) { //両手幻具：2022/7/5現在826まで
                         id = 901;
                     } else if (id == 910) { //片手呪具：2020/4/27現在902まで
                         id = 1001;
-                    } else if (id == 1030) { //両手呪具：2020/4/27現在1024まで
+                    } else if (id == 1030) { //両手呪具：2022/7/5現在1028まで
                         id = 1101;
                     } else if (id == 1102) { //片手杖？：2020/4/27現在1101のみ
                         id = 1201;
@@ -2701,7 +2036,7 @@ public class HashFinding_Utils extends Component {
                         id = 1401;
                     } else if (id == 1402) { //投擲物？：2020/4/27現在1401のみ
                         id = 1501;
-                    } else if (id == 1520) { //両手剣：2020/4/27現在1515まで
+                    } else if (id == 1520) { //両手剣：2022/7/5現在1516まで
                         id = 1551;
                     } else if (id == 1552) { //鞘(両手剣)：2020/4/27現在1551のみ
                         id = 1599;
@@ -2711,46 +2046,50 @@ public class HashFinding_Utils extends Component {
                         id = 1651;
                     } else if (id == 1660) { //格闘武器・ナックル系(左)：2020/4/27現在1658まで
                         id = 1701;
-                    } else if (id == 1750) { //魔道書：2020/4/27現在1744まで
+                    } else if (id == 1750) { //魔道書：2022/7/5現在1748まで
                         id = 1799;
                     } else if (id == 1800) { //はねペン：2020/4/27現在1799のみ
                         id = 1801;
-                    } else if (id == 1820) { //双剣(右)：2020/4/27現在1814まで
+                    } else if (id == 1820) { //双剣(右)：2022/7/5現在1815まで
                         id = 1848;
                     } else if (id == 1850) { //双剣(左) ：2020/4/27現在1849まで
                         id = 1851;
-                    } else if (id == 1870) { //ナイフ？ ：2020/4/27現在1864まで
+                    } else if (id == 1870) { //ナイフ？ ：2022/7/5現在1865まで
                         id = 1898;
                     } else if (id == 1900) { //武器？：2020/4/27現在1899まで
                         id = 1901;
-                    } else if (id == 1915) { //ディアディム関係？：2020/4/27現在1910まで
+                    } else if (id == 1920) { //スキルエフェクト関係？：2020/4/27現在1916まで
                         id = 2001;
-                    } else if (id == 2030) { //機工士の銃：2020/4/27現在2024まで
+                    } else if (id == 2030) { //機工士の銃：2022/7/5現在2025まで
                         id = 2099;
                     } else if (id == 2100) { //機工士の銃の弾倉：2020/4/27現在2099まで
                         id = 2101;
-                    } else if (id == 2130) { //天球儀：2020/4/27現在2123まで
+                    } else if (id == 2130) { //天球儀：2022/7/5現在2126まで
                         id = 2199;
                     } else if (id == 2200) { //天球儀・サブアーム：2020/4/27現在2199まで
                         id = 2201;
                     } else if (id == 2220) { //刀：2020/4/27現在2213まで
                         id = 2251;
-                    } else if (id == 2260) { //刀の鞘：2020/4/27現在2255まで
+                    } else if (id == 2260) { //刀の鞘：2022/7/5現在2256まで
                         id = 2301;
                     } else if (id == 2310) { //細剣：2020/4/27現在2307まで
                         id = 2351;
-                    } else if (id == 2380) { //赤魔道士のサブアーム(魔法のクリスタル？)：2020/4/27現在2372まで
+                    } else if (id == 2390) { //赤魔道士のサブアーム(魔法のクリスタル？)：2022/7/5現在2374まで
                         id = 2401;
                     } else if (id == 2402) { //青魔器(青魔道士)：2020/4/27現在2401まで
                         id = 2501;
-                    } else if (id == 2510) { //ガンブレード：2020/4/27現在2506まで
+                    } else if (id == 2520) { //ガンブレード：2022/7/5現在2508まで
                         id = 2601;
-                    } else if (id == 2610) { //投擲武器・右(踊り子)：2020/4/27現在2606まで
+                    } else if (id == 2630) { //投擲武器・右(踊り子)：2022/7/5現在2610まで
                         id = 2651;
-                    } else if (id == 2660) { //投擲武器・左(踊り子)：2020/4/27現在2656まで
+                    } else if (id == 2680) { //投擲武器・左(踊り子)：2022/7/5現在2660まで
+                        id = 2701;
+                    } else if (id == 2720) { //賢具：2022/7/5現在2704まで
+                        id = 2801;
+                    } else if (id == 2830) { //両手鎌(リーパー)：2022/7/5現在2811まで
                         id = 5001;
                     }
-                    //新規ジョブは2700番台、2800番台になると思われる
+
                 }
                 else if(id <= 6000){
                     //ここから先クラフター道具
@@ -2875,29 +2214,54 @@ public class HashFinding_Utils extends Component {
 
                 }
 
-                if (false) {
+                if (true) {
                     for (int Animation_ID = 1; Animation_ID < 20; Animation_ID++) {
                         //Animation_S：2020/4/27現在1～15
                         //chara/weapon/w0104/animation/s0001/body/material.pap
                         papPath = String.format("chara/weapon/w%04d/animation/s%04d/body/material.pap", id, Animation_ID);
-                        cAddPathToDB(papPath, "040000");
+                        cAddPathToDB(papPath, "040000", 2);
 
                         //Animation wp_common：2020/4/27現在1のみ
                         if (Animation_ID <= 2) {
                             //chara/weapon/w0507/animation/a0001/wp_common/resident/weapon.pap
                             papPath = String.format("chara/weapon/w%04d/animation/a%04d/wp_common/resident/weapon.pap", id, Animation_ID);
-                            cAddPathToDB(papPath, "040000");
+                            cAddPathToDB(papPath, "040000", 2);
 
                             for (String actionTimeLine : WeaponTimeLine) {
                                 //ヒットするかどうかは不明
                                 papPath = String.format("chara/weapon/w%04d/animation/a%04d/wp_common/%s.pap", id, Animation_ID, actionTimeLine);
-                                cAddPathToDB(papPath, "040000");
+                                cAddPathToDB(papPath, "040000", 2);
                             }
                         }
                     }
                 }
             }
         }
+
+        //Animationとは関係ないが軽い処理なのでついでに
+        //attachOffsetExist.waoe読み込み
+        SqPack_IndexFile index3;
+
+        index3 = SqPack_IndexFile.GetIndexFileForArchiveID("040000", true);
+        byte[] waoeData = index3.extractFile("chara/xls/attachoffset/attachOffsetExist.waoe");
+        ByteBuffer bb = ByteBuffer.wrap(waoeData);
+        short atchCount = bb.getShort(); //idデータ数
+        String atchPath;
+        for (int i = 0; i < atchCount; i++ ){
+            int id = bb.getShort();
+            if (id < 10000){
+                atchPath = String.format("chara/xls/attachoffset/m%04d.atch", id);
+                cAddPathToDB(atchPath, "040000",2);
+
+            }else{
+                //idが10000過ぎたものはdemihuman用らしい
+                id = id - 10000;
+                atchPath = String.format("chara/xls/attachoffset/d%04d.atch", id);
+                cAddPathToDB(atchPath, "040000",2);
+            }
+            //human用c????は無いらしい
+        }
+
 
         HashDatabase.commit();
 
@@ -2911,7 +2275,7 @@ public class HashFinding_Utils extends Component {
     public static void findSkeletonHashes() {
         SqPack_IndexFile index;
         byte[] estData;
-        int[] charaID_All = new int[]{101,201,301,401,501,601,701,801,901,1001,1101,1201,1301,1401,1501,1801};
+        int[] charaID_All = new int[]{101,201,301,401,501,601,701,801,901,1001,1101,1201,1301,1401,1501,1701,1801};
 
         index = SqPack_IndexFile.GetIndexFileForArchiveID("040000", true);
         //バイナリをみてもID等不明な場合
@@ -2945,7 +2309,7 @@ public class HashFinding_Utils extends Component {
                 cAddPathToDB(fullPath, "040000");
 
                 //chara/human/c9104/skeleton/face/f0002/skl_c9104f0002.sklb
-                fullPath = String.format("chara/human/c%04d/obj/face/f%04d/skl_c%04df%04d.sklb"
+                fullPath = String.format("chara/human/c%04d/skeleton/face/f%04d/skl_c%04df%04d.sklb"
                         , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
                 cAddPathToDB(fullPath, "040000");
 
@@ -2974,16 +2338,17 @@ public class HashFinding_Utils extends Component {
         }
 
         //FaceSkeletonTemplate.estで検索できなかった分の追加
-        if(false) {
-            int charID2 = 601;
-            for (int SkeletonID2 = 1; SkeletonID2 < 250; SkeletonID2++) {
-                String fullPath;
-                //chara/human/c0501/skeleton/face/f0215/skl_c0501f0215.sklb
-                fullPath = String.format("chara/human/c%04d/skeleton/face/f%04d/skl_c%04df%04d.sklb"
-                        , charID2, SkeletonID2, charID2, SkeletonID2);
-                cAddPathToDB(fullPath, "040000");
+        if(true) {
+            for (int charID2 : charaID_All) {
+                for (int SkeletonID2 = 1; SkeletonID2 < 250; SkeletonID2++) {
+                    String fullPath;
+                    //chara/human/c0501/skeleton/face/f0215/skl_c0501f0215.sklb
+                    fullPath = String.format("chara/human/c%04d/skeleton/face/f%04d/skl_c%04df%04d.sklb"
+                            , charID2, SkeletonID2, charID2, SkeletonID2);
+                    cAddPathToDB(fullPath, "040000", 2);
+                }
             }
-            Utils.getGlobalLogger().info("顔Skeleton追加検索完了");
+            Utils.getGlobalLogger().info("Face(顔) Skeleton追加検索完了");
         }
 
         //髪スケルトン関係
@@ -3013,19 +2378,36 @@ public class HashFinding_Utils extends Component {
                 cAddPathToDB(fullPath, "040000");
 
                 //chara/human/c9104/skeleton/hair/h0002/skl_c9104h0002.sklb
-                fullPath = String.format("chara/human/c%04d/obj/hair/h%04d/skl_c%04dh%04d.sklb"
+                fullPath = String.format("chara/human/c%04d/skeleton/hair/h%04d/skl_c%04dh%04d.sklb"
                         , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
                 cAddPathToDB(fullPath, "040000");
                 //chara/human/c9104/skeleton/hair/h0002/phy_c9104h0002.phyb
-                fullPath = String.format("chara/human/c%04d/obj/hair/h%04d/phy_c%04dh%04d.phyb"
+                fullPath = String.format("chara/human/c%04d/skeleton/hair/h%04d/phy_c%04dh%04d.phyb"
                         , charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID], charaID[SkeletonTable_ID], SkeletonID[SkeletonTable_ID]);
                 cAddPathToDB(fullPath, "040000");
             }
             Utils.getGlobalLogger().info("Hair(髪型) Skeleton検索完了");
         }
 
-        //胴スケルトン関係
+        //HairSkeletonTemplate.estで検索できなかった分の追加
         if(true) {
+            for (int charID2 : charaID_All) {
+                for (int SkeletonID2 = 1; SkeletonID2 < 1000; SkeletonID2++) {
+                    String fullPath;
+                    //chara/human/c0701/skeleton/hair/h0128/skl_c0701h0128.sklb
+                    fullPath = String.format("chara/human/c%04d/skeleton/hair/h%04d/skl_c%04dh%04d.sklb"
+                            , charID2, SkeletonID2, charID2, SkeletonID2);
+                    cAddPathToDB(fullPath, "040000", 2);
+                    fullPath = String.format("chara/human/c%04d/skeleton/hair/h%04d/phy_c%04dh%04d.phyb"
+                            , charID2, SkeletonID2, charID2, SkeletonID2);
+                    cAddPathToDB(fullPath, "040000", 2);
+                }
+            }
+            Utils.getGlobalLogger().info("Hair(髪型) Skeleton追加検索完了");
+        }
+
+        //胴スケルトン関係
+        if(false) {
             estData = index.extractFile("chara/xls/charadb/extra_top.est");
             ByteBuffer bb = ByteBuffer.wrap(estData);
             bb.order(ByteOrder.LITTLE_ENDIAN);
@@ -3059,6 +2441,30 @@ public class HashFinding_Utils extends Component {
                 cAddPathToDB(fullPath, "040000");
             }
             Utils.getGlobalLogger().info("Top(胴) Skeleton検索完了");
+        }
+
+        //extra_top.estで検索できなかった分の追加
+        if(true) {
+            for (int charID2 : charaID_All) {
+                for (int SkeletonID2 = 1; SkeletonID2 < 9999; SkeletonID2++) {
+                    String fullPath;
+                    //chara/human/c0501/skeleton/face/f0215/skl_c0501f0215.sklb
+                    fullPath = String.format("chara/human/c%04d/skeleton/top/t%04d/skl_c%04dt%04d.sklb"
+                            , charID2, SkeletonID2, charID2, SkeletonID2);
+                    cAddPathToDB(fullPath, "040000", 2);
+                    fullPath = String.format("chara/human/c%04d/skeleton/top/t%04d/phy_c%04dt%04d.phyb"
+                            , charID2, SkeletonID2, charID2, SkeletonID2);
+                    cAddPathToDB(fullPath, "040000", 2);
+
+                    //読み飛ばし
+                    if (SkeletonID2 == 1000){
+                        SkeletonID2 = 6000;
+                    } else if (SkeletonID2 == 7000){
+                        SkeletonID2 = 9000;
+                    }
+                }
+            }
+            Utils.getGlobalLogger().info("Top(胴) Skeleton追加検索完了");
         }
 
         //頭スケルトン関係
@@ -3101,16 +2507,22 @@ public class HashFinding_Utils extends Component {
         //extra_met.estで検索できなかった分の追加
         if(true) {
             for (int charID2 : charaID_All) {
-                for (int SkeletonID2 = 6100; SkeletonID2 < 6300; SkeletonID2++) {
+                for (int SkeletonID2 = 1; SkeletonID2 < 9999; SkeletonID2++) {
                     String fullPath;
                     //chara/human/c1801/skeleton/met/m6103/skl_c1801m6103.sklb
                     fullPath = String.format("chara/human/c%04d/skeleton/met/m%04d/skl_c%04dm%04d.sklb"
                             , charID2, SkeletonID2, charID2, SkeletonID2);
-                    cAddPathToDB(fullPath, "040000");
+                    cAddPathToDB(fullPath, "040000",2);//総当たりのため完全一致のみ登録
                     //chara/human/c1801/skeleton/met/m6103/phy_c1801m6103.phyb
                     fullPath = String.format("chara/human/c%04d/skeleton/met/m%04d/phy_c%04dm%04d.phyb"
                             , charID2, SkeletonID2, charID2, SkeletonID2);
-                    cAddPathToDB(fullPath, "040000");
+                    cAddPathToDB(fullPath, "040000",2);//総当たりのため完全一致のみ登録
+                    //読み飛ばし
+                    if (SkeletonID2 == 1000){
+                        SkeletonID2 = 5000;
+                    } else if (SkeletonID2 == 7000){
+                        SkeletonID2 = 9000;
+                    }
                 }
             }
             Utils.getGlobalLogger().info("Met(頭) Skeleton追加検索完了");
@@ -3388,8 +2800,7 @@ public class HashFinding_Utils extends Component {
                     String CutSceneBlock_File = folder.getName() + "/" + folder.getFiles()[j].getName();
                     byte[] data = currentIndex.extractFile(CutSceneBlock_File);
 
-                    @SuppressWarnings("unused")
-                    CutbFile cutbFile = new CutbFile(currentIndex, data, currentIndex.getEndian());
+                    new CutbFile(currentIndex, data, currentIndex.getEndian());
                 }
             }
         }
@@ -3487,8 +2898,17 @@ public class HashFinding_Utils extends Component {
             if (fullPath.endsWith(".cutb")) {
                 byte[] data = temp_IndexFile.extractFile(fullPath);
 
-                @SuppressWarnings("unused")
-                CutbFile cutbFile = new CutbFile(temp_IndexFile, data, temp_IndexFile.getEndian());
+                new CutbFile(temp_IndexFile, data, temp_IndexFile.getEndian());
+            }
+            if (fullPath.endsWith(".sgb")) {
+                byte[] data = temp_IndexFile.extractFile(fullPath);
+
+                new SgbFile(data, temp_IndexFile.getEndian(), fullPath);
+            }
+            if (fullPath.endsWith(".mtrl")) {
+                byte[] data = temp_IndexFile.extractFile(fullPath);
+
+                new Material(fullPath.substring(0, fullPath.lastIndexOf("/")), temp_IndexFile, data, temp_IndexFile.getEndian());
             }
 
         }else if (pathCheck == 1 && regMode == 1){

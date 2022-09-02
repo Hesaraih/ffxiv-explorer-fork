@@ -8,7 +8,6 @@ import com.fragmenterworks.ffxivextract.gui.modelviewer.ModelViewerWindow;
 import com.fragmenterworks.ffxivextract.gui.outfitter.OutfitterWindow;
 import com.fragmenterworks.ffxivextract.helpers.*;
 import com.fragmenterworks.ffxivextract.models.*;
-import com.fragmenterworks.ffxivextract.models.SCD_File.SCD_Sound_Info;
 import com.fragmenterworks.ffxivextract.models.SqPack_IndexFile.SqPack_File;
 import com.fragmenterworks.ffxivextract.storage.HashDatabase;
 import unluac.decompile.Decompiler;
@@ -24,10 +23,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -403,6 +399,225 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
                 prgLoadingBar.setValue(0);
                 prgLoadingBar.setVisible(false);
                 lblLoadingBarString.setVisible(false);
+            } else if (event.getActionCommand().equals("find_CutScene")) { //CutSceneハッシュ検索
+                if (Constants.datPath == null || Constants.datPath.isEmpty() || !new File(Constants.datPath).exists()) {
+                    JOptionPane.showMessageDialog(
+                            FileManagerWindow.this,
+                            "有効なFFXIVのパスを設定していません。 [オプション]メニューの[設定]で最初に設定してください。",
+                            "FFXIVパス未設定",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                prgLoadingBar.setVisible(true);
+                prgLoadingBar.setValue(0);
+                lblLoadingBarString.setVisible(true);
+
+                HashFinding_Utils.findCutSceneHashes();
+
+                JOptionPane.showMessageDialog(
+                        FileManagerWindow.this,
+                        "ハッシュの検索を終了しました。 現在開いているアーカイブがある場合は、アーカイブを再度開きます。",
+                        "検索完了",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                prgLoadingBar.setValue(0);
+                prgLoadingBar.setVisible(false);
+                lblLoadingBarString.setVisible(false);
+            } else if (event.getActionCommand().equals("find_VFX")) { //VFXハッシュ検索
+                if (Constants.datPath == null || Constants.datPath.isEmpty() || !new File(Constants.datPath).exists()) {
+                    JOptionPane.showMessageDialog(
+                            FileManagerWindow.this,
+                            "有効なFFXIVのパスを設定していません。 [オプション]メニューの[設定]で最初に設定してください。",
+                            "FFXIVパス未設定",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                prgLoadingBar.setVisible(true);
+                prgLoadingBar.setValue(0);
+                lblLoadingBarString.setVisible(true);
+
+                HashFinding_Utils.findVFXHashes();
+
+                JOptionPane.showMessageDialog(
+                        FileManagerWindow.this,
+                        "ハッシュの検索を終了しました。 現在開いているアーカイブがある場合は、アーカイブを再度開きます。",
+                        "検索完了",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                prgLoadingBar.setValue(0);
+                prgLoadingBar.setVisible(false);
+                lblLoadingBarString.setVisible(false);
+            } else if (event.getActionCommand().equals("find_Sound")) { //Soundハッシュ検索
+                if (Constants.datPath == null || Constants.datPath.isEmpty() || !new File(Constants.datPath).exists()) {
+                    JOptionPane.showMessageDialog(
+                            FileManagerWindow.this,
+                            "有効なFFXIVのパスを設定していません。 [オプション]メニューの[設定]で最初に設定してください。",
+                            "FFXIVパス未設定",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                prgLoadingBar.setVisible(true);
+                prgLoadingBar.setValue(0);
+                lblLoadingBarString.setVisible(true);
+
+                HashFinding_Utils.findSoundHashes();
+
+                JOptionPane.showMessageDialog(
+                        FileManagerWindow.this,
+                        "ハッシュの検索を終了しました。 現在開いているアーカイブがある場合は、アーカイブを再度開きます。",
+                        "検索完了",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                prgLoadingBar.setValue(0);
+                prgLoadingBar.setVisible(false);
+                lblLoadingBarString.setVisible(false);
+            } else if (event.getActionCommand().equals("find_SoundVoice")) { //SoundVoiceハッシュ検索
+                if (Constants.datPath == null || Constants.datPath.isEmpty() || !new File(Constants.datPath).exists()) {
+                    JOptionPane.showMessageDialog(
+                            FileManagerWindow.this,
+                            "有効なFFXIVのパスを設定していません。 [オプション]メニューの[設定]で最初に設定してください。",
+                            "FFXIVパス未設定",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                prgLoadingBar.setVisible(true);
+                prgLoadingBar.setValue(0);
+                lblLoadingBarString.setVisible(true);
+
+                HashFinding_Utils.findSoundVoiceHashes();
+
+                JOptionPane.showMessageDialog(
+                        FileManagerWindow.this,
+                        "ハッシュの検索を終了しました。 現在開いているアーカイブがある場合は、アーカイブを再度開きます。",
+                        "検索完了",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                prgLoadingBar.setValue(0);
+                prgLoadingBar.setVisible(false);
+                lblLoadingBarString.setVisible(false);
+            } else if (event.getActionCommand().equals("find_Item")) { //装備品ハッシュ検索
+                if (Constants.datPath == null || Constants.datPath.isEmpty() || !new File(Constants.datPath).exists()) {
+                    JOptionPane.showMessageDialog(
+                            FileManagerWindow.this,
+                            "有効なFFXIVのパスを設定していません。 [オプション]メニューの[設定]で最初に設定してください。",
+                            "FFXIVパス未設定",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                prgLoadingBar.setVisible(true);
+                prgLoadingBar.setValue(0);
+                lblLoadingBarString.setVisible(true);
+
+                HashFinding_Utils.getModelsFromItem();
+
+                JOptionPane.showMessageDialog(
+                        FileManagerWindow.this,
+                        "ハッシュの検索を終了しました。 現在開いているアーカイブがある場合は、アーカイブを再度開きます。",
+                        "検索完了",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                prgLoadingBar.setValue(0);
+                prgLoadingBar.setVisible(false);
+                lblLoadingBarString.setVisible(false);
+            } else if (event.getActionCommand().equals("find_Housing")) { //家具・庭具ハッシュ検索
+                if (Constants.datPath == null || Constants.datPath.isEmpty() || !new File(Constants.datPath).exists()) {
+                    JOptionPane.showMessageDialog(
+                            FileManagerWindow.this,
+                            "有効なFFXIVのパスを設定していません。 [オプション]メニューの[設定]で最初に設定してください。",
+                            "FFXIVパス未設定",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                prgLoadingBar.setVisible(true);
+                prgLoadingBar.setValue(0);
+                lblLoadingBarString.setVisible(true);
+
+                HashFinding_Utils.getHousingModels();
+
+                JOptionPane.showMessageDialog(
+                        FileManagerWindow.this,
+                        "ハッシュの検索を終了しました。 現在開いているアーカイブがある場合は、アーカイブを再度開きます。",
+                        "検索完了",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                prgLoadingBar.setValue(0);
+                prgLoadingBar.setVisible(false);
+                lblLoadingBarString.setVisible(false);
+            } else if (event.getActionCommand().equals("find_ModelChara")) { //キャラクターモデルハッシュ検索
+                if (Constants.datPath == null || Constants.datPath.isEmpty() || !new File(Constants.datPath).exists()) {
+                    JOptionPane.showMessageDialog(
+                            FileManagerWindow.this,
+                            "有効なFFXIVのパスを設定していません。 [オプション]メニューの[設定]で最初に設定してください。",
+                            "FFXIVパス未設定",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                prgLoadingBar.setVisible(true);
+                prgLoadingBar.setValue(0);
+                lblLoadingBarString.setVisible(true);
+
+                HashFinding_Utils.getModelsFromModelChara();
+
+                JOptionPane.showMessageDialog(
+                        FileManagerWindow.this,
+                        "ハッシュの検索を終了しました。 現在開いているアーカイブがある場合は、アーカイブを再度開きます。",
+                        "検索完了",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                prgLoadingBar.setValue(0);
+                prgLoadingBar.setVisible(false);
+                lblLoadingBarString.setVisible(false);
+            } else if (event.getActionCommand().equals("find_Skeleton")) { //スケルトンハッシュ検索
+                if (Constants.datPath == null || Constants.datPath.isEmpty() || !new File(Constants.datPath).exists()) {
+                    JOptionPane.showMessageDialog(
+                            FileManagerWindow.this,
+                            "有効なFFXIVのパスを設定していません。 [オプション]メニューの[設定]で最初に設定してください。",
+                            "FFXIVパス未設定",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                prgLoadingBar.setVisible(true);
+                prgLoadingBar.setValue(0);
+                lblLoadingBarString.setVisible(true);
+
+                HashFinding_Utils.findSkeletonHashes();
+
+                JOptionPane.showMessageDialog(
+                        FileManagerWindow.this,
+                        "ハッシュの検索を終了しました。 現在開いているアーカイブがある場合は、アーカイブを再度開きます。",
+                        "検索完了",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                prgLoadingBar.setValue(0);
+                prgLoadingBar.setVisible(false);
+                lblLoadingBarString.setVisible(false);
+            } else if (event.getActionCommand().equals("find_TimeLine")) { //タイムラインハッシュ検索
+                if (Constants.datPath == null || Constants.datPath.isEmpty() || !new File(Constants.datPath).exists()) {
+                    JOptionPane.showMessageDialog(
+                            FileManagerWindow.this,
+                            "有効なFFXIVのパスを設定していません。 [オプション]メニューの[設定]で最初に設定してください。",
+                            "FFXIVパス未設定",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                prgLoadingBar.setVisible(true);
+                prgLoadingBar.setValue(0);
+                lblLoadingBarString.setVisible(true);
+
+                HashFinding_Utils.findTimeLineBlock_Hashes();
+
+                JOptionPane.showMessageDialog(
+                        FileManagerWindow.this,
+                        "ハッシュの検索を終了しました。 現在開いているアーカイブがある場合は、アーカイブを再度開きます。",
+                        "検索完了",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                prgLoadingBar.setValue(0);
+                prgLoadingBar.setVisible(false);
+                lblLoadingBarString.setVisible(false);
+            } else if (event.getActionCommand().equals("wright_PapTable")) {
+                HashFinding_Utils.testPapLoadTable();
+                //PapLoadTableの解析結果を出力
             } else if (event.getActionCommand().equals("tool_Test")) {
                 HashFinding_Utils.TestPrg();
             } else if (event.getActionCommand().equals("settings")) {
@@ -527,6 +742,8 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
     };
 
     private void setupMenu() {
+        boolean IsDebug;
+        IsDebug = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0;
 
         //File Menu
         JMenu file = new JMenu(Strings.MENU_FILE);
@@ -619,6 +836,46 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
         tools_findMaps.setActionCommand("find_maps");
         tools_findMaps.addActionListener(menuHandler);
 
+        JMenuItem tools_findCutScene = new JMenuItem("CutSceneハッシュ検索");
+        tools_findCutScene.setActionCommand("find_CutScene");
+        tools_findCutScene.addActionListener(menuHandler);
+
+        JMenuItem tools_findVFX = new JMenuItem("VFXハッシュ検索");
+        tools_findVFX.setActionCommand("find_VFX");
+        tools_findVFX.addActionListener(menuHandler);
+
+        JMenuItem tools_findSoundHashes = new JMenuItem("Soundハッシュ検索");
+        tools_findSoundHashes.setActionCommand("find_Sound");
+        tools_findSoundHashes.addActionListener(menuHandler);
+
+        JMenuItem tools_findSoundVoice = new JMenuItem("SoundVoiceハッシュ検索");
+        tools_findSoundVoice.setActionCommand("find_SoundVoice");
+        tools_findSoundVoice.addActionListener(menuHandler);
+
+        JMenuItem tools_findItemHashes = new JMenuItem("装備品ハッシュ検索");
+        tools_findItemHashes.setActionCommand("find_Item");
+        tools_findItemHashes.addActionListener(menuHandler);
+
+        JMenuItem tools_findHousing = new JMenuItem("家具・庭具ハッシュ検索");
+        tools_findHousing.setActionCommand("find_Housing");
+        tools_findHousing.addActionListener(menuHandler);
+
+        JMenuItem tools_findModelChara = new JMenuItem("キャラクターモデル ハッシュ検索");
+        tools_findModelChara.setActionCommand("find_ModelChara");
+        tools_findModelChara.addActionListener(menuHandler);
+
+        JMenuItem tools_find_Skeleton = new JMenuItem("スケルトンハッシュ検索");
+        tools_find_Skeleton.setActionCommand("find_Skeleton");
+        tools_find_Skeleton.addActionListener(menuHandler);
+
+        JMenuItem tools_find_TimeLine = new JMenuItem("タイムラインハッシュ検索");
+        tools_find_TimeLine.setActionCommand("find_TimeLine");
+        tools_find_TimeLine.addActionListener(menuHandler);
+
+        JMenuItem tools_wright_PapTable = new JMenuItem("papLoadTable出力");
+        tools_wright_PapTable.setActionCommand("wright_PapTable");
+        tools_wright_PapTable.addActionListener(menuHandler);
+
         JMenuItem tools_Test = new JMenuItem("ツールテスト");
         tools_Test.setActionCommand("tool_Test");
         tools_Test.addActionListener(menuHandler);
@@ -683,7 +940,22 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
         tools.add(tools_findexhs);
         tools.add(tools_findMusic);
         tools.add(tools_findMaps);
-        tools.add(tools_Test);
+        tools.add(tools_findCutScene);
+        tools.add(tools_findVFX);
+        tools.add(tools_findSoundHashes);
+        tools.add(tools_findSoundVoice);
+        tools.add(tools_findItemHashes);
+        tools.add(tools_findHousing);
+        //メニューを増やす時はここにも追加するのを忘れないこと
+        tools.add(tools_findModelChara);
+        tools.add(tools_find_Skeleton);
+        tools.add(tools_find_TimeLine);
+
+        if(IsDebug){
+            //デバッグ用メニュー
+            tools.add(tools_wright_PapTable);
+            tools.add(tools_Test);
+        }
 
         database.add(db_hashcalculator);
         database.add(db_importCeDump);
@@ -884,7 +1156,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
         } else if (data.length >= 4 && checkMagic(data, "ShPk")) {
             Shader_View shaderView = new Shader_View(new SHPK_File(data, currentIndexFile.getEndian()));
             tabs.addTab("シェーダーパック", shaderView);
-        } else if (data.length >= 4 && checkMagic(data, "imc ")) {
+        } else if (data.length >= 4 && file.getName().endsWith(".imc")) {
             //file.getName().endsWith(".imc")
             IMC_View imcView = new IMC_View(new IMC_File(data, currentIndexFile.getEndian()));
             tabs.addTab("モデル情報ファイル", imcView);
@@ -1285,7 +1557,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
                                         if (mkDirPath.getParentFile().mkdirs()) {
                                             Utils.getGlobalLogger().trace("フォルダ作成に成功");
                                         }
-                                        EARandomAccessFile out = new EARandomAccessFile(path + j + extension, "rw", ByteOrder.LITTLE_ENDIAN);
+                                        FileOutputStream out = new FileOutputStream(path + j + extension);
                                         out.write(dataToSave, 0, dataToSave.length);
                                         out.close();
                                     }
@@ -1307,7 +1579,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
                                         if (mkDirPath.getParentFile().mkdirs()) {
                                             Utils.getGlobalLogger().trace("フォルダ作成に成功");
                                         }
-                                        EARandomAccessFile out = new EARandomAccessFile(path + j + extension, "rw", ByteOrder.LITTLE_ENDIAN);
+                                        FileOutputStream out = new FileOutputStream(path + j + extension);
                                         out.write(dataToSave, 0, dataToSave.length);
                                         out.close();
                                     }
@@ -1328,16 +1600,19 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
                             case ".scd": {
                                 SCD_File file = new SCD_File(data, currentIndexFile.getEndian());
 
-                                for (int s = 0; s < file.getNumEntries(); s++) {
-                                    SCD_Sound_Info info = file.getSoundInfo(s);
+                                for (int rowIndex = 0; rowIndex < file.getNumEntries(); rowIndex++) {
+                                    //SCD_Sound_Info info = file.getSoundInfo(rowIndex);
+                                    SCD_File.ScdEntryHeader info = file.EntryHeaders[rowIndex];
                                     if (info == null) {
                                         continue;
                                     }
-                                    if (info.dataType == 0x06) {
-                                        dataToSave = file.getConverted(s);
+                                    //if (info.Codec == 0x06) {
+                                    if (info.Codec == SCD_File.ScdCodec.OGG) {
+                                        dataToSave = file.getConverted(rowIndex);
                                         extension = ".ogg";
-                                    } else if (info.dataType == 0x0C) {
-                                        dataToSave = file.getConverted(s);
+                                        //} else if (info.Codec == 0x0C) {
+                                    } else if (info.Codec == SCD_File.ScdCodec.MSADPCM) {
+                                        dataToSave = file.getConverted(rowIndex);
                                         extension = ".wav";
                                     } else {
                                         continue;
@@ -1357,7 +1632,13 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
                                     if (mkDirPath.getParentFile().mkdirs()) {
                                         Utils.getGlobalLogger().trace("フォルダ作成に成功");
                                     }
-                                    EARandomAccessFile out = new EARandomAccessFile(path + (file.getNumEntries() == 1 ? "" : "_" + s) + extension, "rw", ByteOrder.LITTLE_ENDIAN);
+
+                                    FileOutputStream out;
+                                    if (file.getNumEntries() == 1) {
+                                        out = new FileOutputStream(path + "" + extension);
+                                    } else {
+                                        out = new FileOutputStream(path + "_" + rowIndex + extension);
+                                    }
                                     out.write(dataToSave, 0, dataToSave.length);
                                     out.close();
                                 }
@@ -1401,7 +1682,7 @@ public class FileManagerWindow extends JFrame implements TreeSelectionListener, 
                     if (mkDirPath.getParentFile().mkdirs()){
                         Utils.getGlobalLogger().trace("フォルダ作成に成功");
                     }
-                    EARandomAccessFile out = new EARandomAccessFile(path + extension, "rw", ByteOrder.LITTLE_ENDIAN);
+                    FileOutputStream out = new FileOutputStream(path + extension);
                     out.write(dataToSave, 0, dataToSave.length);
                     out.close();
                 } catch (FileNotFoundException e) {
