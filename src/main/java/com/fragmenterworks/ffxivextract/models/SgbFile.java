@@ -387,7 +387,7 @@ public class SgbFile extends Game_File {
                             Entries[i] = new SgbSphereCastRangeEntry(bb, entryOffset);
                             break;
                         default:
-                            Utils.getGlobalLogger().info(String.format("%sのEntry解析は未実装", type.name()));
+                            Utils.getGlobalLogger().trace(String.format("%sのEntry解析は未実装", type.name()));
                             break;
                     }
                 } catch (Exception e) {
@@ -1408,7 +1408,7 @@ public class SgbFile extends Game_File {
                     return type;
                 }
             }
-            Utils.getGlobalLogger().info(String.format("未知のEntryType : %s", value));
+            Utils.getGlobalLogger().trace(String.format("未知のEntryType : %s", value));
             return UnknownType;
         }
 

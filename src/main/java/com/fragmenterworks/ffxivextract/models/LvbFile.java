@@ -966,7 +966,7 @@ public class LvbFile extends Game_File {
                     return type;
                 }
             }
-            Utils.getGlobalLogger().info(String.format("未知のEntryType : %s", value));
+            Utils.getGlobalLogger().trace(String.format("未知のEntryType : %s", value));
             return UnknownType;
         }
 

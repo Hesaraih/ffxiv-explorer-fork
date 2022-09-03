@@ -559,7 +559,7 @@ public class TmbFile extends Game_File {
                     Entry[i] = new C202Entry(bb, chunkStartOffset);
                     break;
                 default:
-                    Utils.getGlobalLogger().info(String.format("%sのEntry解析は未実装", Magic2));
+                    Utils.getGlobalLogger().trace(String.format("%sのEntry解析は未実装", Magic2));
                     break;
             }
 

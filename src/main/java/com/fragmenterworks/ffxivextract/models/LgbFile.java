@@ -303,7 +303,7 @@ public class LgbFile extends Game_File {
                         Entries[i] = new LgbDoorRangeEntry(bb, entryOffset);
                         break;
                     default:
-                        Utils.getGlobalLogger().info(String.format("%sのEntry解析は未実装", type.name()));
+                        Utils.getGlobalLogger().trace(String.format("%sのEntry解析は未実装", type.name()));
                         break;
                 }
             }
@@ -477,7 +477,7 @@ public class LgbFile extends Game_File {
                         Entries[i] = new LgbFateRangeEntry(bb, entryOffset);
                         break;
                     default:
-                        Utils.getGlobalLogger().info(String.format("%sのEntry解析は未実装", type.name()));
+                        Utils.getGlobalLogger().trace(String.format("%sのEntry解析は未実装", type.name()));
                         break;
                 }
 
