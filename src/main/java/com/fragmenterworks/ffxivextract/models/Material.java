@@ -70,7 +70,7 @@ public class Material extends Game_File {
         short numPaths = bb.get(); //texファイルの数
         short numMaps = bb.get();
         short numColorSets = bb.get();
-        short numUnknown = bb.get();
+        short numShaders = bb.get();
 
         //Load Strings
         stringArray = new String[numPaths + numMaps + numColorSets + 1];
@@ -98,6 +98,11 @@ public class Material extends Game_File {
                 String s = stringArray[i];
 
                 if (!s.contains("/")) {
+                    //フォルダ区切り文字"/"が含まれていない場合の処理
+                    if (s.startsWith("map")){
+                        //設定ミスでtextureファイル数が間違っていてmap1などのチャンクIDまで読み込んでしまった場合の退避処理
+                        break;
+                    }
                     Utils.getGlobalLogger().debug("{}を読み込めませんでした", s);
                     continue;
                 }
@@ -146,7 +151,7 @@ public class Material extends Game_File {
         }
 
         //シェーダーリンクと未知数はここから始まります
-        bb.position(16 + (4 * (numPaths + numMaps + numColorSets)) + stringBuffer.length + colorTableSize + numUnknown);
+        bb.position(16 + (4 * (numPaths + numMaps + numColorSets)) + stringBuffer.length + colorTableSize + numShaders);
 
         int unknownDataSize = bb.getShort();
         int count1 = bb.getShort();
