@@ -644,7 +644,9 @@ public class Model extends Game_File {
             }
 
             for (int partNum = 0; partNum < (mesh.PartCount == 0 ? 1 : mesh.PartCount); partNum++) {
-                if (mesh.PartCount != 0 && atrMasks.length != 0) {
+                //meshPartTableがnullの時も実行していたので回避
+                if (mesh.PartCount != 0 && atrMasks.length != 0
+                        && Objects.requireNonNull(meshPartTable).length > (partNum + mesh.PartOffset)) {
                     long fullMask = 0;
                     for (int m = 0; m < meshPartTable[partNum + mesh.PartOffset].attributeMasks.size(); m++) {
                         fullMask |= meshPartTable[partNum + mesh.PartOffset].attributeMasks.get(m);
@@ -723,7 +725,7 @@ public class Model extends Game_File {
                 int indBufPos;
                 int numIndex;
 
-                if (mesh.PartCount != 0) {
+                if (mesh.PartCount != 0 && Objects.requireNonNull(meshPartTable).length > (mesh.PartOffset + partNum)) {
                     indBufPos = (meshPartTable[mesh.PartOffset + partNum].indexOffset * 2) - (mesh.IndexBufferOffset * 2);
                     numIndex = meshPartTable[mesh.PartOffset + partNum].indexCount;
                 } else {
