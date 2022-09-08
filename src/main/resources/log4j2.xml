@@ -1,13 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
+	<!-- Propertiesは、nameの値を変数として使える -->
+    <Properties>
+        <Property name="format1">%d{yyyy/MM/dd HH:mm:ss.SSS} [%t] %-6p %c{10} %m%n</Property>
+       <!-- ログのフォーマット 
+        %dは日時。{}に日時の形式を指定
+        %tはスレッド名
+        %-6pはログレベル名称を左詰めで6文字分出力する。「debug」であれば後ろに空白１文字が追加される。
+            但し、%-3pとしても名称は削られず「debug」として出力される。%6と-をとると右づめになる。
+        %c{x}は,例えばロガー名がorg.apache.commons.Fooのとき%c{2}の場合、commons.Fooが出力される
+        %mはログメッセージ
+        %nは改行
+      -->
+        <Property name="logfile">./log/ffxiv-explorer.log</Property>
+        <Property name="logfile-archive">./log/ffxiv-explorer_%d{yyyy-MM-dd}-%i.log</Property>
+    </Properties>
+
+    <!-- ログ出力先とログフォーマットの定義 -->
     <Appenders>
+        <!-- コンソールに出力する設定 -->
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %C{36} - %msg%n"/>
         </Console>
+        <!-- ファイルに出力する設定 -->
+        <RollingFile name="logfile001" append="true" fileName="${logfile}"
+          filePattern="${logfile-archive}">
+          <PatternLayout>
+            <pattern>${format1}</pattern>
+          </PatternLayout>
+          <Policies>
+            <!-- 1MBに達したらローテーションのファイルを作成する -->
+            <SizeBasedTriggeringPolicy size="1024KB"/>
+          </Policies>
+          <!-- ローテーションのファイルは、9つ持つ -->
+          <DefaultRolloverStrategy max="9"/>
+        </RollingFile>
     </Appenders>
+    <!-- パッケージ×ログレベル毎のログ出力先（Appender）を定義 -->
     <Loggers>
-        <Root level="debug">
-            <AppenderRef ref="Console"/>
+        <Root level="trace">
+            <!-- コンソール表示はdebugレベルまで -->
+            <AppenderRef ref="Console" level="debug"/>
+            <!-- logファイルは全て -->
+            <AppenderRef ref="logfile001" level="trace"/>
         </Root>
     </Loggers>
 </Configuration>
