@@ -12,9 +12,12 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Objects;
 
+@SuppressWarnings("FieldCanBeLocal")
 class AboutWindow extends JFrame {
 
     private final JPanel aboutWindow = new JPanel();
@@ -54,7 +57,7 @@ class AboutWindow extends JFrame {
         website.setFont(standardFont);
         specialThanks.setFont(standardFont);
 
-        ImageIcon image = new ImageIcon(getClass().getResource("/me.png"));
+        ImageIcon image = new ImageIcon(Objects.requireNonNull(getClass().getResource("/me.png")));
         meImage.setIcon(image);
 
         website.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -80,7 +83,7 @@ class AboutWindow extends JFrame {
         aboutWindow.add(meImage, BorderLayout.LINE_END);
         getContentPane().add(aboutWindow);
 
-        ImageIcon icon = new ImageIcon(getClass().getResource("/frameicon.png"));
+        ImageIcon icon = new ImageIcon(Objects.requireNonNull(getClass().getResource("/frameicon.png")));
 
         this.setIconImage(icon.getImage());
         this.pack();
@@ -112,11 +115,12 @@ class AboutWindow extends JFrame {
 
                 if (easterEggActivate >= 5) {
                     try {
+                        InputStream fontStream = Objects.requireNonNull(getClass().getResource("/cache")).openStream();
                         //エオルゼア文字に変更
-                        Constants.setUIFont(new FontUIResource(Font.createFont(Font.TRUETYPE_FONT, getClass().getResource("/cache").openStream()).deriveFont(13.5f)));
+                        Constants.setUIFont(new FontUIResource(Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont(13.5f)));
 
-                        titleFont = Font.createFont(Font.TRUETYPE_FONT, getClass().getResource("/cache").openStream()).deriveFont(20.0f);
-                        standardFont = Font.createFont(Font.TRUETYPE_FONT, getClass().getResource("/cache").openStream()).deriveFont(14.0f);
+                        titleFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont(20.0f);
+                        standardFont = Font.createFont(Font.TRUETYPE_FONT, fontStream).deriveFont(14.0f);
 
                         appname.setFont(titleFont);
                         author.setFont(standardFont);
@@ -125,9 +129,7 @@ class AboutWindow extends JFrame {
 
                         SwingUtilities.updateComponentTreeUI(AboutWindow.this.parent);
 
-                    } catch (FontFormatException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
+                    } catch (FontFormatException | IOException e) {
                         e.printStackTrace();
                     }
                 }
@@ -150,7 +152,7 @@ class AboutWindow extends JFrame {
         });
     }
 
-    private class FancyJLabel extends JLabel {
+    private static class FancyJLabel extends JLabel {
 
         FancyJLabel(String string) {
             super(string);
