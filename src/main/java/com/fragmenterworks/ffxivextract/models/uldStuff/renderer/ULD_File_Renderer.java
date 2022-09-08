@@ -179,7 +179,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
 
             }
         }else{
-            Utils.getGlobalLogger().info(String.format("未知のType「%d」があります", type));
+            Utils.getGlobalLogger().trace(String.format("未知のType「%d」があります", type));
         }
         return null;
     }
@@ -202,7 +202,7 @@ public class ULD_File_Renderer implements MouseListener, MouseMotionListener {
                                 //noinspection unchecked
                                 ((GraphicsComponent) element).component.load(renderer, element, cohd, components, cohd.typeData);
                             }else{
-                                Utils.getGlobalLogger().info("SparseArray<COHDEntry> componentsがnull");
+                                Utils.getGlobalLogger().trace("SparseArray<COHDEntry> componentsがnull");
                             }
                         }
                     }
