@@ -111,21 +111,23 @@ class Outfitter extends JPanel {
         slots.append(0, "装備品以外");
 
         //Fill the char ids
-        charIds.append(1, "Midlander Male");
-        charIds.append(2, "Midlander  Female");
-        charIds.append(3, "Highlander Male");
-        charIds.append(4, "Highlander Female");
-        charIds.append(5, "Elezen Male");
-        charIds.append(6, "Elezen Female");
-        charIds.append(7, "Miqo'te Male");
-        charIds.append(8, "Miqo'te Female");
-        charIds.append(9, "Roegadyn Male");
-        charIds.append(10, "Roegadyn  Female");
-        charIds.append(11, "Lalafell Male");
-        charIds.append(12, "Lalafell Female");
-        charIds.append(13, "Au Ra Male");
-        charIds.append(14, "Au Ra Female");
+        charIds.append(1, "ミッドランダー♂");
+        charIds.append(2, "ミッドランダー♀");
+        charIds.append(3, "ハイランダー♂");
+        charIds.append(4, "ハイランダー♀");
+        charIds.append(5, "エレゼン♂");
+        charIds.append(6, "エレゼン♀");
+        charIds.append(7, "ミコッテ♂");
+        charIds.append(8, "ミコッテ♀");
+        charIds.append(9, "ルガディン♂");
+        charIds.append(10, "ルガディン♀");
+        charIds.append(11, "ララフェル♂");
+        charIds.append(12, "ララフェル♀");
+        charIds.append(13, "アウ・ラ♂");
+        charIds.append(14, "アウ・ラ♀");
         charIds.append(15, "ロスガル♂");
+        charIds.append(16, "ロスガル♀");
+        charIds.append(17, "ヴィエラ♂");
         charIds.append(18, "ヴィエラ♀");
 
         @SuppressWarnings({"MismatchedReadAndWriteOfArray", "unchecked"})
