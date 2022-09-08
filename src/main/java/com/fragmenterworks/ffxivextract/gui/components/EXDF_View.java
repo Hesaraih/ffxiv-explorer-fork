@@ -27,6 +27,7 @@ import java.awt.event.ItemListener;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -545,8 +546,9 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                             }
                             if ((exhName.equals("ENpcDressUpDress.exh") && columnIndex > 40)
                                     || (exhName.equals("NpcEquip.exh") && columnIndex >= 4)
-                                    || (exhName.equals("BenchmarkOverrideEquipment.exh") && columnIndex >= 10)){
-                                //特殊なUIntを含むファイルの処理
+                                    || (exhName.equals("BenchmarkOverrideEquipment.exh") && columnIndex >= 10)
+                                    || (exhName.equals("ENpcBase.exh") && columnIndex >= 69)){
+                                //特殊なUIntを含むファイルの処理(装備やアクセサリのモデルIDのバイナリ)
                                 int[] dual = entry.getDual(dataset.offset);
                                 return dual[1] + ", " + dual[0];
                             }
@@ -579,7 +581,6 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                         case 0x01: // BOOL
                             return entry.getBoolean(dataset.offset);
                         case 0x00: // STRING; Points to offset from end of dataset part. Read until 0x0.
-                            //return new String(entry.getString(exhFile.getDatasetChunkSize(), dataset.offset));
                             return FFXIV_String.parseFFXIVString(entry.getString(exhFile.getDatasetChunkSize(), dataset.offset));
                         default:
                             return "?";// Value: " + ((int)entry.getByte(dataset.offset)&0xFF);
@@ -674,7 +675,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
             String[] model2 = ((String) table.getValueAt(row, 12)).split(",");
 
             String path = null, path2 = null;
-            int[] chara_id = new int[] { 101, 103, 104, 201, 204, 301, 401, 501, 504, 601, 604, 701, 801, 804, 901, 1001, 1101, 1201, 1301, 1304, 1401, 1404, 1501, 1801, 9104, 9204 };
+            int[] chara_id = new int[] { 101, 103, 104, 201, 204, 301, 401, 501, 504, 601, 604, 701, 801, 804, 901, 1001, 1101, 1201, 1301, 1304, 1401, 1404, 1501, 1701, 1801, 9104, 9204 };
 
             for (int humanID : chara_id){
                 switch (slot) {
@@ -747,7 +748,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
             }
         }
 
-        OutputStreamWriter out = new OutputStreamWriter(new FileOutputStream(path), StandardCharsets.UTF_8);
+        OutputStreamWriter out = new OutputStreamWriter(Files.newOutputStream(Paths.get(path)), StandardCharsets.UTF_8);
 
         //見出し行作成
         for (int col = 0; col < table.getColumnCount(); col++) {
@@ -797,13 +798,15 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
         String path = Constants.EXH_NAMES_PATH + exhName.replace("exh", "lst");
         if (!Files.exists(Paths.get(path))) {
+            //exh名.lstがない場合
             String jsonPath = "./Definitions/" + exhName.replace("exh", "json");
-            if (!Files.exists(Paths.get(jsonPath))){
+            final Path exhNameListPath = Paths.get(jsonPath);
+            if (!Files.exists(exhNameListPath)){
                 return;
             }
             try {
-                JsonObject json = gson.fromJson(new String(Files.readAllBytes(Paths.get(jsonPath))), JsonObject.class);
-                Utils.getGlobalLogger().info("{}から列名を読み込んでいます", jsonPath);
+                JsonObject json = gson.fromJson(new String(Files.readAllBytes(exhNameListPath)), JsonObject.class);
+                Utils.getGlobalLogger().trace("{}から列名を読み込んでいます", jsonPath);
 
                 int index = 0;
                 String name;
@@ -876,6 +879,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
                     columnNames.put(index, name);
                 }
 
+                //exh名.lstファイルをSaitCoinachのjsonから自動変換&作成
                 File file = new File(path);
                 FileWriter filewriter = new FileWriter(file, false); //上書きモード
                 for (int id = 0; id < columnNames.size(); id++){
@@ -890,7 +894,7 @@ public class EXDF_View extends JScrollPane implements ItemListener {
 
             return;
         }
-        Utils.getGlobalLogger().info("{}から列名を読み込んでいます", path);
+        Utils.getGlobalLogger().trace("{}から列名を読み込んでいます", path);
 
         try {
             BufferedReader br = new BufferedReader(new FileReader(path));
