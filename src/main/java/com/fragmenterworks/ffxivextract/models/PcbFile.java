@@ -122,7 +122,7 @@ public class PcbFile extends Game_File {
                         if (bb.position() + 12 < bb.limit()) {
                             entry.Data.Vertices[i] = new Vector3(bb.getFloat(), bb.getFloat(), bb.getFloat());
                         }else{
-                            Utils.getGlobalLogger().info("エントリー数が多すぎます");
+                            Utils.getGlobalLogger().trace("エントリー数が多すぎます");
                             break;
                         }
                     }
@@ -133,7 +133,7 @@ public class PcbFile extends Game_File {
                         if (bb.position() + 6 < bb.limit()) {
                             entry.Data.VerticesI16[i]  = new PcbBlockData.VertexI16(bb.getShort(), bb.getShort(), bb.getShort());
                         }else{
-                            Utils.getGlobalLogger().info("エントリー数が多すぎます");
+                            Utils.getGlobalLogger().trace("エントリー数が多すぎます");
                             break;
                         }
                     }
@@ -146,7 +146,7 @@ public class PcbFile extends Game_File {
                             bb.get(dataByte);
                             entry.Data.Indices[i] = new PcbBlockData.IndexData(dataByte);
                         }else{
-                            Utils.getGlobalLogger().info("エントリー数が多すぎます");
+                            Utils.getGlobalLogger().trace("エントリー数が多すぎます");
                             break;
                         }
                     }
