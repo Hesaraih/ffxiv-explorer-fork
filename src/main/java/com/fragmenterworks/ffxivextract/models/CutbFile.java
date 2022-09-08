@@ -110,7 +110,7 @@ public class CutbFile extends Game_File {
                     Entry = new CttlEntry(bb, BaseOffset + Header.EntryOffset, Header.EntrySize);
                     break;
                 default:
-                    Utils.getGlobalLogger().info(String.format("%sのEntry解析は未実装", Header.Magic2));
+                    Utils.getGlobalLogger().trace(String.format("%sのEntry解析は未実装", Header.Magic2));
                     break;
             }
 
