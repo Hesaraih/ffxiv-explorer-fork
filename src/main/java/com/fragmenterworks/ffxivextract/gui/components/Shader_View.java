@@ -110,6 +110,8 @@ public class Shader_View extends JPanel {
                             break;
                         }
                     }
+                }else{
+                    paramId = String.format("0x%x", shader.getShaderHeader().paramInfo[i].id);
                 }
                 DefaultMutableTreeNode node = new DefaultMutableTreeNode(cTable.constantInfo[i].Name + "[" + cTable.constantInfo[i].TypeInfo.Columns + "x" + cTable.constantInfo[i].TypeInfo.Rows + "]" + " Index: " + cTable.constantInfo[i].RegisterIndex + ", ParamId: " + paramId);
                 root.add(node);
