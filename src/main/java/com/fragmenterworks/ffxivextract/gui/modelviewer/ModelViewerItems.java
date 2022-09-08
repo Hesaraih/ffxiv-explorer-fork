@@ -115,8 +115,8 @@ class ModelViewerItems extends JPanel {
         charIds.append(13, "アウラ♂");
         charIds.append(14, "アウラ♀");
         charIds.append(15, "ロスガル♂");
-        //charIds.append(16, "ロスガル♀")
-        //charIds.append(17, "ヴィエラ♂")
+        charIds.append(16, "ロスガル♀");
+        charIds.append(17, "ヴィエラ♂");
         charIds.append(18, "ヴィエラ♀");
 
         Arrays.fill(entries, new ArrayList<ModelItemEntry>());
