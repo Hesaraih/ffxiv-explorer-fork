@@ -13,6 +13,8 @@ import java.io.*;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Objects;
 
 class SCDConverterWindow extends JFrame {
@@ -275,7 +277,7 @@ class SCDConverterWindow extends JFrame {
         byte[] header = createSCDHeader(ogg.length, volume, numChannels, sampleRate, loopStart, loopEnd);
 
         //scd書き込み
-        BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(oggPath + ".scd"));
+        BufferedOutputStream out = new BufferedOutputStream(Files.newOutputStream(Paths.get(oggPath + ".scd")));
         out.write(header);
         out.write(ogg);
         out.close();
